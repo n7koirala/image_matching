@@ -10,6 +10,10 @@ using namespace std;
 class CosineSimilarity {
 public:
     // utitlity functions for computing cosine similarity
+    double plaintextMagnitude(int dim, vector<double> x);
+    double plaintextInnerProduct(int dim, vector<double> x, vector<double> y);
+    std::vector<double> plaintextNormalize(int dim, vector<double> x);
+    double plaintextCosineSim(int dim, vector<double> x, vector<double> y);
 private:
     // some private members here
 };
