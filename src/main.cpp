@@ -1,4 +1,4 @@
-#include "iostream"
+#include <iostream>
 #include "../include/cosine_similarity.h"
 #include "openfhe.h"
 
@@ -9,6 +9,7 @@ using namespace std;
 
 int main() {
 
+    // For static methods
     CosineSimilarity cs;
     
     CCParams<CryptoContextCKKSRNS> parameters;
@@ -48,74 +49,79 @@ int main() {
     cout << "ring dimension: " << cc->GetRingDimension() << endl;
     cout << "noise estimate: " << parameters.GetNoiseEstimate() << endl;
     cout << "multiplicative depth: " << parameters.GetMultiplicativeDepth() << endl;
-    cout << "Noise level: " << parameters.GetNoiseEstimate() << endl;
-    */
-    
-    // Randomized inputs
-    int inputDim = 8;
-    vector<double> xQ(inputDim);
-    vector<double> x1(inputDim);
-    vector<double> x2(inputDim);
-    for(int i = 0; i < inputDim; i++) {
-        xQ[i] = (rand() % 199) - 99; // random integer in [-99, 99]
-        x1[i] = (rand() % 199) - 99; // random integer in [-99, 99]
-        x2[i] = (rand() % 199) - 99; // random integer in [-99, 99]
+    cout << "Noise level: " << parameters.GetNoiseEstimate() << endl; */
+
+    // Open input file
+    ifstream fileStream;
+    fileStream.open("input_random", ios::in);
+    if(!fileStream.is_open()) {
+        cout << "Error opening file" << endl;
+        return 1;
     }
-    
-    cout << "Expected CS(xQ, x1) = " << cs.plaintextCosineSim(inputDim, xQ, x1) << endl;
-    cout << "Expected CS(xQ, x2) = " << cs.plaintextCosineSim(inputDim, xQ, x2) << endl;
+
+    // Read in vectors from file
+    int inputDim, numVectors;
+    fileStream >> inputDim >> numVectors;
+    vector<vector<double>> plaintextVectors(numVectors , vector<double>(inputDim));
+    for(int i = 0; i < numVectors; i++) {
+        for(int j = 0; j < inputDim; j++) {
+            fileStream >> plaintextVectors[i][j];
+        }
+    }
+    fileStream.close();
+
+    int vectorsPerBatch = (int)(batchSize / inputDim);          // round down
+    int totalBatches = (int)(numVectors / vectorsPerBatch + 1); // round up
+    int batchNum;
 
     // Normalize in plaintext domain
-    vector<double> xQNorm = cs.plaintextNormalize(inputDim, xQ);
-    vector<double> x1Norm = cs.plaintextNormalize(inputDim, x1);
-    vector<double> x2Norm = cs.plaintextNormalize(inputDim, x2);
+    vector<vector<double>> normalizedVectors(numVectors , vector<double>(inputDim));
+    for(int i = 0; i < numVectors; i++) {
+        normalizedVectors[i] = cs.plaintextNormalize(inputDim, plaintextVectors[i]);
+    }
 
     // Concatenate for batching purposes
-    vector<double> xQBatched = xQNorm;
-    xQBatched.insert(xQBatched.end(), xQNorm.begin(), xQNorm.end());
-    vector<double> x1Batched = x1Norm;
-    x1Batched.insert(x1Batched.end(), x2Norm.begin(), x2Norm.end());
+    // Query vector is concatenated with self vectorsPerBatch times
+    // All numVectors=10000 database vectors are concatenated, yet split across several vectors to not exceed batch size
+    vector<double> queryVector(0);
+    vector<vector<double>> databaseVectors( totalBatches, vector<double> (0));
+    for(int i = 1; i < numVectors; i++) {
+        batchNum = (int)(i / vectorsPerBatch);
+        if(batchNum == 0) {
+            queryVector.insert(queryVector.end(), normalizedVectors[0].begin(), normalizedVectors[0].end());
+        }
+        databaseVectors[batchNum].insert(databaseVectors[batchNum].end(), normalizedVectors[i].begin(), normalizedVectors[i].end());
+    }
 
     // Encode as plaintexts
-    Plaintext ptxtQ = cc->MakeCKKSPackedPlaintext(xQNorm);
-    Plaintext ptxt1 = cc->MakeCKKSPackedPlaintext(x1Norm);
-    Plaintext ptxt2 = cc->MakeCKKSPackedPlaintext(x2Norm);
+    Plaintext queryPtxt = cc->MakeCKKSPackedPlaintext(queryVector);
+    vector<Plaintext> databasePtxts(totalBatches);
+    for(int i = 0; i < totalBatches; i++) {
+        databasePtxts[i] = cc->MakeCKKSPackedPlaintext(databaseVectors[i]);
+    }
 
-    Plaintext ptxtQB = cc->MakeCKKSPackedPlaintext(xQBatched);
-    Plaintext ptxt1B = cc->MakeCKKSPackedPlaintext(x1Batched);    
-    
+    vector<Plaintext> resultPtxts(totalBatches);
+
     // Encrypt the encoded vectors
-    auto cQ = cc->Encrypt(pk, ptxtQ);
-    auto c1 = cc->Encrypt(pk, ptxt1);
-    auto c2 = cc->Encrypt(pk, ptxt2);
+    auto queryCipher = cc->Encrypt(pk, queryPtxt);
+    for(int i = 0; i < totalBatches; i++) {
+        auto databaseCipher = cc->Encrypt(pk, databasePtxts[i]);
 
-    auto cQB = cc->Encrypt(pk, ptxtQB);
-    auto c1B = cc->Encrypt(pk, ptxt1B);
+        // Cosine similarity is equivalent to inner product of normalized vectors
+        auto cosineCipher = cc->EvalInnerProduct(queryCipher, databaseCipher, inputDim);
 
-    // Compute cosine similarity in encrypted domain
-    auto cQ1 = cc->EvalInnerProduct(cQ, c1, inputDim);
-    auto cQ2 = cc->EvalInnerProduct(cQ, c2, inputDim);
+        // Decryption
+        cc->Decrypt(sk, cosineCipher, &(resultPtxts[i]));
 
-    auto cB = cc->EvalInnerProduct(cQB, c1B, inputDim);
+        // Computed Output
+        cout << "Expected: cos(query, database[" << i*vectorsPerBatch << "]) =     ";
+        cout << cs.plaintextCosineSim(inputDim, plaintextVectors[0], plaintextVectors[i*vectorsPerBatch]) << endl;
 
-    // Decryption
-    Plaintext result;
-    cout.precision(4);
-    cout << endl << "Non-batched homomorphic computations: " << endl;
-
-    cc->Decrypt(sk, cQ1, &result);
-    result->SetLength(1);
-    cout << "Homomorphic CS(xQ, x1) = " << result;
-
-    cc->Decrypt(sk, cQ2, &result);
-    result->SetLength(1);
-    cout << "Homomorphic CS(xQ, x2) = " << result;
-
-    cout << endl << "Two-vector batched homomorphic computations: " << endl;
-
-    cc->Decrypt(sk, cB, &result);
-    result->SetLength(9);
-    cout << "Homomorphic CS(xQ, x1, x2) = " << result;
+        cout.precision(4);
+        resultPtxts[i]->SetLength(1);
+        cout << "Homomorphic: cos(query, database[" << i*vectorsPerBatch << "]) = ";
+        cout << resultPtxts[i] << endl;
+    }
     
     return 0;
 }
