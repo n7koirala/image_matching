@@ -2,5 +2,4 @@
 
 #pragma once
 
-const std::string BACKEND_VECTORS_FILE = "backend_vectors.dat";
-const std::vector<double> QUERY_VECTOR = { /* Some default vector */ };
+const std::string BACKEND_VECTORS_FILE = "input/backend_random.dat";

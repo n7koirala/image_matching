@@ -1,5 +1,6 @@
 #include <iostream>
 #include "../include/cosine_similarity.h"
+#include "../include/config.h"
 #include "openfhe.h"
 
 using namespace lbcrypto;
@@ -55,7 +56,7 @@ int main() {
 
     // Open input file
     ifstream fileStream;
-    fileStream.open("input/input_random", ios::in);
+    fileStream.open(BACKEND_VECTORS_FILE, ios::in);
     if(!fileStream.is_open()) {
         cout << "Error opening file" << endl;
         return 1;
