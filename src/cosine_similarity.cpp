@@ -38,3 +38,10 @@ vector<double> CosineSimilarity::plaintextNormalize(int dim, vector<double> x) {
 double CosineSimilarity::plaintextCosineSim(int dim, vector<double> x, vector<double> y) {
     return plaintextInnerProduct(dim, x, y) / (plaintextMagnitude(dim, x) * plaintextMagnitude(dim, y));
 }
+
+/* Append the vector source onto the end of the vector dest, n times */
+void CosineSimilarity::concatenateVectors(vector<double>& dest, vector<double> source, int n) {
+    for(int i = 0; i < n; i++) {
+        dest.insert(dest.end(), source.begin(), source.end());
+    }
+}

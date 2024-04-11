@@ -14,6 +14,7 @@ public:
     double plaintextInnerProduct(int dim, vector<double> x, vector<double> y);
     std::vector<double> plaintextNormalize(int dim, vector<double> x);
     double plaintextCosineSim(int dim, vector<double> x, vector<double> y);
+    void concatenateVectors(vector<double>& dest, vector<double> source, int n);
 private:
     // some private members here
 };
