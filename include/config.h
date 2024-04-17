@@ -1,4 +1,5 @@
-// ** Holds configuration parameters like file paths, default values, and any other constants values.
+// ** Holds configuration parameters like file paths, default values, and any
+// other constants values.
 
 #include <string>
 #pragma once
