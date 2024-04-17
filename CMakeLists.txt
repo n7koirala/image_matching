@@ -20,7 +20,9 @@ include_directories(
 # Source files
 add_executable(ImageMatching
     src/main.cpp
-    src/cosine_similarity.cpp
+    src/receiver_pre.cpp
+    src/receiver_he.cpp
+    src/sender.cpp
     src/openFHE_wrapper.cpp
     src/vector_utils.cpp
 )

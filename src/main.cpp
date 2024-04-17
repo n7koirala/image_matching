@@ -1,5 +1,8 @@
 #include "../include/config.h"
-#include "../include/cosine_similarity.h"
+#include "../include/receiver_he.h"
+#include "../include/receiver_pre.h"
+#include "../include/sender.h"
+#include "../include/vector_utils.h"
 #include "openfhe.h"
 #include <iostream>
 
@@ -8,10 +11,7 @@ using namespace std;
 
 // ** Entry point of the application that orchestrates the flow. **
 
-int main() {
-
-  // For static methods
-  CosineSimilarity cs;
+int main(int argc, char *argv[]) {
 
   CCParams<CryptoContextCKKSRNS> parameters;
   uint32_t multDepth = 12;
@@ -36,6 +36,7 @@ int main() {
   auto sk = keyPair.secretKey;
   cc->EvalMultKeyGen(sk);
   cc->EvalSumKeyGen(sk);
+  cc->EvalRotateKeyGen(sk, {1, 2, 4, 8, 16, 32, 64, 128, 256, 512});
 
   unsigned int batchSize = cc->GetEncodingParams()->GetBatchSize();
 
@@ -54,17 +55,28 @@ int main() {
   endl; cout << "Noise level: " << parameters.GetNoiseEstimate() << endl;
    */
 
-  // Open input file
+  // Get vectors from input
   ifstream fileStream;
-  fileStream.open(BACKEND_VECTORS_FILE, ios::in);
+  if (argc > 0) {
+    fileStream.open(argv[1], ios::in);
+  } else {
+    fileStream.open(BACKEND_VECTORS_FILE, ios::in);
+  }
+
   if (!fileStream.is_open()) {
-    cout << "Error opening file" << endl;
+    cerr << "Error opening file" << endl;
     return 1;
   }
 
   // Read in vectors from file
   int inputDim, numVectors;
   fileStream >> inputDim >> numVectors;
+
+  vector<double> queryVector(inputDim);
+  for (int i = 0; i < inputDim; i++) {
+    fileStream >> queryVector[i];
+  }
+
   vector<vector<double>> plaintextVectors(numVectors, vector<double>(inputDim));
   for (int i = 0; i < numVectors; i++) {
     for (int j = 0; j < inputDim; j++) {
@@ -73,71 +85,43 @@ int main() {
   }
   fileStream.close();
 
-  // Compute number of vectors we can fit into a single ciphertext batch, and
-  // how many batches needed
-  int vectorsPerBatch = (int)(batchSize / inputDim);          // round down
-  int totalBatches = (int)(numVectors / vectorsPerBatch + 1); // round up
+  int vectorsPerBatch = (int)(batchSize / inputDim);
+  int totalBatches = (int)(numVectors / vectorsPerBatch + 1);
 
-  // Normalize in plaintext domain
-  vector<vector<double>> normalizedVectors(numVectors,
-                                           vector<double>(inputDim));
-  for (int i = 0; i < numVectors; i++) {
-    normalizedVectors[i] = cs.plaintextNormalize(inputDim, plaintextVectors[i]);
-  }
+  // initialize receiver and sender objects
+  ReceiverPre rp(cc, pk, inputDim, numVectors);
+  ReceiverHE receiver(cc, pk, inputDim, numVectors);
+  Sender sender(cc, pk, inputDim, numVectors);
 
-  // The first vector from the file is used as the query vector
-  // Concatenate with itself so that queryVector is the length of a fully
-  // batched plaintext
-  vector<double> queryVector(0);
-  cs.concatenateVectors(queryVector, normalizedVectors[0], vectorsPerBatch);
+  // Normalize, batch, and encrypt the query vector
+  Ciphertext<DCRTPoly> queryCipher = receiver.encryptQuery(queryVector);
 
-  // Remaining vectors from file are used as database vectors to be queried
-  // against Concatenate them in several different batches, each the length of a
-  // fully batched plaintext
-  vector<vector<double>> databaseVectors(totalBatches, vector<double>(0));
-  for (int i = 0; i < numVectors; i++) {
-    int batchNum = (int)(i / vectorsPerBatch);
-    cs.concatenateVectors(databaseVectors[batchNum], normalizedVectors[i], 1);
-  }
+  // Normalize, batch, and encrypt the database vectors
+  vector<Ciphertext<DCRTPoly>> databaseCipher =
+      receiver.encryptDB(plaintextVectors);
 
-  // Encode batched query and batched DB vectors as plaintexts
-  Plaintext queryPtxt = cc->MakeCKKSPackedPlaintext(queryVector);
+  // Cosine similarity is equivalent to inner product of normalized vectors
+  // In future, explore if key-switching is not necessary / slower
+  vector<Ciphertext<DCRTPoly>> cosineCipher =
+      sender.computeSimilarity(queryCipher, databaseCipher);
 
-  vector<Plaintext> databasePtxts(totalBatches);
-  for (int i = 0; i < totalBatches; i++) {
-    databasePtxts[i] = cc->MakeCKKSPackedPlaintext(databaseVectors[i]);
-  }
-
-  // Encrypt the batched query vector
-  auto queryCipher = cc->Encrypt(pk, queryPtxt);
-
-  // Iterate over encrypted batched DB vectors and calculate CS for each one
   vector<Plaintext> resultPtxts(totalBatches);
   for (int i = 0; i < totalBatches; i++) {
-    auto databaseCipher = cc->Encrypt(pk, databasePtxts[i]);
-
-    // Cosine similarity is equivalent to inner product of normalized vectors
-    // In future, explore if key-switching is not necessary / slower
-    auto cosineCipher =
-        cc->EvalInnerProduct(queryCipher, databaseCipher, inputDim);
-
-    cc->Decrypt(sk, cosineCipher, &(resultPtxts[i]));
+    cc->Decrypt(sk, cosineCipher[i], &(resultPtxts[i]));
   }
 
   // Formatted Output
-  for (int i = 1; i < numVectors; i++) {
+  for (int i = 0; i < numVectors; i++) {
     int batchNum = (int)(i / vectorsPerBatch);
     int batchIndex = (i % vectorsPerBatch) * inputDim;
     auto resultValues = resultPtxts[batchNum]->GetRealPackedValue();
-    cout << "Cosine similarity of vector[" << 0 << "] with vector[" << i << "]"
+    cout << "Cosine similarity of query vector with database[" << i << "]"
          << endl;
     cout << "Batch Num: " << batchNum << "\tBatch Index: " << batchIndex
          << endl;
     cout << "Homomorphic:\t" << resultValues[batchIndex] << endl;
     cout << "Expected:\t"
-         << cs.plaintextCosineSim(inputDim, plaintextVectors[0],
-                                  plaintextVectors[i])
-         << endl;
+         << rp.plaintextCosineSim(queryVector, plaintextVectors[i]) << endl;
     cout << endl;
   }
 

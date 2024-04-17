@@ -1,8 +1,8 @@
 // ** cosine_similarity: Contains the definition and implementation of the
 // cosine similarity computation logic using plaintext preprocessing.
 
-#include "../include/vector_utils.h"
 #include "../include/openFHE_wrapper.h"
+#include "../include/vector_utils.h"
 #include "openfhe.h"
 #include <vector>
 
@@ -12,10 +12,13 @@ using namespace std;
 class Sender {
 public:
   // constructor
-  Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, int dimParam, int vectorParam);
+  Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
+         int dimParam, int vectorParam);
 
   // public methods
-  vector<Ciphertext<DCRTPoly>> computeSimilarity(Ciphertext<DCRTPoly> query, vector<Ciphertext<DCRTPoly>> database);
+  vector<Ciphertext<DCRTPoly>>
+  computeSimilarity(Ciphertext<DCRTPoly> query,
+                    vector<Ciphertext<DCRTPoly>> database);
 
 private:
   // some private members here
