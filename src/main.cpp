@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
   auto sk = keyPair.secretKey;
   cc->EvalMultKeyGen(sk);
   cc->EvalSumKeyGen(sk);
-  cc->EvalRotateKeyGen(sk, {1, 2, 4, 8, 16, 32, 64, 128, 256, 512});
+  cc->EvalRotateKeyGen(sk, {1, 2, 4, 8, 16, 32, 64, 128, 256, 512}); // don't think this is necessary anymore
 
   unsigned int batchSize = cc->GetEncodingParams()->GetBatchSize();
 
@@ -89,8 +89,7 @@ int main(int argc, char *argv[]) {
   int totalBatches = (int)(numVectors / vectorsPerBatch + 1);
 
   // initialize receiver and sender objects
-  ReceiverPre rp(cc, pk, inputDim, numVectors);
-  ReceiverHE receiver(cc, pk, inputDim, numVectors);
+  ReceiverHE receiver(cc, pk, sk, inputDim, numVectors);
   Sender sender(cc, pk, inputDim, numVectors);
 
   // Normalize, batch, and encrypt the query vector
@@ -121,7 +120,7 @@ int main(int argc, char *argv[]) {
          << endl;
     cout << "Homomorphic:\t" << resultValues[batchIndex] << endl;
     cout << "Expected:\t"
-         << rp.plaintextCosineSim(queryVector, plaintextVectors[i]) << endl;
+         << VectorUtils::plaintextCosineSim(queryVector, plaintextVectors[i]) << endl;
     cout << endl;
   }
 

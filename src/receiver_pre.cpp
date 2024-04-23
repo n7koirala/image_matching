@@ -2,9 +2,9 @@
 
 // implementation of functions declared in receiver_pre.h
 ReceiverPre::ReceiverPre(CryptoContext<DCRTPoly> ccParam,
-                         PublicKey<DCRTPoly> pkParam, int dimParam,
+                         PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, int dimParam,
                          int vectorParam)
-    : cc(ccParam), pk(pkParam), vectorDim(dimParam), numVectors(vectorParam) {}
+    : cc(ccParam), pk(pkParam), sk(skParam), vectorDim(dimParam), numVectors(vectorParam) {}
 
 double ReceiverPre::plaintextMagnitude(vector<double> x) {
   double m = 0.0;

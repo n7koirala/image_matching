@@ -1,5 +1,6 @@
 #include "../include/vector_utils.h"
 
+/*
 std::vector<std::vector<double>>
 readVectorsFromFile(const std::string &fileName) {
   // Open input file
@@ -24,6 +25,7 @@ readVectorsFromFile(const std::string &fileName) {
   fileStream.close();
   return plaintextVectors;
 }
+ */
 
 /* Append the vector source onto the end of the vector dest, n times */
 void VectorUtils::concatenateVectors(std::vector<double> &dest,
@@ -31,4 +33,24 @@ void VectorUtils::concatenateVectors(std::vector<double> &dest,
   for (int i = 0; i < n; i++) {
     dest.insert(dest.end(), source.begin(), source.end());
   }
+}
+
+
+double VectorUtils::plaintextCosineSim(std::vector<double> x, std::vector<double> y) {
+  double xMag = 0.0;
+  double yMag = 0.0;
+  double innerProduct = 0.0;
+
+  if (x.size() != y.size()) {
+    std::cerr << "Error: cannot compute cosine similarity between vectors of different size" << std::endl;
+    return 0.0;
+  }
+
+  for (int i = 0; i < x.size(); i++) {
+    xMag += (x[i] * x[i]);
+    yMag += (y[i] * y[i]);
+    innerProduct += (x[i] * y[i]);
+  }
+
+  return innerProduct / (sqrt(xMag) * sqrt(yMag));
 }

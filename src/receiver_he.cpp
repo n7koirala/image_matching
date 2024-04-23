@@ -2,21 +2,9 @@
 
 // implementation of functions declared in receiver_he.h
 ReceiverHE::ReceiverHE(CryptoContext<DCRTPoly> ccParam,
-                       PublicKey<DCRTPoly> pkParam, int dimParam,
+                       PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, int dimParam,
                        int vectorParam)
-    : cc(ccParam), pk(pkParam), vectorDim(dimParam), numVectors(vectorParam) {}
-
-Ciphertext<DCRTPoly> ReceiverHE::batchedInnerProduct(Ciphertext<DCRTPoly> c1,
-                                                     Ciphertext<DCRTPoly> c2,
-                                                     int dimension) {
-  c1 = cc->EvalMult(c1, c2);
-  for (int i = 1; i < dimension; i *= 2) {
-    c2 = c1;
-    c1 = cc->EvalRotate(c1, i);
-    c1 = cc->EvalAdd(c1, c2);
-  }
-  return c1;
-}
+    : cc(ccParam), pk(pkParam), sk(skParam), vectorDim(dimParam), numVectors(vectorParam) {}
 
 /* Uses Newton's Method to approximate the inverse magnitude of a ciphertext */
 Ciphertext<DCRTPoly>

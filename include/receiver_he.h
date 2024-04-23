@@ -13,7 +13,7 @@ class ReceiverHE {
 public:
   // constructor
   ReceiverHE(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
-             int dimParam, int vectorParam);
+             PrivateKey<DCRTPoly> sk, int dimParam, int vectorParam);
 
   // utility functions for computing cosine similarity
   Ciphertext<DCRTPoly> batchedInnerProduct(Ciphertext<DCRTPoly> c1,
@@ -27,6 +27,7 @@ private:
   // some private members here
   CryptoContext<DCRTPoly> cc;
   PublicKey<DCRTPoly> pk;
+  PrivateKey<DCRTPoly> sk;
   int vectorDim;
   int numVectors;
 };

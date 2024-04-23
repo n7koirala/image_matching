@@ -12,4 +12,7 @@ namespace VectorUtils {
 // fileName);
 void concatenateVectors(std::vector<double> &dest, std::vector<double> source,
                         int n);
+
+
+double plaintextCosineSim(std::vector<double> x, std::vector<double> y);
 } // namespace VectorUtils

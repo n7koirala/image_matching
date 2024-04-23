@@ -13,7 +13,7 @@ class ReceiverPre {
 public:
   // constructor
   ReceiverPre(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
-              int dimParam, int vectorParam);
+              PrivateKey<DCRTPoly> skParam, int dimParam, int vectorParam);
 
   // utility functions for computing cosine similarity
   double plaintextMagnitude(vector<double> x);
@@ -27,6 +27,7 @@ private:
   // some private members here
   CryptoContext<DCRTPoly> cc;
   PublicKey<DCRTPoly> pk;
+  PrivateKey<DCRTPoly> sk;
   int vectorDim;
   int numVectors;
 };
