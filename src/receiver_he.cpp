@@ -9,7 +9,7 @@ ReceiverHE::ReceiverHE(CryptoContext<DCRTPoly> ccParam,
 /* Uses Newton's Method to approximate the inverse magnitude of a ciphertext */
 Ciphertext<DCRTPoly>
 ReceiverHE::approxInverseMagnitude(Ciphertext<DCRTPoly> ctxt) {
-  int NUM_ITERATIONS = 0; // multiplicative depth for i iterations is 3i+1
+  int NUM_ITERATIONS = 3; // multiplicative depth for i iterations is 3i+1
   int batchSize = cc->GetEncodingParams()->GetBatchSize();
 
   auto bn = cc->EvalInnerProduct(ctxt, ctxt, vectorDim);
@@ -68,7 +68,7 @@ ReceiverHE::encryptDB(vector<vector<double>> database) {
   Ciphertext<DCRTPoly> inverseCipher;
 
   // embarrassingly parallel
-  #pragma omp parallel for num_threads(4)
+  #pragma omp parallel for num_threads(1)
   for (int i = 0; i < totalBatches; i++) {
     databasePtxt = cc->MakeCKKSPackedPlaintext(batchedDatabase[i]);
     databaseCipher[i] = cc->Encrypt(pk, databasePtxt);

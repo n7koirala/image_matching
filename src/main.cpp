@@ -14,7 +14,7 @@ using namespace std;
 int main(int argc, char *argv[]) {
 
   CCParams<CryptoContextCKKSRNS> parameters;
-  uint32_t multDepth = 12;
+  uint32_t multDepth = 13;
 
   parameters.SetSecurityLevel(HEStd_128_classic);
   parameters.SetMultiplicativeDepth(multDepth);
@@ -91,8 +91,8 @@ int main(int argc, char *argv[]) {
   int totalBatches = (int)(numVectors / vectorsPerBatch + 1);
 
   // initialize receiver and sender objects
-  // ReceiverHE receiver(cc, pk, sk, inputDim, numVectors);
-  ReceiverPre receiver(cc, pk, sk, inputDim, numVectors);
+  ReceiverHE receiver(cc, pk, sk, inputDim, numVectors);
+  // ReceiverPre receiver(cc, pk, sk, inputDim, numVectors);
   Sender sender(cc, pk, inputDim, numVectors);
 
   // Normalize, batch, and encrypt the query vector
