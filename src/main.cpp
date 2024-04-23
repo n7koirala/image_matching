@@ -40,8 +40,6 @@ int main(int argc, char *argv[]) {
 
   unsigned int batchSize = cc->GetEncodingParams()->GetBatchSize();
 
-  cout << "setup complete" << endl;
-
   // Output Scheme Information
   /*
   cout << "batchSize: " << batchSize << endl;
@@ -93,6 +91,7 @@ int main(int argc, char *argv[]) {
   int totalBatches = (int)(numVectors / vectorsPerBatch + 1);
 
   // initialize receiver and sender objects
+  // ReceiverHE receiver(cc, pk, sk, inputDim, numVectors);
   ReceiverPre receiver(cc, pk, sk, inputDim, numVectors);
   Sender sender(cc, pk, inputDim, numVectors);
 

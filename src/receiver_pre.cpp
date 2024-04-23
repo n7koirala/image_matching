@@ -73,6 +73,9 @@ ReceiverPre::encryptDB(vector<vector<double>> database) {
 
   Plaintext databasePtxt;
   vector<Ciphertext<DCRTPoly>> databaseCipher(totalBatches);
+
+  // embarrassingly parallel
+  #pragma omp parallel for num_threads(4)
   for (int i = 0; i < totalBatches; i++) {
     databasePtxt = cc->MakeCKKSPackedPlaintext(batchedDatabase[i]);
     databaseCipher[i] = cc->Encrypt(pk, databasePtxt);
@@ -85,7 +88,6 @@ vector<Plaintext> ReceiverPre::decryptSimilarity(vector<Ciphertext<DCRTPoly>> co
   int vectorsPerBatch =
       (int)(cc->GetEncodingParams()->GetBatchSize() / vectorDim);
   int totalBatches = (int)(numVectors / vectorsPerBatch + 1);
-  
   vector<Plaintext> resultPtxts(totalBatches);
   for (int i = 0; i < totalBatches; i++) {
     cc->Decrypt(sk, cosineCipher[i], &(resultPtxts[i]));

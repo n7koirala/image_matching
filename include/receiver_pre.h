@@ -5,6 +5,7 @@
 #include "../include/vector_utils.h"
 #include "openfhe.h"
 #include <vector>
+#include <omp.h>
 
 using namespace lbcrypto;
 using namespace std;
