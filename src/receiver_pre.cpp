@@ -80,3 +80,15 @@ ReceiverPre::encryptDB(vector<vector<double>> database) {
 
   return databaseCipher;
 }
+
+vector<Plaintext> ReceiverPre::decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosineCipher) {
+  int vectorsPerBatch =
+      (int)(cc->GetEncodingParams()->GetBatchSize() / vectorDim);
+  int totalBatches = (int)(numVectors / vectorsPerBatch + 1);
+  
+  vector<Plaintext> resultPtxts(totalBatches);
+  for (int i = 0; i < totalBatches; i++) {
+    cc->Decrypt(sk, cosineCipher[i], &(resultPtxts[i]));
+  }
+  return resultPtxts;
+}

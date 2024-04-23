@@ -40,6 +40,8 @@ int main(int argc, char *argv[]) {
 
   unsigned int batchSize = cc->GetEncodingParams()->GetBatchSize();
 
+  cout << "setup complete" << endl;
+
   // Output Scheme Information
   /*
   cout << "batchSize: " << batchSize << endl;
@@ -72,11 +74,13 @@ int main(int argc, char *argv[]) {
   int inputDim, numVectors;
   fileStream >> inputDim >> numVectors;
 
+  // Read in query vector
   vector<double> queryVector(inputDim);
   for (int i = 0; i < inputDim; i++) {
     fileStream >> queryVector[i];
   }
 
+  // Read in database vectors
   vector<vector<double>> plaintextVectors(numVectors, vector<double>(inputDim));
   for (int i = 0; i < numVectors; i++) {
     for (int j = 0; j < inputDim; j++) {
@@ -89,7 +93,7 @@ int main(int argc, char *argv[]) {
   int totalBatches = (int)(numVectors / vectorsPerBatch + 1);
 
   // initialize receiver and sender objects
-  ReceiverHE receiver(cc, pk, sk, inputDim, numVectors);
+  ReceiverPre receiver(cc, pk, sk, inputDim, numVectors);
   Sender sender(cc, pk, inputDim, numVectors);
 
   // Normalize, batch, and encrypt the query vector
@@ -104,10 +108,9 @@ int main(int argc, char *argv[]) {
   vector<Ciphertext<DCRTPoly>> cosineCipher =
       sender.computeSimilarity(queryCipher, databaseCipher);
 
-  vector<Plaintext> resultPtxts(totalBatches);
-  for (int i = 0; i < totalBatches; i++) {
-    cc->Decrypt(sk, cosineCipher[i], &(resultPtxts[i]));
-  }
+  // Receiver is then able to decrypt all scores
+  // This does not determine matches or protect provenance privacy, just outputs all scores
+  vector<Plaintext> resultPtxts = receiver.decryptSimilarity(cosineCipher);
 
   // Formatted Output
   for (int i = 0; i < numVectors; i++) {

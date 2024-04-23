@@ -22,6 +22,7 @@ public:
   double plaintextCosineSim(vector<double> x, vector<double> y);
   Ciphertext<DCRTPoly> encryptQuery(vector<double> query);
   vector<Ciphertext<DCRTPoly>> encryptDB(vector<vector<double>> database);
+  vector<Plaintext> decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosineCipher);
 
 private:
   // some private members here
