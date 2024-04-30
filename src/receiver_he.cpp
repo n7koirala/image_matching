@@ -2,26 +2,14 @@
 
 // implementation of functions declared in receiver_he.h
 ReceiverHE::ReceiverHE(CryptoContext<DCRTPoly> ccParam,
-                       PublicKey<DCRTPoly> pkParam, int dimParam,
+                       PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, int dimParam,
                        int vectorParam)
-    : cc(ccParam), pk(pkParam), vectorDim(dimParam), numVectors(vectorParam) {}
-
-Ciphertext<DCRTPoly> ReceiverHE::batchedInnerProduct(Ciphertext<DCRTPoly> c1,
-                                                     Ciphertext<DCRTPoly> c2,
-                                                     int dimension) {
-  c1 = cc->EvalMult(c1, c2);
-  for (int i = 1; i < dimension; i *= 2) {
-    c2 = c1;
-    c1 = cc->EvalRotate(c1, i);
-    c1 = cc->EvalAdd(c1, c2);
-  }
-  return c1;
-}
+    : cc(ccParam), pk(pkParam), sk(skParam), vectorDim(dimParam), numVectors(vectorParam) {}
 
 /* Uses Newton's Method to approximate the inverse magnitude of a ciphertext */
 Ciphertext<DCRTPoly>
 ReceiverHE::approxInverseMagnitude(Ciphertext<DCRTPoly> ctxt) {
-  int NUM_ITERATIONS = 0; // multiplicative depth for i iterations is 3i+1
+  int NUM_ITERATIONS = 3; // multiplicative depth for i iterations is 3i+1
   int batchSize = cc->GetEncodingParams()->GetBatchSize();
 
   auto bn = cc->EvalInnerProduct(ctxt, ctxt, vectorDim);
@@ -78,6 +66,9 @@ ReceiverHE::encryptDB(vector<vector<double>> database) {
   Plaintext databasePtxt;
   vector<Ciphertext<DCRTPoly>> databaseCipher(totalBatches);
   Ciphertext<DCRTPoly> inverseCipher;
+
+  // embarrassingly parallel
+  #pragma omp parallel for num_threads(1)
   for (int i = 0; i < totalBatches; i++) {
     databasePtxt = cc->MakeCKKSPackedPlaintext(batchedDatabase[i]);
     databaseCipher[i] = cc->Encrypt(pk, databasePtxt);
@@ -85,4 +76,16 @@ ReceiverHE::encryptDB(vector<vector<double>> database) {
     databaseCipher[i] = cc->EvalMult(databaseCipher[i], inverseCipher);
   }
   return databaseCipher;
+}
+
+vector<Plaintext> ReceiverHE::decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosineCipher) {
+  int vectorsPerBatch =
+      (int)(cc->GetEncodingParams()->GetBatchSize() / vectorDim);
+  int totalBatches = (int)(numVectors / vectorsPerBatch + 1);
+
+  vector<Plaintext> resultPtxts(totalBatches);
+  for (int i = 0; i < totalBatches; i++) {
+    cc->Decrypt(sk, cosineCipher[i], &(resultPtxts[i]));
+  }
+  return resultPtxts;
 }

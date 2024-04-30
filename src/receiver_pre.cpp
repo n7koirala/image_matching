@@ -2,9 +2,9 @@
 
 // implementation of functions declared in receiver_pre.h
 ReceiverPre::ReceiverPre(CryptoContext<DCRTPoly> ccParam,
-                         PublicKey<DCRTPoly> pkParam, int dimParam,
+                         PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, int dimParam,
                          int vectorParam)
-    : cc(ccParam), pk(pkParam), vectorDim(dimParam), numVectors(vectorParam) {}
+    : cc(ccParam), pk(pkParam), sk(skParam), vectorDim(dimParam), numVectors(vectorParam) {}
 
 double ReceiverPre::plaintextMagnitude(vector<double> x) {
   double m = 0.0;
@@ -73,10 +73,24 @@ ReceiverPre::encryptDB(vector<vector<double>> database) {
 
   Plaintext databasePtxt;
   vector<Ciphertext<DCRTPoly>> databaseCipher(totalBatches);
+
+  // embarrassingly parallel
+  #pragma omp parallel for num_threads(4)
   for (int i = 0; i < totalBatches; i++) {
     databasePtxt = cc->MakeCKKSPackedPlaintext(batchedDatabase[i]);
     databaseCipher[i] = cc->Encrypt(pk, databasePtxt);
   }
 
   return databaseCipher;
+}
+
+vector<Plaintext> ReceiverPre::decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosineCipher) {
+  int vectorsPerBatch =
+      (int)(cc->GetEncodingParams()->GetBatchSize() / vectorDim);
+  int totalBatches = (int)(numVectors / vectorsPerBatch + 1);
+  vector<Plaintext> resultPtxts(totalBatches);
+  for (int i = 0; i < totalBatches; i++) {
+    cc->Decrypt(sk, cosineCipher[i], &(resultPtxts[i]));
+  }
+  return resultPtxts;
 }

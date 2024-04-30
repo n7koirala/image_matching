@@ -1,6 +1,4 @@
 #include "../include/sender.h"
-#include "openfhe.h"
-#include <vector>
 
 using namespace lbcrypto;
 
@@ -13,6 +11,9 @@ vector<Ciphertext<DCRTPoly>>
 Sender::computeSimilarity(Ciphertext<DCRTPoly> query,
                           vector<Ciphertext<DCRTPoly>> database) {
   vector<Ciphertext<DCRTPoly>> similarityCipher(database.size());
+
+  // embarrassingly parallel
+  #pragma omp parallel for num_threads(1)
   for (int i = 0; i < database.size(); i++) {
     similarityCipher[i] = cc->EvalInnerProduct(query, database[i], vectorDim);
   }
