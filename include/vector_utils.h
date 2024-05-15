@@ -8,8 +8,6 @@
 
 namespace VectorUtils {
 // Other utility functions
-// std::vector<std::vector<double>> readVectorsFromFile(const std::string&
-// fileName);
 void concatenateVectors(std::vector<double> &dest, std::vector<double> source,
                         int n);
 

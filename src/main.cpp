@@ -1,6 +1,6 @@
 #include "../include/config.h"
-#include "../include/receiver_he.h"
-#include "../include/receiver_pre.h"
+#include "../include/receiver_secure.h"
+#include "../include/receiver_plain.h"
 #include "../include/sender.h"
 #include "../include/vector_utils.h"
 #include "openfhe.h"
@@ -90,9 +90,10 @@ int main(int argc, char *argv[]) {
   int vectorsPerBatch = (int)(batchSize / inputDim);
   int totalBatches = (int)(numVectors / vectorsPerBatch + 1);
 
-  // initialize receiver and sender objects
-  ReceiverHE receiver(cc, pk, sk, inputDim, numVectors);
-  // ReceiverPre receiver(cc, pk, sk, inputDim, numVectors);
+  // Initialize receiver and sender objects
+  // Only the receiver possesses the secret key
+  SecureReceiver receiver(cc, pk, sk, inputDim, numVectors);
+  // PlainReceiver receiver(cc, pk, sk, inputDim, numVectors);
   Sender sender(cc, pk, inputDim, numVectors);
 
   // Normalize, batch, and encrypt the query vector
