@@ -17,9 +17,6 @@ public:
              PrivateKey<DCRTPoly> sk, int dimParam, int vectorParam);
 
   // utility functions for computing cosine similarity
-  Ciphertext<DCRTPoly> batchedInnerProduct(Ciphertext<DCRTPoly> c1,
-                                           Ciphertext<DCRTPoly> c2,
-                                           int dimension);
   Ciphertext<DCRTPoly> approxInverseMagnitude(Ciphertext<DCRTPoly> ctxt);
   Ciphertext<DCRTPoly> encryptQuery(vector<double> query);
   vector<Ciphertext<DCRTPoly>> encryptDB(vector<vector<double>> database);
