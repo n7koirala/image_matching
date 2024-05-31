@@ -1,12 +1,12 @@
-#include "../include/receiver_pre.h"
+#include "../include/receiver_plain.h"
 
-// implementation of functions declared in receiver_pre.h
-ReceiverPre::ReceiverPre(CryptoContext<DCRTPoly> ccParam,
+// implementation of functions declared in receiver_plain.h
+PlainReceiver::PlainReceiver(CryptoContext<DCRTPoly> ccParam,
                          PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, int dimParam,
                          int vectorParam)
     : cc(ccParam), pk(pkParam), sk(skParam), vectorDim(dimParam), numVectors(vectorParam) {}
 
-double ReceiverPre::plaintextMagnitude(vector<double> x) {
+double PlainReceiver::plaintextMagnitude(vector<double> x) {
   double m = 0.0;
   for (int i = 0; i < vectorDim; i++) {
     m += (x[i] * x[i]);
@@ -15,7 +15,7 @@ double ReceiverPre::plaintextMagnitude(vector<double> x) {
   return m;
 }
 
-double ReceiverPre::plaintextInnerProduct(vector<double> x, vector<double> y) {
+double PlainReceiver::plaintextInnerProduct(vector<double> x, vector<double> y) {
   double prod = 0.0;
   for (int i = 0; i < vectorDim; i++) {
     prod += x[i] * y[i];
@@ -23,7 +23,7 @@ double ReceiverPre::plaintextInnerProduct(vector<double> x, vector<double> y) {
   return prod;
 }
 
-vector<double> ReceiverPre::plaintextNormalize(vector<double> x) {
+vector<double> PlainReceiver::plaintextNormalize(vector<double> x) {
   double m = plaintextMagnitude(x);
   vector<double> x_norm = x;
   if (m != 0) {
@@ -36,12 +36,12 @@ vector<double> ReceiverPre::plaintextNormalize(vector<double> x) {
 
 /* This computation involves division, cannot be done directly in encrypted
  * domain */
-double ReceiverPre::plaintextCosineSim(vector<double> x, vector<double> y) {
+double PlainReceiver::plaintextCosineSim(vector<double> x, vector<double> y) {
   return plaintextInnerProduct(x, y) /
          (plaintextMagnitude(x) * plaintextMagnitude(y));
 }
 
-Ciphertext<DCRTPoly> ReceiverPre::encryptQuery(vector<double> query) {
+Ciphertext<DCRTPoly> PlainReceiver::encryptQuery(vector<double> query) {
   int vectorsPerBatch =
       (int)(cc->GetEncodingParams()->GetBatchSize() / vectorDim);
 
@@ -56,7 +56,7 @@ Ciphertext<DCRTPoly> ReceiverPre::encryptQuery(vector<double> query) {
 }
 
 vector<Ciphertext<DCRTPoly>>
-ReceiverPre::encryptDB(vector<vector<double>> database) {
+PlainReceiver::encryptDB(vector<vector<double>> database) {
   int vectorsPerBatch =
       (int)(cc->GetEncodingParams()->GetBatchSize() / vectorDim);
   int totalBatches = (int)(numVectors / vectorsPerBatch + 1);
@@ -75,7 +75,7 @@ ReceiverPre::encryptDB(vector<vector<double>> database) {
   vector<Ciphertext<DCRTPoly>> databaseCipher(totalBatches);
 
   // embarrassingly parallel
-  #pragma omp parallel for num_threads(4)
+  #pragma omp parallel for num_threads(RECEIVER_NUM_CORES)
   for (int i = 0; i < totalBatches; i++) {
     databasePtxt = cc->MakeCKKSPackedPlaintext(batchedDatabase[i]);
     databaseCipher[i] = cc->Encrypt(pk, databasePtxt);
@@ -84,7 +84,7 @@ ReceiverPre::encryptDB(vector<vector<double>> database) {
   return databaseCipher;
 }
 
-vector<Plaintext> ReceiverPre::decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosineCipher) {
+vector<Plaintext> PlainReceiver::decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosineCipher) {
   int vectorsPerBatch =
       (int)(cc->GetEncodingParams()->GetBatchSize() / vectorDim);
   int totalBatches = (int)(numVectors / vectorsPerBatch + 1);

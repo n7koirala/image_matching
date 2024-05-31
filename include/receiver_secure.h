@@ -1,6 +1,7 @@
-// ** cosine_similarity: Contains the definition and implementation of the
-// cosine similarity computation logic using plaintext preprocessing.
+// ** receiver_secure: Defines and implements a receiver (querier)
+// Performs the vector normalization step in the encrypted domain
 
+#include "../include/config.h"
 #include "../include/openFHE_wrapper.h"
 #include "../include/vector_utils.h"
 #include "openfhe.h"
@@ -10,17 +11,14 @@
 using namespace lbcrypto;
 using namespace std;
 
-class ReceiverPre {
+class SecureReceiver {
 public:
   // constructor
-  ReceiverPre(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
-              PrivateKey<DCRTPoly> skParam, int dimParam, int vectorParam);
+  SecureReceiver(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
+             PrivateKey<DCRTPoly> sk, int dimParam, int vectorParam);
 
   // utility functions for computing cosine similarity
-  double plaintextMagnitude(vector<double> x);
-  double plaintextInnerProduct(vector<double> x, vector<double> y);
-  std::vector<double> plaintextNormalize(vector<double> x);
-  double plaintextCosineSim(vector<double> x, vector<double> y);
+  Ciphertext<DCRTPoly> approxInverseMagnitude(Ciphertext<DCRTPoly> ctxt);
   Ciphertext<DCRTPoly> encryptQuery(vector<double> query);
   vector<Ciphertext<DCRTPoly>> encryptDB(vector<vector<double>> database);
   vector<Plaintext> decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosineCipher);

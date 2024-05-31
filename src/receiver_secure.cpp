@@ -1,14 +1,14 @@
-#include "../include/receiver_he.h"
+#include "../include/receiver_secure.h"
 
-// implementation of functions declared in receiver_he.h
-ReceiverHE::ReceiverHE(CryptoContext<DCRTPoly> ccParam,
+// implementation of functions declared in receiver_secure.h
+SecureReceiver::SecureReceiver(CryptoContext<DCRTPoly> ccParam,
                        PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, int dimParam,
                        int vectorParam)
     : cc(ccParam), pk(pkParam), sk(skParam), vectorDim(dimParam), numVectors(vectorParam) {}
 
 /* Uses Newton's Method to approximate the inverse magnitude of a ciphertext */
 Ciphertext<DCRTPoly>
-ReceiverHE::approxInverseMagnitude(Ciphertext<DCRTPoly> ctxt) {
+SecureReceiver::approxInverseMagnitude(Ciphertext<DCRTPoly> ctxt) {
   int NUM_ITERATIONS = 3; // multiplicative depth for i iterations is 3i+1
   int batchSize = cc->GetEncodingParams()->GetBatchSize();
 
@@ -37,7 +37,7 @@ ReceiverHE::approxInverseMagnitude(Ciphertext<DCRTPoly> ctxt) {
   return yn;
 }
 
-Ciphertext<DCRTPoly> ReceiverHE::encryptQuery(vector<double> query) {
+Ciphertext<DCRTPoly> SecureReceiver::encryptQuery(vector<double> query) {
   int vectorsPerBatch =
       (int)(cc->GetEncodingParams()->GetBatchSize() / vectorDim);
 
@@ -52,7 +52,7 @@ Ciphertext<DCRTPoly> ReceiverHE::encryptQuery(vector<double> query) {
 }
 
 vector<Ciphertext<DCRTPoly>>
-ReceiverHE::encryptDB(vector<vector<double>> database) {
+SecureReceiver::encryptDB(vector<vector<double>> database) {
   int vectorsPerBatch =
       (int)(cc->GetEncodingParams()->GetBatchSize() / vectorDim);
   int totalBatches = (int)(numVectors / vectorsPerBatch + 1);
@@ -68,7 +68,7 @@ ReceiverHE::encryptDB(vector<vector<double>> database) {
   Ciphertext<DCRTPoly> inverseCipher;
 
   // embarrassingly parallel
-  #pragma omp parallel for num_threads(1)
+  #pragma omp parallel for num_threads(RECEIVER_NUM_CORES)
   for (int i = 0; i < totalBatches; i++) {
     databasePtxt = cc->MakeCKKSPackedPlaintext(batchedDatabase[i]);
     databaseCipher[i] = cc->Encrypt(pk, databasePtxt);
@@ -78,7 +78,7 @@ ReceiverHE::encryptDB(vector<vector<double>> database) {
   return databaseCipher;
 }
 
-vector<Plaintext> ReceiverHE::decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosineCipher) {
+vector<Plaintext> SecureReceiver::decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosineCipher) {
   int vectorsPerBatch =
       (int)(cc->GetEncodingParams()->GetBatchSize() / vectorDim);
   int totalBatches = (int)(numVectors / vectorsPerBatch + 1);

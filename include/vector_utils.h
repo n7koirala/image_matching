@@ -1,18 +1,18 @@
 // ** Contains the functionalities for loading and processing of data vectors.
-#include "../include/openFHE_wrapper.h"
-#include "openfhe.h"
 #include <cstddef>
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <vector>
+#include <cmath>
+
+using namespace std;
 
 namespace VectorUtils {
-// Other utility functions
-// std::vector<std::vector<double>> readVectorsFromFile(const std::string&
-// fileName);
-void concatenateVectors(std::vector<double> &dest, std::vector<double> source,
+
+void concatenateVectors(vector<double> &dest, vector<double> source,
                         int n);
 
 
-double plaintextCosineSim(std::vector<double> x, std::vector<double> y);
+double plaintextCosineSim(vector<double> x, vector<double> y);
 } // namespace VectorUtils

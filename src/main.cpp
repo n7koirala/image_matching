@@ -1,8 +1,9 @@
 #include "../include/config.h"
-#include "../include/receiver_he.h"
-#include "../include/receiver_pre.h"
+#include "../include/receiver_secure.h"
+#include "../include/receiver_plain.h"
 #include "../include/sender.h"
 #include "../include/vector_utils.h"
+#include "../include/openFHE_wrapper.h"
 #include "openfhe.h"
 #include <iostream>
 
@@ -13,16 +14,15 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-  CCParams<CryptoContextCKKSRNS> parameters;
   uint32_t multDepth = 13;
-
+  CCParams<CryptoContextCKKSRNS> parameters;
   parameters.SetSecurityLevel(HEStd_128_classic);
   parameters.SetMultiplicativeDepth(multDepth);
   parameters.SetScalingModSize(45);
 
   // Preset security level specifies ring dimension n = 32768
   // Batch size cannot be set above n/2 = 16384
-  // Work with this for now, discuss at meeting
+  // Discuss whether batch size should be increased
   // parameters.SetBatchSize(32768);
 
   CryptoContext<DCRTPoly> cc = GenCryptoContext(parameters);
@@ -36,28 +36,13 @@ int main(int argc, char *argv[]) {
   auto sk = keyPair.secretKey;
   cc->EvalMultKeyGen(sk);
   cc->EvalSumKeyGen(sk);
-  cc->EvalRotateKeyGen(sk, {1, 2, 4, 8, 16, 32, 64, 128, 256, 512}); // don't think this is necessary anymore
 
-  unsigned int batchSize = cc->GetEncodingParams()->GetBatchSize();
-
-  // Output Scheme Information
-  /*
-  cout << "batchSize: " << batchSize << endl;
-  cout << endl;
-
-  cout << "CKKS default parameters: " << parameters << endl;
-  cout << endl;
-
-  cout << "scaling mod size: " << parameters.GetScalingModSize() << endl;
-  cout << "ring dimension: " << cc->GetRingDimension() << endl;
-  cout << "noise estimate: " << parameters.GetNoiseEstimate() << endl;
-  cout << "multiplicative depth: " << parameters.GetMultiplicativeDepth() <<
-  endl; cout << "Noise level: " << parameters.GetNoiseEstimate() << endl;
-   */
+  // Output scheme information
+  // OpenFHEWrapper::printSchemeDetails(parameters, cc);
 
   // Get vectors from input
   ifstream fileStream;
-  if (argc > 0) {
+  if (argc > 1) {
     fileStream.open(argv[1], ios::in);
   } else {
     fileStream.open(BACKEND_VECTORS_FILE, ios::in);
@@ -87,12 +72,9 @@ int main(int argc, char *argv[]) {
   }
   fileStream.close();
 
-  int vectorsPerBatch = (int)(batchSize / inputDim);
-  int totalBatches = (int)(numVectors / vectorsPerBatch + 1);
-
-  // initialize receiver and sender objects
-  ReceiverHE receiver(cc, pk, sk, inputDim, numVectors);
-  // ReceiverPre receiver(cc, pk, sk, inputDim, numVectors);
+  // Initialize receiver and sender objects
+  // Only the receiver possesses the secret key
+  SecureReceiver receiver(cc, pk, sk, inputDim, numVectors);
   Sender sender(cc, pk, inputDim, numVectors);
 
   // Normalize, batch, and encrypt the query vector
@@ -108,10 +90,11 @@ int main(int argc, char *argv[]) {
       sender.computeSimilarity(queryCipher, databaseCipher);
 
   // Receiver is then able to decrypt all scores
-  // This does not determine matches or protect provenance privacy, just outputs all scores
+  // This does not determine matches or protect provenance privacy, just contains all scores
   vector<Plaintext> resultPtxts = receiver.decryptSimilarity(cosineCipher);
 
   // Formatted Output
+  int vectorsPerBatch = (int)(cc->GetEncodingParams()->GetBatchSize() / inputDim);
   for (int i = 0; i < numVectors; i++) {
     int batchNum = (int)(i / vectorsPerBatch);
     int batchIndex = (i % vectorsPerBatch) * inputDim;
