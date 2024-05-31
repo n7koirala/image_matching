@@ -1,6 +1,7 @@
 // ** receiver_secure: Defines and implements a receiver (querier)
 // Performs the vector normalization step in the encrypted domain
 
+#include "../include/config.h"
 #include "../include/openFHE_wrapper.h"
 #include "../include/vector_utils.h"
 #include "openfhe.h"

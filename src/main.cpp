@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
 
   // Get vectors from input
   ifstream fileStream;
-  if (argc > 0) {
+  if (argc > 1) {
     fileStream.open(argv[1], ios::in);
   } else {
     fileStream.open(BACKEND_VECTORS_FILE, ios::in);
@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
 
   // Initialize receiver and sender objects
   // Only the receiver possesses the secret key
-  PlainReceiver receiver(cc, pk, sk, inputDim, numVectors);
+  SecureReceiver receiver(cc, pk, sk, inputDim, numVectors);
   Sender sender(cc, pk, inputDim, numVectors);
 
   // Normalize, batch, and encrypt the query vector

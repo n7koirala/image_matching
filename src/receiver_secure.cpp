@@ -68,7 +68,7 @@ SecureReceiver::encryptDB(vector<vector<double>> database) {
   Ciphertext<DCRTPoly> inverseCipher;
 
   // embarrassingly parallel
-  #pragma omp parallel for num_threads(1)
+  #pragma omp parallel for num_threads(RECEIVER_NUM_CORES)
   for (int i = 0; i < totalBatches; i++) {
     databasePtxt = cc->MakeCKKSPackedPlaintext(batchedDatabase[i]);
     databaseCipher[i] = cc->Encrypt(pk, databasePtxt);
