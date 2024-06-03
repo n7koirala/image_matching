@@ -1,6 +1,5 @@
 #include "../include/config.h"
 #include "../include/receiver_secure.h"
-#include "../include/receiver_plain.h"
 #include "../include/sender.h"
 #include "../include/vector_utils.h"
 #include "../include/openFHE_wrapper.h"
@@ -74,7 +73,7 @@ int main(int argc, char *argv[]) {
 
   // Initialize receiver and sender objects
   // Only the receiver possesses the secret key
-  SecureReceiver receiver(cc, pk, sk, inputDim, numVectors);
+  PlainReceiver receiver(cc, pk, sk, inputDim, numVectors);
   Sender sender(cc, pk, inputDim, numVectors);
 
   // Normalize, batch, and encrypt the query vector

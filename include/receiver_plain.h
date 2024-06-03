@@ -26,8 +26,8 @@ public:
   vector<Ciphertext<DCRTPoly>> encryptDB(vector<vector<double>> database);
   vector<Plaintext> decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosineCipher);
 
-private:
-  // some private members here
+protected:
+  // some protected members here -- inherited by subclass
   CryptoContext<DCRTPoly> cc;
   PublicKey<DCRTPoly> pk;
   PrivateKey<DCRTPoly> sk;

@@ -1,10 +1,11 @@
 #include "../include/receiver_secure.h"
 
 // implementation of functions declared in receiver_secure.h
+
 SecureReceiver::SecureReceiver(CryptoContext<DCRTPoly> ccParam,
                        PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, int dimParam,
                        int vectorParam)
-    : cc(ccParam), pk(pkParam), sk(skParam), vectorDim(dimParam), numVectors(vectorParam) {}
+    : PlainReceiver(ccParam, pkParam, skParam, dimParam, vectorParam) {}
 
 /* Uses Newton's Method to approximate the inverse magnitude of a ciphertext */
 Ciphertext<DCRTPoly>
@@ -76,16 +77,4 @@ SecureReceiver::encryptDB(vector<vector<double>> database) {
     databaseCipher[i] = cc->EvalMult(databaseCipher[i], inverseCipher);
   }
   return databaseCipher;
-}
-
-vector<Plaintext> SecureReceiver::decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosineCipher) {
-  int vectorsPerBatch =
-      (int)(cc->GetEncodingParams()->GetBatchSize() / vectorDim);
-  int totalBatches = (int)(numVectors / vectorsPerBatch + 1);
-
-  vector<Plaintext> resultPtxts(totalBatches);
-  for (int i = 0; i < totalBatches; i++) {
-    cc->Decrypt(sk, cosineCipher[i], &(resultPtxts[i]));
-  }
-  return resultPtxts;
 }
