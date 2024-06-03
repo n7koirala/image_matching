@@ -20,7 +20,7 @@ include_directories(
 # Source files
 add_executable(ImageMatching
     src/main.cpp
-    src/receiver_plain.cpp
+    src/receiver.cpp
     src/receiver_secure.cpp
     src/sender.cpp
     src/openFHE_wrapper.cpp

@@ -11,10 +11,10 @@
 using namespace lbcrypto;
 using namespace std;
 
-class PlainReceiver {
+class Receiver {
 public:
   // constructor
-  PlainReceiver(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
+  Receiver(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
               PrivateKey<DCRTPoly> skParam, int dimParam, int vectorParam);
 
   // utility functions for computing cosine similarity

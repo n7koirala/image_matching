@@ -1,15 +1,15 @@
 // ** receiver_secure: Defines and implements a receiver (querier)
 // Performs the vector normalization step in the encrypted domain
 
-#include "../include/receiver_plain.h"
+#include "../include/receiver.h"
 
 using namespace lbcrypto;
 using namespace std;
 
-class SecureReceiver : public PlainReceiver {
+class SecurePreprocessingReceiver : public Receiver {
 public:
   // constructor
-  SecureReceiver(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
+  SecurePreprocessingReceiver(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
              PrivateKey<DCRTPoly> sk, int dimParam, int vectorParam);
 
   // utility functions for computing cosine similarity

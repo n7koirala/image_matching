@@ -36,8 +36,8 @@ int main(int argc, char *argv[]) {
   cc->EvalMultKeyGen(sk);
   cc->EvalSumKeyGen(sk);
 
-  // Output scheme information
   // OpenFHEWrapper::printSchemeDetails(parameters, cc);
+  cout << "CKKS scheme initialized..." << endl;
 
   // Get vectors from input
   ifstream fileStream;
@@ -70,27 +70,31 @@ int main(int argc, char *argv[]) {
     }
   }
   fileStream.close();
+  cout << "Vectors read in from file..." << endl;
 
-  // Initialize receiver and sender objects
-  // Only the receiver possesses the secret key
-  PlainReceiver receiver(cc, pk, sk, inputDim, numVectors);
+  // Initialize receiver and sender objects -- only the receiver possesses the secret key
+  Receiver receiver(cc, pk, sk, inputDim, numVectors);
   Sender sender(cc, pk, inputDim, numVectors);
 
   // Normalize, batch, and encrypt the query vector
   Ciphertext<DCRTPoly> queryCipher = receiver.encryptQuery(queryVector);
+  cout << "Query vector encrypted..." << endl;
 
   // Normalize, batch, and encrypt the database vectors
   vector<Ciphertext<DCRTPoly>> databaseCipher =
       receiver.encryptDB(plaintextVectors);
+  cout << "Database vectors encrypted..." << endl;
 
   // Cosine similarity is equivalent to inner product of normalized vectors
-  // In future, explore if key-switching is not necessary / slower
+  // In future, explore if key-switching is unnecessary / slower
   vector<Ciphertext<DCRTPoly>> cosineCipher =
       sender.computeSimilarity(queryCipher, databaseCipher);
+  cout << "Similarity scores computed..." << endl;
 
   // Receiver is then able to decrypt all scores
   // This does not determine matches or protect provenance privacy, just contains all scores
   vector<Plaintext> resultPtxts = receiver.decryptSimilarity(cosineCipher);
+  cout << "Similarity scores decrypted..." << endl;
 
   // Formatted Output
   int vectorsPerBatch = (int)(cc->GetEncodingParams()->GetBatchSize() / inputDim);
