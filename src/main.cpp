@@ -1,4 +1,5 @@
 #include "../include/config.h"
+#include "../include/receiver.h"
 #include "../include/receiver_secure.h"
 #include "../include/sender.h"
 #include "../include/vector_utils.h"
@@ -12,6 +13,8 @@ using namespace std;
 // ** Entry point of the application that orchestrates the flow. **
 
 int main(int argc, char *argv[]) {
+
+  cout << "Main execution entered..." << endl;
 
   uint32_t multDepth = 13;
   CCParams<CryptoContextCKKSRNS> parameters;
@@ -73,7 +76,7 @@ int main(int argc, char *argv[]) {
   cout << "Vectors read in from file..." << endl;
 
   // Initialize receiver and sender objects -- only the receiver possesses the secret key
-  Receiver receiver(cc, pk, sk, inputDim, numVectors);
+  SecurePreprocessingReceiver receiver(cc, pk, sk, inputDim, numVectors);
   Sender sender(cc, pk, inputDim, numVectors);
 
   // Normalize, batch, and encrypt the query vector

@@ -1,6 +1,8 @@
 // ** cosine_similarity: Contains the definition and implementation of the
 // cosine similarity computation logic using plaintext preprocessing.
 
+#pragma once
+
 #include "../include/config.h"
 #include "../include/openFHE_wrapper.h"
 #include "../include/vector_utils.h"

@@ -7,13 +7,15 @@ SecurePreprocessingReceiver::SecurePreprocessingReceiver(CryptoContext<DCRTPoly>
                        int vectorParam)
     : Receiver(ccParam, pkParam, skParam, dimParam, vectorParam) {}
 
-/* Uses Newton's Method to approximate the inverse magnitude of a ciphertext */
+// Uses Newton's Method to approximate the inverse magnitude of a ciphertext
 Ciphertext<DCRTPoly>
 SecurePreprocessingReceiver::approxInverseMagnitude(Ciphertext<DCRTPoly> ctxt) {
   int batchSize = cc->GetEncodingParams()->GetBatchSize();
 
   auto bn = cc->EvalInnerProduct(ctxt, ctxt, vectorDim);
 
+  // Uses a constant value for the initial approximation of Newton's method, sufficiently accurate for the random vector dataset
+  // If a real-world dataset is used, this approximation should instead be set with a linear function, as in Panda 2021
   vector<double> initialGuess(batchSize, 0.001);
   Plaintext initialPtxt = cc->MakeCKKSPackedPlaintext(initialGuess);
   auto fn = cc->Encrypt(pk, initialPtxt);

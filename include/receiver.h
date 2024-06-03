@@ -1,5 +1,7 @@
-// ** receiver_plain: Defines and implements a receiver (querier)
+// ** receiver: Defines the receiver (querier) base class
 // Performs the vector normalization step in the plaintext domain
+
+#pragma once
 
 #include "../include/config.h"
 #include "../include/openFHE_wrapper.h"

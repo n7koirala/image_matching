@@ -1,4 +1,7 @@
 // ** Wrapper functions for the OpenFHE library
+
+#pragma once
+
 #include "openfhe.h"
 
 using namespace std;

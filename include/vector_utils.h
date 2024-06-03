@@ -1,4 +1,7 @@
 // ** Contains the functionalities for loading and processing of data vectors.
+
+#pragma once
+
 #include <cstddef>
 #include <iostream>
 #include <fstream>

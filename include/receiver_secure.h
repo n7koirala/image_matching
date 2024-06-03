@@ -1,5 +1,7 @@
-// ** receiver_secure: Defines and implements a receiver (querier)
+// ** receiver_secure: Defines a subclase of the receiver (querier) class
 // Performs the vector normalization step in the encrypted domain
+
+#pragma once
 
 #include "../include/receiver.h"
 
@@ -13,7 +15,10 @@ public:
              PrivateKey<DCRTPoly> sk, int dimParam, int vectorParam);
 
   // utility functions for computing cosine similarity
-  Ciphertext<DCRTPoly> approxInverseMagnitude(Ciphertext<DCRTPoly> ctxt);
   Ciphertext<DCRTPoly> encryptQuery(vector<double> query);
   vector<Ciphertext<DCRTPoly>> encryptDB(vector<vector<double>> database);
+
+private:
+  // private members
+  Ciphertext<DCRTPoly> approxInverseMagnitude(Ciphertext<DCRTPoly> ctxt);
 };
