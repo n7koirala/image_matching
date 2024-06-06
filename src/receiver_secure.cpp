@@ -1,27 +1,30 @@
 #include "../include/receiver_secure.h"
 
 // implementation of functions declared in receiver_secure.h
-SecureReceiver::SecureReceiver(CryptoContext<DCRTPoly> ccParam,
+
+SecurePreprocessingReceiver::SecurePreprocessingReceiver(CryptoContext<DCRTPoly> ccParam,
                        PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, int dimParam,
                        int vectorParam)
-    : cc(ccParam), pk(pkParam), sk(skParam), vectorDim(dimParam), numVectors(vectorParam) {}
+    : Receiver(ccParam, pkParam, skParam, dimParam, vectorParam) {}
 
-/* Uses Newton's Method to approximate the inverse magnitude of a ciphertext */
+// Uses Newton's Method to approximate the inverse magnitude of a ciphertext
 Ciphertext<DCRTPoly>
-SecureReceiver::approxInverseMagnitude(Ciphertext<DCRTPoly> ctxt) {
-  int NUM_ITERATIONS = 3; // multiplicative depth for i iterations is 3i+1
+SecurePreprocessingReceiver::approxInverseMagnitude(Ciphertext<DCRTPoly> ctxt) {
   int batchSize = cc->GetEncodingParams()->GetBatchSize();
 
   auto bn = cc->EvalInnerProduct(ctxt, ctxt, vectorDim);
 
+  // Uses a constant value for the initial approximation of Newton's method, sufficiently accurate for the random vector dataset
+  // If a real-world dataset is used, this approximation should instead be set with a linear function, as in Panda 2021
   vector<double> initialGuess(batchSize, 0.001);
   Plaintext initialPtxt = cc->MakeCKKSPackedPlaintext(initialGuess);
   auto fn = cc->Encrypt(pk, initialPtxt);
 
   auto yn = fn;
 
-  // perform Newton's method to approximate inverse magnitude of ctxt
-  for (int i = 0; i < NUM_ITERATIONS; i++) {
+  // Perform Newton's method to approximate inverse magnitude of ctxt
+  // The multiplicative depth for i iterations is 3i+1
+  for (int i = 0; i < NEWTONS_ITERATIONS; i++) {
     // b(n+1) = b(n) * f(n)^2
     bn = cc->EvalMult(bn, fn);
     bn = cc->EvalMult(bn, fn);
@@ -37,7 +40,7 @@ SecureReceiver::approxInverseMagnitude(Ciphertext<DCRTPoly> ctxt) {
   return yn;
 }
 
-Ciphertext<DCRTPoly> SecureReceiver::encryptQuery(vector<double> query) {
+Ciphertext<DCRTPoly> SecurePreprocessingReceiver::encryptQuery(vector<double> query) {
   int vectorsPerBatch =
       (int)(cc->GetEncodingParams()->GetBatchSize() / vectorDim);
 
@@ -52,7 +55,7 @@ Ciphertext<DCRTPoly> SecureReceiver::encryptQuery(vector<double> query) {
 }
 
 vector<Ciphertext<DCRTPoly>>
-SecureReceiver::encryptDB(vector<vector<double>> database) {
+SecurePreprocessingReceiver::encryptDB(vector<vector<double>> database) {
   int vectorsPerBatch =
       (int)(cc->GetEncodingParams()->GetBatchSize() / vectorDim);
   int totalBatches = (int)(numVectors / vectorsPerBatch + 1);
@@ -76,16 +79,4 @@ SecureReceiver::encryptDB(vector<vector<double>> database) {
     databaseCipher[i] = cc->EvalMult(databaseCipher[i], inverseCipher);
   }
   return databaseCipher;
-}
-
-vector<Plaintext> SecureReceiver::decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosineCipher) {
-  int vectorsPerBatch =
-      (int)(cc->GetEncodingParams()->GetBatchSize() / vectorDim);
-  int totalBatches = (int)(numVectors / vectorsPerBatch + 1);
-
-  vector<Plaintext> resultPtxts(totalBatches);
-  for (int i = 0; i < totalBatches; i++) {
-    cc->Decrypt(sk, cosineCipher[i], &(resultPtxts[i]));
-  }
-  return resultPtxts;
 }

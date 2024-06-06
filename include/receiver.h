@@ -1,5 +1,7 @@
-// ** receiver_plain: Defines and implements a receiver (querier)
+// ** receiver: Defines the receiver (querier) base class
 // Performs the vector normalization step in the plaintext domain
+
+#pragma once
 
 #include "../include/config.h"
 #include "../include/openFHE_wrapper.h"
@@ -11,10 +13,10 @@
 using namespace lbcrypto;
 using namespace std;
 
-class PlainReceiver {
+class Receiver {
 public:
   // constructor
-  PlainReceiver(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
+  Receiver(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
               PrivateKey<DCRTPoly> skParam, int dimParam, int vectorParam);
 
   // utility functions for computing cosine similarity
@@ -26,8 +28,8 @@ public:
   vector<Ciphertext<DCRTPoly>> encryptDB(vector<vector<double>> database);
   vector<Plaintext> decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosineCipher);
 
-private:
-  // some private members here
+protected:
+  // some protected members here -- inherited by subclass
   CryptoContext<DCRTPoly> cc;
   PublicKey<DCRTPoly> pk;
   PrivateKey<DCRTPoly> sk;
