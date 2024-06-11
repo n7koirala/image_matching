@@ -3,19 +3,18 @@
 // implementation of functions declared in receiver_secure.h
 
 SecurePreprocessingReceiver::SecurePreprocessingReceiver(CryptoContext<DCRTPoly> ccParam,
-                       PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, int dimParam,
-                       int vectorParam)
-    : Receiver(ccParam, pkParam, skParam, dimParam, vectorParam) {}
+                       PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, int vectorParam)
+    : Receiver(ccParam, pkParam, skParam, vectorParam) {}
 
 // Uses Newton's Method to approximate the inverse magnitude of a ciphertext
 Ciphertext<DCRTPoly>
 SecurePreprocessingReceiver::approxInverseMagnitude(Ciphertext<DCRTPoly> ctxt) {
   int batchSize = cc->GetEncodingParams()->GetBatchSize();
 
-  auto bn = cc->EvalInnerProduct(ctxt, ctxt, vectorDim);
+  auto bn = cc->EvalInnerProduct(ctxt, ctxt, VECTOR_DIM);
 
-  // Uses a constant value for the initial approximation of Newton's method, sufficiently accurate for the random vector dataset
-  // If a real-world dataset is used, this approximation should instead be set with a linear function, as in Panda 2021
+  // Uses a constant value for the initial approximation of Newton's method, sufficiently accurate for my random vector dataset
+  // TODO: If a real-world dataset is used, this approximation should instead be set with a linear function, as in Panda 2021
   vector<double> initialGuess(batchSize, 0.001);
   Plaintext initialPtxt = cc->MakeCKKSPackedPlaintext(initialGuess);
   auto fn = cc->Encrypt(pk, initialPtxt);
@@ -42,7 +41,7 @@ SecurePreprocessingReceiver::approxInverseMagnitude(Ciphertext<DCRTPoly> ctxt) {
 
 Ciphertext<DCRTPoly> SecurePreprocessingReceiver::encryptQuery(vector<double> query) {
   int vectorsPerBatch =
-      (int)(cc->GetEncodingParams()->GetBatchSize() / vectorDim);
+      (int)(cc->GetEncodingParams()->GetBatchSize() / VECTOR_DIM);
 
   vector<double> batchedQuery(0);
   VectorUtils::concatenateVectors(batchedQuery, query, vectorsPerBatch);
@@ -57,7 +56,7 @@ Ciphertext<DCRTPoly> SecurePreprocessingReceiver::encryptQuery(vector<double> qu
 vector<Ciphertext<DCRTPoly>>
 SecurePreprocessingReceiver::encryptDB(vector<vector<double>> database) {
   int vectorsPerBatch =
-      (int)(cc->GetEncodingParams()->GetBatchSize() / vectorDim);
+      (int)(cc->GetEncodingParams()->GetBatchSize() / VECTOR_DIM);
   int totalBatches = (int)(numVectors / vectorsPerBatch + 1);
 
   vector<vector<double>> batchedDatabase(totalBatches, vector<double>(0));

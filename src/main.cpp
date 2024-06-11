@@ -16,7 +16,9 @@ int main(int argc, char *argv[]) {
 
   cout << "[main.cpp]\tMain execution entered..." << endl;
 
-  uint32_t multDepth = 14;
+  // plaintext preprocessing currently requires multDepth = 3
+  // secure preprocessing currently requires multDepth = 15
+  uint32_t multDepth = 3;
   CCParams<CryptoContextCKKSRNS> parameters;
   parameters.SetSecurityLevel(HEStd_128_classic);
   parameters.SetMultiplicativeDepth(multDepth);
@@ -35,6 +37,9 @@ int main(int argc, char *argv[]) {
 
   int batchSize = cc->GetEncodingParams()->GetBatchSize();
 
+  // OpenFHEWrapper::printSchemeDetails(parameters, cc);
+  cout << "[main.cpp]\tCKKS scheme set up (depth = " << multDepth << ", batch size = " << batchSize << ")..." << endl;
+
   auto keyPair = cc->KeyGen();
   auto pk = keyPair.publicKey;
   auto sk = keyPair.secretKey;
@@ -42,15 +47,13 @@ int main(int argc, char *argv[]) {
   cc->EvalSumKeyGen(sk);
 
   // these specific rotations needed for merge operation
-  // TODO: un-hardcode the 512 into a global constant
-  vector<int> rotationFactors = {-1, 1, -512};
-  for(int i = 511; i < batchSize; i *= 2) {
+  vector<int> rotationFactors = {-VECTOR_DIM};
+  for(int i = (VECTOR_DIM - 1); i < batchSize; i *= 2) {
     rotationFactors.push_back(i);
   }
   cc->EvalRotateKeyGen(sk, rotationFactors);
 
-  // OpenFHEWrapper::printSchemeDetails(parameters, cc);
-  cout << "[main.cpp]\tCKKS scheme initialized..." << endl;
+  cout << "[main.cpp]\tCKKS keys generated..." << endl;
 
   // Get vectors from input
   ifstream fileStream;
@@ -66,19 +69,19 @@ int main(int argc, char *argv[]) {
   }
 
   // Read in vectors from file
-  int inputDim, numVectors;
-  fileStream >> inputDim >> numVectors;
+  int numVectors;
+  fileStream >> numVectors;
 
   // Read in query vector
-  vector<double> queryVector(inputDim);
-  for (int i = 0; i < inputDim; i++) {
+  vector<double> queryVector(VECTOR_DIM);
+  for (int i = 0; i < VECTOR_DIM; i++) {
     fileStream >> queryVector[i];
   }
 
   // Read in database vectors
-  vector<vector<double>> plaintextVectors(numVectors, vector<double>(inputDim));
+  vector<vector<double>> plaintextVectors(numVectors, vector<double>(VECTOR_DIM));
   for (int i = 0; i < numVectors; i++) {
-    for (int j = 0; j < inputDim; j++) {
+    for (int j = 0; j < VECTOR_DIM; j++) {
       fileStream >> plaintextVectors[i][j];
     }
   }
@@ -86,8 +89,8 @@ int main(int argc, char *argv[]) {
   cout << "[main.cpp]\tVectors read in from file..." << endl;
 
   // Initialize receiver and sender objects -- only the receiver possesses the secret key
-  Receiver receiver(cc, pk, sk, inputDim, numVectors);
-  Sender sender(cc, pk, inputDim, numVectors);
+  Receiver receiver(cc, pk, sk, numVectors);
+  Sender sender(cc, pk, numVectors);
 
   // Normalize, batch, and encrypt the query vector
   Ciphertext<DCRTPoly> queryCipher = receiver.encryptQuery(queryVector);
@@ -119,18 +122,18 @@ int main(int argc, char *argv[]) {
 
   // Formatted Output
   cout << endl;
-  int vectorsPerBatch = (int)(batchSize / inputDim);
+  int vectorsPerBatch = (int)(batchSize / VECTOR_DIM);
   for (int i = 0; i < numVectors; i++) {
     int batchNum = (int)(i / vectorsPerBatch);
-    int batchIndex = (i % vectorsPerBatch) * inputDim;
+    int batchIndex = (i % vectorsPerBatch) * VECTOR_DIM;
     auto resultValues = resultPtxts[batchNum]->GetRealPackedValue();
     cout << "Cosine similarity of query vector with database[" << i << "]"
          << endl;
     cout << "Batch Num: " << batchNum << "\tBatch Index: " << batchIndex
          << endl;
-    cout << "Homomorphic:\t" << resultValues[batchIndex] << endl;
     cout << "Expected:\t"
          << VectorUtils::plaintextCosineSim(queryVector, plaintextVectors[i]) << endl;
+    cout << "Homomorphic:\t" << resultValues[batchIndex] << endl;
     cout << "Merged:\t\t" << mergedValues[i] << endl;
     cout << endl;
   }

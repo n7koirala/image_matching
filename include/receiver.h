@@ -17,7 +17,7 @@ class Receiver {
 public:
   // constructor
   Receiver(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
-              PrivateKey<DCRTPoly> skParam, int dimParam, int vectorParam);
+              PrivateKey<DCRTPoly> skParam, int vectorParam);
 
   // utility functions for computing cosine similarity
   double plaintextMagnitude(vector<double> x);
@@ -33,6 +33,5 @@ protected:
   CryptoContext<DCRTPoly> cc;
   PublicKey<DCRTPoly> pk;
   PrivateKey<DCRTPoly> sk;
-  int vectorDim;
   int numVectors;
 };

@@ -12,7 +12,7 @@ class SecurePreprocessingReceiver : public Receiver {
 public:
   // constructor
   SecurePreprocessingReceiver(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
-             PrivateKey<DCRTPoly> sk, int dimParam, int vectorParam);
+             PrivateKey<DCRTPoly> sk, int vectorParam);
 
   // utility functions for computing cosine similarity
   Ciphertext<DCRTPoly> encryptQuery(vector<double> query);
