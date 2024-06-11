@@ -24,6 +24,9 @@ public:
   computeSimilarity(Ciphertext<DCRTPoly> query,
                     vector<Ciphertext<DCRTPoly>> database);
 
+  Ciphertext<DCRTPoly>
+  mergeScores(vector<Ciphertext<DCRTPoly>> similarityCipher);
+
 private:
   // some private members here
   CryptoContext<DCRTPoly> cc;

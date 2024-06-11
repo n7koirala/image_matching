@@ -14,9 +14,9 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-  cout << "Main execution entered..." << endl;
+  cout << "[main.cpp]\tMain execution entered..." << endl;
 
-  uint32_t multDepth = 13;
+  uint32_t multDepth = 14;
   CCParams<CryptoContextCKKSRNS> parameters;
   parameters.SetSecurityLevel(HEStd_128_classic);
   parameters.SetMultiplicativeDepth(multDepth);
@@ -33,14 +33,24 @@ int main(int argc, char *argv[]) {
   cc->Enable(LEVELEDSHE);
   cc->Enable(ADVANCEDSHE);
 
+  int batchSize = cc->GetEncodingParams()->GetBatchSize();
+
   auto keyPair = cc->KeyGen();
   auto pk = keyPair.publicKey;
   auto sk = keyPair.secretKey;
   cc->EvalMultKeyGen(sk);
   cc->EvalSumKeyGen(sk);
 
+  // these specific rotations needed for merge operation
+  // TODO: un-hardcode the 512 into a global constant
+  vector<int> rotationFactors = {-1, 1, -512};
+  for(int i = 511; i < batchSize; i *= 2) {
+    rotationFactors.push_back(i);
+  }
+  cc->EvalRotateKeyGen(sk, rotationFactors);
+
   // OpenFHEWrapper::printSchemeDetails(parameters, cc);
-  cout << "CKKS scheme initialized..." << endl;
+  cout << "[main.cpp]\tCKKS scheme initialized..." << endl;
 
   // Get vectors from input
   ifstream fileStream;
@@ -51,7 +61,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (!fileStream.is_open()) {
-    cerr << "Error opening file" << endl;
+    cerr << "[main.cpp]\tError opening file" << endl;
     return 1;
   }
 
@@ -73,34 +83,43 @@ int main(int argc, char *argv[]) {
     }
   }
   fileStream.close();
-  cout << "Vectors read in from file..." << endl;
+  cout << "[main.cpp]\tVectors read in from file..." << endl;
 
   // Initialize receiver and sender objects -- only the receiver possesses the secret key
-  SecurePreprocessingReceiver receiver(cc, pk, sk, inputDim, numVectors);
+  Receiver receiver(cc, pk, sk, inputDim, numVectors);
   Sender sender(cc, pk, inputDim, numVectors);
 
   // Normalize, batch, and encrypt the query vector
   Ciphertext<DCRTPoly> queryCipher = receiver.encryptQuery(queryVector);
-  cout << "Query vector encrypted..." << endl;
+  cout << "[main.cpp]\tQuery vector encrypted..." << endl;
 
   // Normalize, batch, and encrypt the database vectors
   vector<Ciphertext<DCRTPoly>> databaseCipher =
       receiver.encryptDB(plaintextVectors);
-  cout << "Database vectors encrypted..." << endl;
+  cout << "[main.cpp]\tDatabase vectors encrypted..." << endl;
 
   // Cosine similarity is equivalent to inner product of normalized vectors
   // In future, explore if key-switching is unnecessary / slower
-  vector<Ciphertext<DCRTPoly>> cosineCipher =
+  vector<Ciphertext<DCRTPoly>> similarityCiphers =
       sender.computeSimilarity(queryCipher, databaseCipher);
-  cout << "Similarity scores computed..." << endl;
+  cout << "[main.cpp]\tSimilarity scores computed..." << endl;
 
   // Receiver is then able to decrypt all scores
   // This does not determine matches or protect provenance privacy, just contains all scores
-  vector<Plaintext> resultPtxts = receiver.decryptSimilarity(cosineCipher);
-  cout << "Similarity scores decrypted..." << endl;
+  vector<Plaintext> resultPtxts = receiver.decryptSimilarity(similarityCiphers);
+  cout << "[main.cpp]\tSimilarity scores decrypted..." << endl;
+
+  // Testing merge operation
+  cout << "[main.cpp]\tMerging scores..." << endl;
+
+  Ciphertext<DCRTPoly> mergedCipher = sender.mergeScores(similarityCiphers);
+  Plaintext mergedPtxt; 
+  cc->Decrypt(sk, mergedCipher, &(mergedPtxt));
+  auto mergedValues = mergedPtxt->GetRealPackedValue();
 
   // Formatted Output
-  int vectorsPerBatch = (int)(cc->GetEncodingParams()->GetBatchSize() / inputDim);
+  cout << endl;
+  int vectorsPerBatch = (int)(batchSize / inputDim);
   for (int i = 0; i < numVectors; i++) {
     int batchNum = (int)(i / vectorsPerBatch);
     int batchIndex = (i % vectorsPerBatch) * inputDim;
@@ -112,6 +131,7 @@ int main(int argc, char *argv[]) {
     cout << "Homomorphic:\t" << resultValues[batchIndex] << endl;
     cout << "Expected:\t"
          << VectorUtils::plaintextCosineSim(queryVector, plaintextVectors[i]) << endl;
+    cout << "Merged:\t\t" << mergedValues[i] << endl;
     cout << endl;
   }
 
