@@ -17,7 +17,7 @@ class Receiver {
 public:
   // constructor
   Receiver(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
-              PrivateKey<DCRTPoly> skParam, int dimParam, int vectorParam);
+              PrivateKey<DCRTPoly> skParam, int vectorParam);
 
   // utility functions for computing cosine similarity
   double plaintextMagnitude(vector<double> x);
@@ -27,12 +27,12 @@ public:
   Ciphertext<DCRTPoly> encryptQuery(vector<double> query);
   vector<Ciphertext<DCRTPoly>> encryptDB(vector<vector<double>> database);
   vector<Plaintext> decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosineCipher);
+  vector<double> decryptMergedScores(vector<Ciphertext<DCRTPoly>> mergedCipher);
 
 protected:
   // some protected members here -- inherited by subclass
   CryptoContext<DCRTPoly> cc;
   PublicKey<DCRTPoly> pk;
   PrivateKey<DCRTPoly> sk;
-  int vectorDim;
   int numVectors;
 };

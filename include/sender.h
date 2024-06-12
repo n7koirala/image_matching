@@ -16,18 +16,19 @@ using namespace std;
 class Sender {
 public:
   // constructor
-  Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
-         int dimParam, int vectorParam);
+  Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, int vectorParam);
 
   // public methods
   vector<Ciphertext<DCRTPoly>>
   computeSimilarity(Ciphertext<DCRTPoly> query,
                     vector<Ciphertext<DCRTPoly>> database);
 
+  vector<Ciphertext<DCRTPoly>>
+  mergeScores(vector<Ciphertext<DCRTPoly>> similarityCipher);
+
 private:
   // some private members here
   CryptoContext<DCRTPoly> cc;
   PublicKey<DCRTPoly> pk;
-  int vectorDim;
   int numVectors;
 };

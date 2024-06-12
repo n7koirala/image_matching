@@ -2,13 +2,12 @@
 
 // implementation of functions declared in receiver_plain.h
 Receiver::Receiver(CryptoContext<DCRTPoly> ccParam,
-                         PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, int dimParam,
-                         int vectorParam)
-    : cc(ccParam), pk(pkParam), sk(skParam), vectorDim(dimParam), numVectors(vectorParam) {}
+                         PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, int vectorParam)
+    : cc(ccParam), pk(pkParam), sk(skParam), numVectors(vectorParam) {}
 
 double Receiver::plaintextMagnitude(vector<double> x) {
   double m = 0.0;
-  for (int i = 0; i < vectorDim; i++) {
+  for (int i = 0; i < VECTOR_DIM; i++) {
     m += (x[i] * x[i]);
   }
   m = sqrt(m);
@@ -17,7 +16,7 @@ double Receiver::plaintextMagnitude(vector<double> x) {
 
 double Receiver::plaintextInnerProduct(vector<double> x, vector<double> y) {
   double prod = 0.0;
-  for (int i = 0; i < vectorDim; i++) {
+  for (int i = 0; i < VECTOR_DIM; i++) {
     prod += x[i] * y[i];
   }
   return prod;
@@ -27,7 +26,7 @@ vector<double> Receiver::plaintextNormalize(vector<double> x) {
   double m = plaintextMagnitude(x);
   vector<double> x_norm = x;
   if (m != 0) {
-    for (int i = 0; i < vectorDim; i++) {
+    for (int i = 0; i < VECTOR_DIM; i++) {
       x_norm[i] = x[i] / m;
     }
   }
@@ -43,7 +42,7 @@ double Receiver::plaintextCosineSim(vector<double> x, vector<double> y) {
 
 Ciphertext<DCRTPoly> Receiver::encryptQuery(vector<double> query) {
   int vectorsPerBatch =
-      (int)(cc->GetEncodingParams()->GetBatchSize() / vectorDim);
+      (int)(cc->GetEncodingParams()->GetBatchSize() / VECTOR_DIM);
 
   query = plaintextNormalize(query);
 
@@ -52,13 +51,15 @@ Ciphertext<DCRTPoly> Receiver::encryptQuery(vector<double> query) {
 
   Plaintext queryPtxt = cc->MakeCKKSPackedPlaintext(batchedQuery);
   Ciphertext<DCRTPoly> queryCipher = cc->Encrypt(pk, queryPtxt);
+
+  cout << "[receiver.cpp]\tQuery vector encrypted..." << endl;
   return queryCipher;
 }
 
 vector<Ciphertext<DCRTPoly>>
 Receiver::encryptDB(vector<vector<double>> database) {
   int vectorsPerBatch =
-      (int)(cc->GetEncodingParams()->GetBatchSize() / vectorDim);
+      (int)(cc->GetEncodingParams()->GetBatchSize() / VECTOR_DIM);
   int totalBatches = (int)(numVectors / vectorsPerBatch + 1);
 
   for (int i = 0; i < numVectors; i++) {
@@ -81,16 +82,32 @@ Receiver::encryptDB(vector<vector<double>> database) {
     databaseCipher[i] = cc->Encrypt(pk, databasePtxt);
   }
 
+  cout << "[receiver.cpp]\tDatabase vectors encrypted..." << endl;
   return databaseCipher;
 }
 
 vector<Plaintext> Receiver::decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosineCipher) {
   int vectorsPerBatch =
-      (int)(cc->GetEncodingParams()->GetBatchSize() / vectorDim);
+      (int)(cc->GetEncodingParams()->GetBatchSize() / VECTOR_DIM);
   int totalBatches = (int)(numVectors / vectorsPerBatch + 1);
   vector<Plaintext> resultPtxts(totalBatches);
   for (int i = 0; i < totalBatches; i++) {
     cc->Decrypt(sk, cosineCipher[i], &(resultPtxts[i]));
   }
   return resultPtxts;
+}
+
+vector<double> Receiver::decryptMergedScores(vector<Ciphertext<DCRTPoly>> mergedCipher) {
+  vector<double> output;
+
+  Plaintext mergedPtxt;
+  vector<double> mergedValues;
+  for(int i = 0; i < int(mergedCipher.size()); i++) {
+    cc->Decrypt(sk, mergedCipher[i], &(mergedPtxt));
+    mergedValues = mergedPtxt->GetRealPackedValue();
+    VectorUtils::concatenateVectors(output, mergedValues, 1);
+  }
+
+  cout << "[receiver.cpp]\tSimilarity scores decrypted..." << endl;
+  return output;
 }
