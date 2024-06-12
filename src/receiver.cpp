@@ -93,3 +93,17 @@ vector<Plaintext> Receiver::decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosin
   }
   return resultPtxts;
 }
+
+vector<double> Receiver::decryptMergedScores(vector<Ciphertext<DCRTPoly>> mergedCipher) {
+  vector<double> output;
+
+  Plaintext mergedPtxt;
+  vector<double> mergedValues;
+  for(int i = 0; i < int(mergedCipher.size()); i++) {
+    cc->Decrypt(sk, mergedCipher[i], &(mergedPtxt));
+    mergedValues = mergedPtxt->GetRealPackedValue();
+    VectorUtils::concatenateVectors(output, mergedValues, 1);
+  }
+
+  return output;
+}

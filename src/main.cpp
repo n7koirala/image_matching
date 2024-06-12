@@ -102,42 +102,37 @@ int main(int argc, char *argv[]) {
 
   // Cosine similarity is equivalent to inner product of normalized vectors
   // In future, explore if key-switching is unnecessary / slower
-  vector<Ciphertext<DCRTPoly>> similarityCiphers =
+  vector<Ciphertext<DCRTPoly>> similarityCipher =
       sender.computeSimilarity(queryCipher, databaseCipher);
-  cout << "[main.cpp]\tSimilarity scores computed..." << endl;
+
+  /* TODO: REMOVE UNUSED CODE
+  vector<Ciphertext<DCRTPoly>> mergedCipher = sender.mergeScores(similarityCipher);
+  cout << "[main.cpp]\tSimilarity scores merged..." << endl;  
+  */
 
   // Receiver is then able to decrypt all scores
   // This does not determine matches or protect provenance privacy, just contains all scores
-  vector<Plaintext> resultPtxts = receiver.decryptSimilarity(similarityCiphers);
+  // vector<Plaintext> resultPtxts = receiver.decryptSimilarity(similarityCipher); TODO: REMOVE UNUSED CODE
+  vector<double> mergedValues = receiver.decryptMergedScores(similarityCipher);
   cout << "[main.cpp]\tSimilarity scores decrypted..." << endl;
-
-  // Testing merge operation
-  cout << "[main.cpp]\tMerging scores..." << endl;
-
-  // TODO: fix decryption for multi-ciphertext merges
-  vector<Ciphertext<DCRTPoly>> mergedCipher = sender.mergeScores(similarityCiphers);
-  Plaintext mergedPtxt; 
-  vector<vector<double>> mergedValues(int(mergedCipher.size()));
-  for(int i = 0; i < int(mergedCipher.size()); i++) {
-    cc->Decrypt(sk, mergedCipher[i], &(mergedPtxt));
-    mergedValues[i] = mergedPtxt->GetRealPackedValue();
-  }
 
   // Formatted Output
   cout << endl;
   for (int i = 0; i < numVectors; i++) {
+
+    cout << "Cosine similarity of query with database[" << i << "]" << endl;
+    cout << "Expected:\t" << VectorUtils::plaintextCosineSim(queryVector, plaintextVectors[i]) << endl;
+    cout << "Merged:  \t" << mergedValues[i] << endl;
+    cout << endl;
+
+    /* TODO: REMOVE UNUSED CODE
     int batchNum = (int)(i / vectorsPerBatch);
     int batchIndex = (i % vectorsPerBatch) * VECTOR_DIM;
     auto resultValues = resultPtxts[batchNum]->GetRealPackedValue();
-    cout << "Cosine similarity of query vector with database[" << i << "]"
-         << endl;
     cout << "Batch Num: " << batchNum << "\tBatch Index: " << batchIndex
          << endl;
-    cout << "Expected:   \t"
-         << VectorUtils::plaintextCosineSim(queryVector, plaintextVectors[i]) << endl;
-    cout << "Homomorphic:\t" << resultValues[batchIndex] << endl;
-    cout << "Merged:     \t" << mergedValues[i / batchSize][i % batchSize] << endl;
-    cout << endl;
+    cout << "Pre-Merged:\t" << resultValues[batchIndex] << endl;
+    */
   }
 
   return 0;

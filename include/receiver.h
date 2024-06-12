@@ -27,6 +27,7 @@ public:
   Ciphertext<DCRTPoly> encryptQuery(vector<double> query);
   vector<Ciphertext<DCRTPoly>> encryptDB(vector<vector<double>> database);
   vector<Plaintext> decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosineCipher);
+  vector<double> decryptMergedScores(vector<Ciphertext<DCRTPoly>> mergedCipher);
 
 protected:
   // some protected members here -- inherited by subclass

@@ -15,14 +15,16 @@ Sender::computeSimilarity(Ciphertext<DCRTPoly> query,
   for (unsigned int i = 0; i < database.size(); i++) {
     similarityCipher[i] = cc->EvalInnerProduct(query, database[i], VECTOR_DIM);
   }
-  return similarityCipher;
+  cout << "[sender.cpp]\tSimilarity scores computed..." << endl;
+
+  return mergeScores(similarityCipher);
 }
 
 // This implementation requires only two ciphertext multiplications per similarity ciphertext
 // However, approach only works if VECTOR_DIM >= (batchSize / VECTOR_DIM)
 // In our current case, VECTOR_DIM = 512 and (batchSize / VECTOR_DIM) = 16, therefore okay
 // Essentially this needs to be modified if batchSize exceeds 262,144
-vector<Ciphertext<DCRTPoly>> Sender::mergeScores(vector<Ciphertext<DCRTPoly>> similarityCiphers) {
+vector<Ciphertext<DCRTPoly>> Sender::mergeScores(vector<Ciphertext<DCRTPoly>> similarityCipher) {
 
   int batchSize = cc->GetEncodingParams()->GetBatchSize();
   int scoresPerBatch = int(batchSize / VECTOR_DIM);
@@ -56,12 +58,12 @@ vector<Ciphertext<DCRTPoly>> Sender::mergeScores(vector<Ciphertext<DCRTPoly>> si
     for(int j = 0; j < reductionFactor; j++) {
 
       // check if we've merged all ciphertexts, therefore OOB
-      if(j + i*reductionFactor >= int(similarityCiphers.size())) {
+      if(j + i*reductionFactor >= int(similarityCipher.size())) {
         break;
       }
 
       // retain all similarity scores, set all garbage values to 0
-      currentBatchCipher = cc->EvalMult(similarityCiphers[j + i*reductionFactor], scoreMaskCipher);
+      currentBatchCipher = cc->EvalMult(similarityCipher[j + i*reductionFactor], scoreMaskCipher);
 
       // perform rotations and additions to move similarity scores to front of ciphertext
       for(int rotationFactor = VECTOR_DIM - 1; rotationFactor < batchSize; rotationFactor *= 2) {
@@ -82,5 +84,6 @@ vector<Ciphertext<DCRTPoly>> Sender::mergeScores(vector<Ciphertext<DCRTPoly>> si
     }
   }
 
+  cout << "[sender.cpp]\tSimilarity scores merged..." << endl;
   return mergedCipher;
 }
