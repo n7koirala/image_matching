@@ -50,6 +50,8 @@ Ciphertext<DCRTPoly> SecurePreprocessingReceiver::encryptQuery(vector<double> qu
   Ciphertext<DCRTPoly> queryCipher = cc->Encrypt(pk, queryPtxt);
   Ciphertext<DCRTPoly> inverseCipher = approxInverseMagnitude(queryCipher);
   queryCipher = cc->EvalMult(queryCipher, inverseCipher);
+
+  cout << "[receiver_secure.cpp]\tQuery vector encrypted..." << endl;
   return queryCipher;
 }
 
@@ -77,5 +79,7 @@ SecurePreprocessingReceiver::encryptDB(vector<vector<double>> database) {
     inverseCipher = approxInverseMagnitude(databaseCipher[i]);
     databaseCipher[i] = cc->EvalMult(databaseCipher[i], inverseCipher);
   }
+
+  cout << "[receiver_secure.cpp]\tDatabase vectors encrypted..." << endl;
   return databaseCipher;
 }

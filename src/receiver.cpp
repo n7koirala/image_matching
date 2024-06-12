@@ -51,6 +51,8 @@ Ciphertext<DCRTPoly> Receiver::encryptQuery(vector<double> query) {
 
   Plaintext queryPtxt = cc->MakeCKKSPackedPlaintext(batchedQuery);
   Ciphertext<DCRTPoly> queryCipher = cc->Encrypt(pk, queryPtxt);
+
+  cout << "[receiver.cpp]\tQuery vector encrypted..." << endl;
   return queryCipher;
 }
 
@@ -80,6 +82,7 @@ Receiver::encryptDB(vector<vector<double>> database) {
     databaseCipher[i] = cc->Encrypt(pk, databasePtxt);
   }
 
+  cout << "[receiver.cpp]\tDatabase vectors encrypted..." << endl;
   return databaseCipher;
 }
 
@@ -105,5 +108,6 @@ vector<double> Receiver::decryptMergedScores(vector<Ciphertext<DCRTPoly>> merged
     VectorUtils::concatenateVectors(output, mergedValues, 1);
   }
 
+  cout << "[receiver.cpp]\tSimilarity scores decrypted..." << endl;
   return output;
 }

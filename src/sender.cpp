@@ -54,6 +54,7 @@ vector<Ciphertext<DCRTPoly>> Sender::mergeScores(vector<Ciphertext<DCRTPoly>> si
   maskPtxt = cc->MakeCKKSPackedPlaintext(batchMask);
   batchMaskCipher = cc->Encrypt(pk, maskPtxt);
 
+  // TODO: outer loop can be parallelized, just need temp/current ciphers for each thread
   for(int i = 0; i < ciphersNeeded; i++) {
     for(int j = 0; j < reductionFactor; j++) {
 

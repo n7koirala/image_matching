@@ -93,46 +93,27 @@ int main(int argc, char *argv[]) {
 
   // Normalize, batch, and encrypt the query vector
   Ciphertext<DCRTPoly> queryCipher = receiver.encryptQuery(queryVector);
-  cout << "[main.cpp]\tQuery vector encrypted..." << endl;
 
   // Normalize, batch, and encrypt the database vectors
   vector<Ciphertext<DCRTPoly>> databaseCipher =
       receiver.encryptDB(plaintextVectors);
-  cout << "[main.cpp]\tDatabase vectors encrypted..." << endl;
 
   // Cosine similarity is equivalent to inner product of normalized vectors
-  // In future, explore if key-switching is unnecessary / slower
+  // TODO: In future, explore if key-switching is unnecessary / slower
   vector<Ciphertext<DCRTPoly>> similarityCipher =
       sender.computeSimilarity(queryCipher, databaseCipher);
 
-  /* TODO: REMOVE UNUSED CODE
-  vector<Ciphertext<DCRTPoly>> mergedCipher = sender.mergeScores(similarityCipher);
-  cout << "[main.cpp]\tSimilarity scores merged..." << endl;  
-  */
-
   // Receiver is then able to decrypt all scores
   // This does not determine matches or protect provenance privacy, just contains all scores
-  // vector<Plaintext> resultPtxts = receiver.decryptSimilarity(similarityCipher); TODO: REMOVE UNUSED CODE
   vector<double> mergedValues = receiver.decryptMergedScores(similarityCipher);
-  cout << "[main.cpp]\tSimilarity scores decrypted..." << endl;
 
   // Formatted Output
   cout << endl;
   for (int i = 0; i < numVectors; i++) {
-
     cout << "Cosine similarity of query with database[" << i << "]" << endl;
     cout << "Expected:\t" << VectorUtils::plaintextCosineSim(queryVector, plaintextVectors[i]) << endl;
     cout << "Merged:  \t" << mergedValues[i] << endl;
     cout << endl;
-
-    /* TODO: REMOVE UNUSED CODE
-    int batchNum = (int)(i / vectorsPerBatch);
-    int batchIndex = (i % vectorsPerBatch) * VECTOR_DIM;
-    auto resultValues = resultPtxts[batchNum]->GetRealPackedValue();
-    cout << "Batch Num: " << batchNum << "\tBatch Index: " << batchIndex
-         << endl;
-    cout << "Pre-Merged:\t" << resultValues[batchIndex] << endl;
-    */
   }
 
   return 0;
