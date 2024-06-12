@@ -23,7 +23,7 @@ public:
   computeSimilarity(Ciphertext<DCRTPoly> query,
                     vector<Ciphertext<DCRTPoly>> database);
 
-  Ciphertext<DCRTPoly>
+  vector<Ciphertext<DCRTPoly>>
   mergeScores(vector<Ciphertext<DCRTPoly>> similarityCipher);
 
 private:

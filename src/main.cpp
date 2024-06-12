@@ -16,18 +16,26 @@ int main(int argc, char *argv[]) {
 
   cout << "[main.cpp]\tMain execution entered..." << endl;
 
-  // plaintext preprocessing currently requires multDepth = 3
-  // secure preprocessing currently requires multDepth = 15
+  // Open input file
+  ifstream fileStream;
+  if (argc > 1) {
+    fileStream.open(argv[1], ios::in);
+  } else {
+    fileStream.open(BACKEND_VECTORS_FILE, ios::in);
+  }
+
+  if (!fileStream.is_open()) {
+    cerr << "[main.cpp]\tError: input file not found" << endl;
+    return 1;
+  }
+
+  // plaintext preprocessing currently requires multDepth = 3 -> batchSize = 8192
+  // secure preprocessing currently requires multDepth = 15 -> batchSize = 32768
   uint32_t multDepth = 3;
   CCParams<CryptoContextCKKSRNS> parameters;
   parameters.SetSecurityLevel(HEStd_128_classic);
   parameters.SetMultiplicativeDepth(multDepth);
   parameters.SetScalingModSize(45);
-
-  // Preset security level specifies ring dimension n = 32768
-  // Batch size cannot be set above n/2 = 16384
-  // Discuss whether batch size should be increased
-  // parameters.SetBatchSize(32768);
 
   CryptoContext<DCRTPoly> cc = GenCryptoContext(parameters);
   cc->Enable(PKE);
@@ -36,6 +44,7 @@ int main(int argc, char *argv[]) {
   cc->Enable(ADVANCEDSHE);
 
   int batchSize = cc->GetEncodingParams()->GetBatchSize();
+  int vectorsPerBatch = int(batchSize / VECTOR_DIM);
 
   // OpenFHEWrapper::printSchemeDetails(parameters, cc);
   cout << "[main.cpp]\tCKKS scheme set up (depth = " << multDepth << ", batch size = " << batchSize << ")..." << endl;
@@ -47,26 +56,16 @@ int main(int argc, char *argv[]) {
   cc->EvalSumKeyGen(sk);
 
   // these specific rotations needed for merge operation
-  vector<int> rotationFactors = {-VECTOR_DIM};
+  vector<int> rotationFactors;
+  for(int i = 1; i*vectorsPerBatch < batchSize; i++) {
+    rotationFactors.push_back(i*-vectorsPerBatch);
+  }
+  
   for(int i = (VECTOR_DIM - 1); i < batchSize; i *= 2) {
     rotationFactors.push_back(i);
   }
   cc->EvalRotateKeyGen(sk, rotationFactors);
-
   cout << "[main.cpp]\tCKKS keys generated..." << endl;
-
-  // Get vectors from input
-  ifstream fileStream;
-  if (argc > 1) {
-    fileStream.open(argv[1], ios::in);
-  } else {
-    fileStream.open(BACKEND_VECTORS_FILE, ios::in);
-  }
-
-  if (!fileStream.is_open()) {
-    cerr << "[main.cpp]\tError opening file" << endl;
-    return 1;
-  }
 
   // Read in vectors from file
   int numVectors;
@@ -115,14 +114,17 @@ int main(int argc, char *argv[]) {
   // Testing merge operation
   cout << "[main.cpp]\tMerging scores..." << endl;
 
-  Ciphertext<DCRTPoly> mergedCipher = sender.mergeScores(similarityCiphers);
+  // TODO: fix decryption for multi-ciphertext merges
+  vector<Ciphertext<DCRTPoly>> mergedCipher = sender.mergeScores(similarityCiphers);
   Plaintext mergedPtxt; 
-  cc->Decrypt(sk, mergedCipher, &(mergedPtxt));
-  auto mergedValues = mergedPtxt->GetRealPackedValue();
+  vector<vector<double>> mergedValues(int(mergedCipher.size()));
+  for(int i = 0; i < int(mergedCipher.size()); i++) {
+    cc->Decrypt(sk, mergedCipher[i], &(mergedPtxt));
+    mergedValues[i] = mergedPtxt->GetRealPackedValue();
+  }
 
   // Formatted Output
   cout << endl;
-  int vectorsPerBatch = (int)(batchSize / VECTOR_DIM);
   for (int i = 0; i < numVectors; i++) {
     int batchNum = (int)(i / vectorsPerBatch);
     int batchIndex = (i % vectorsPerBatch) * VECTOR_DIM;
@@ -131,10 +133,10 @@ int main(int argc, char *argv[]) {
          << endl;
     cout << "Batch Num: " << batchNum << "\tBatch Index: " << batchIndex
          << endl;
-    cout << "Expected:\t"
+    cout << "Expected:   \t"
          << VectorUtils::plaintextCosineSim(queryVector, plaintextVectors[i]) << endl;
     cout << "Homomorphic:\t" << resultValues[batchIndex] << endl;
-    cout << "Merged:\t\t" << mergedValues[i] << endl;
+    cout << "Merged:     \t" << mergedValues[i / batchSize][i % batchSize] << endl;
     cout << endl;
   }
 
