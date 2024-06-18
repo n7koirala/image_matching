@@ -21,13 +21,22 @@ public:
 
   // utility functions for computing cosine similarity
   double plaintextMagnitude(vector<double> x);
+
   double plaintextInnerProduct(vector<double> x, vector<double> y);
+  
   std::vector<double> plaintextNormalize(vector<double> x);
+  
   double plaintextCosineSim(vector<double> x, vector<double> y);
+  
   Ciphertext<DCRTPoly> encryptQuery(vector<double> query);
+  
   vector<Ciphertext<DCRTPoly>> encryptDB(vector<vector<double>> database);
+  
   vector<Plaintext> decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosineCipher);
+
   vector<double> decryptMergedScores(vector<Ciphertext<DCRTPoly>> mergedCipher);
+
+  double decryptMembershipQuery(Ciphertext<DCRTPoly> membershipCipher);
 
 protected:
   // some protected members here -- inherited by subclass

@@ -24,7 +24,12 @@ public:
                     vector<Ciphertext<DCRTPoly>> database);
 
   vector<Ciphertext<DCRTPoly>>
-  mergeScores(vector<Ciphertext<DCRTPoly>> similarityCipher);
+  mergeScores(vector<Ciphertext<DCRTPoly>> similarityCipher, int numScores);
+
+  vector<Ciphertext<DCRTPoly>>
+  approximateMax(vector<Ciphertext<DCRTPoly>> similarityCipher, int alpha, int partitionLen);
+
+  Ciphertext<DCRTPoly> membershipQuery(vector<Ciphertext<DCRTPoly>> similarityCipher);
 
 private:
   // some private members here
