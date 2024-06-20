@@ -9,7 +9,7 @@ int OpenFHEWrapper::computeMultDepth() {
   depth += 2;
 
   // for computing max approximations
-  depth += ALPHA;
+  depth += ALPHA + 1;
 
   // for merge operation upon the max approximations
   depth += 2;
@@ -21,7 +21,7 @@ int OpenFHEWrapper::computeMultDepth() {
   depth += 4*SIGN_COMPOSITIONS;
 
   // TODO: determine untracked depth
-  depth += 2;
+  depth += 3;
 
   return depth;
 }
@@ -151,7 +151,7 @@ OpenFHEWrapper::normalizeVector(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly>
 Ciphertext<DCRTPoly> OpenFHEWrapper::alphaNorm(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, int alpha, int partitionLen) {
   Ciphertext<DCRTPoly> result = ctxt;
 
-  for(int i = 0; i < alpha; i++) {
+  for(int a = 0; a < alpha; a++) {
     result = cc->EvalMult(result, result);
   }
   result = cc->EvalInnerProduct(result, ctxt, partitionLen);

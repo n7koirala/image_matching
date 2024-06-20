@@ -23,13 +23,25 @@ public:
   computeSimilarity(Ciphertext<DCRTPoly> query,
                     vector<Ciphertext<DCRTPoly>> database);
 
+  Ciphertext<DCRTPoly>
+  mergeSingleCipher(Ciphertext<DCRTPoly> similarityCipher, int reductionDim);
+
   vector<Ciphertext<DCRTPoly>>
-  mergeScores(vector<Ciphertext<DCRTPoly>> similarityCipher, int numScores);
+  mergeScores(vector<Ciphertext<DCRTPoly>> similarityCipher, int reductionDim);
 
   vector<Ciphertext<DCRTPoly>>
   approximateMax(vector<Ciphertext<DCRTPoly>> similarityCipher, int alpha, int partitionLen);
 
   Ciphertext<DCRTPoly> membershipQuery(vector<Ciphertext<DCRTPoly>> similarityCipher);
+
+  tuple<vector<Ciphertext<DCRTPoly>>, vector<Ciphertext<DCRTPoly>>>
+  formatScoreMatrices(vector<Ciphertext<DCRTPoly>> similarityScores);
+
+  Ciphertext<DCRTPoly> alphaNormRows(vector<Ciphertext<DCRTPoly>> mergedCipher, int alpha, int rowLength);
+
+  Ciphertext<DCRTPoly> alphaNormColumns(vector<Ciphertext<DCRTPoly>> mergedCipher, int alpha, int colLength);
+
+  vector<Ciphertext<DCRTPoly>> indexScenario(vector<Ciphertext<DCRTPoly>> similarityCipher);
 
 private:
   // some private members here

@@ -38,7 +38,7 @@ int main(int argc, char *argv[]) {
   // TODO: check / update these vals
   // plaintext preprocessing currently requires multDepth = 8 -> batchSize = 8192
   // secure preprocessing currently requires multDepth = 20 -> batchSize = 32768
-  uint32_t multDepth = OpenFHEWrapper::computeMultDepth();
+  uint32_t multDepth = 20;// OpenFHEWrapper::computeMultDepth();
   CCParams<CryptoContextCKKSRNS> parameters;
   parameters.SetSecurityLevel(HEStd_128_classic);
   parameters.SetMultiplicativeDepth(multDepth);
@@ -60,7 +60,6 @@ int main(int argc, char *argv[]) {
   auto pk = keyPair.publicKey;
   auto sk = keyPair.secretKey;
   cout << "done" << endl;
-
 
   vector<int> binaryRotationFactors;
   for(int i = 1; i < batchSize; i *= 2) {
@@ -105,6 +104,25 @@ int main(int argc, char *argv[]) {
   Receiver receiver(cc, pk, sk, numVectors);
   Sender sender(cc, pk, numVectors);
 
+  // TESTING MERGE OPERATION
+  vector<double> testValues(batchSize);
+  for(int i = 0; i < batchSize; i++) {  testValues[i] = double(i);  }
+  Plaintext testPtxt = cc->MakeCKKSPackedPlaintext(testValues);
+  Ciphertext<DCRTPoly> testCipher;
+  testCipher = cc->Encrypt(pk, testPtxt);
+  testCipher = sender.mergeSingleCipher(testCipher, 16);
+
+  return 0;
+  cc->Decrypt(sk, testCipher, &testPtxt);
+  testValues = testPtxt->GetRealPackedValue();
+  cout << endl;
+  for(int i = 0; i < batchSize; i++) {
+    cout << "testValues[" << i << "]\t" << testValues[i] << endl;
+  }
+
+  return 0;
+  // END
+
   // Normalize, batch, and encrypt the query vector
   Ciphertext<DCRTPoly> queryCipher = receiver.encryptQuery(queryVector);
 
@@ -114,14 +132,16 @@ int main(int argc, char *argv[]) {
 
   // Cosine similarity is equivalent to inner product of normalized vectors
   // TODO: In future, explore if key-switching is unnecessary / slower
+  // REMEMBER!!! : score merge operation has been removed from this function
   vector<Ciphertext<DCRTPoly>> similarityCipher =
       sender.computeSimilarity(queryCipher, databaseCipher);
 
   // Receiver is then able to decrypt all scores
   // This does not determine matches or protect provenance privacy, just contains all scores
-  vector<double> mergedValues = receiver.decryptMergedScores(similarityCipher);
+  vector<Ciphertext<DCRTPoly>> mergedCipher; // = sender.mergeScores(similarityCipher, VECTOR_DIM);
+  vector<double> mergedValues = receiver.decryptMergedScores(mergedCipher);
 
-  // Formatted Output
+  // Output raw scores
   cout << endl;
   for (int i = 0; i < numVectors; i++) {
     cout << "Cosine similarity of query with database[" << i << "]" << endl;
