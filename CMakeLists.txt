@@ -50,6 +50,7 @@ add_executable(ImageMatching
     src/main.cpp
     src/receiver.cpp
     src/receiver_secure.cpp
+    src/enroller.cpp
     src/sender.cpp
     src/openFHE_wrapper.cpp
     src/vector_utils.cpp

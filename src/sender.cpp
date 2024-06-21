@@ -7,16 +7,22 @@ Sender::Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
 
 
 
-vector<Ciphertext<DCRTPoly>>
-Sender::computeSimilarity(Ciphertext<DCRTPoly> query,
-                          vector<Ciphertext<DCRTPoly>> database) {
+void Sender::setDatabaseCipher(vector<Ciphertext<DCRTPoly>> databaseCipherParam) {
+  databaseCipher = databaseCipherParam;
+  return;
+}
 
-  vector<Ciphertext<DCRTPoly>> similarityCipher(database.size());
+
+
+vector<Ciphertext<DCRTPoly>>
+Sender::computeSimilarity(Ciphertext<DCRTPoly> query) {
+
+  vector<Ciphertext<DCRTPoly>> similarityCipher(databaseCipher.size());
 
   // embarrassingly parallel
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
-  for (size_t i = 0; i < database.size(); i++) {
-    similarityCipher[i] = cc->EvalInnerProduct(query, database[i], VECTOR_DIM);
+  for (size_t i = 0; i < databaseCipher.size(); i++) {
+    similarityCipher[i] = cc->EvalInnerProduct(query, databaseCipher[i], VECTOR_DIM);
   }
 
   return similarityCipher;
@@ -181,10 +187,12 @@ Ciphertext<DCRTPoly> Sender::alphaNormColumns(vector<Ciphertext<DCRTPoly>> merge
 
 
 Ciphertext<DCRTPoly>
-Sender::membershipQuery(Ciphertext<DCRTPoly> queryCipher, vector<Ciphertext<DCRTPoly>> databaseCipher) {
+Sender::membershipQuery(Ciphertext<DCRTPoly> queryCipher) {
+
+  int batchSize = cc->GetEncodingParams()->GetBatchSize();
 
   cout << "[sender.cpp]\tComputing similarity scores... " << flush;
-  vector<Ciphertext<DCRTPoly>> similarityCipher = computeSimilarity(queryCipher, databaseCipher);
+  vector<Ciphertext<DCRTPoly>> similarityCipher = computeSimilarity(queryCipher);
   cout << "done" << endl;
 
   cout << "[sender.cpp]\tMerging similarity scores... " << flush;
@@ -205,7 +213,13 @@ Sender::membershipQuery(Ciphertext<DCRTPoly> queryCipher, vector<Ciphertext<DCRT
   for(size_t i = 1; i < mergedCipher.size(); i++) {
     mergedCipher[0] = cc->EvalAdd(mergedCipher[0], mergedCipher[i]);
   }
-  // TODO: APPLY RANDOM NOISE SCALAR
+
+  srand (time(0));
+  vector<double> noiseValues(batchSize);
+  noiseValues[0] = (rand() % 50) + 50.0; // random scalar from [50, 100]
+  Plaintext noisePtxt = cc->MakeCKKSPackedPlaintext(noiseValues);
+  mergedCipher[0] = cc->EvalMult(mergedCipher[0], noisePtxt);
+
   cout << "done" << endl;
 
   return mergedCipher[0];
@@ -213,10 +227,10 @@ Sender::membershipQuery(Ciphertext<DCRTPoly> queryCipher, vector<Ciphertext<DCRT
 
 
 
-vector<Ciphertext<DCRTPoly>> Sender::indexQuery(Ciphertext<DCRTPoly> queryCipher, vector<Ciphertext<DCRTPoly>> databaseCipher) {
+vector<Ciphertext<DCRTPoly>> Sender::indexQuery(Ciphertext<DCRTPoly> queryCipher) {
 
   cout << "[sender.cpp]\tComputing similarity scores... " << flush;
-  vector<Ciphertext<DCRTPoly>> similarityCipher = computeSimilarity(queryCipher, databaseCipher);
+  vector<Ciphertext<DCRTPoly>> similarityCipher = computeSimilarity(queryCipher);
   cout << "done" << endl;
 
   cout << "[sender.cpp]\tMerging similarity scores... " << flush;

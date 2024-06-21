@@ -9,9 +9,10 @@ using namespace std;
 using namespace lbcrypto;
 
 namespace OpenFHEWrapper {
-int computeMultDepth();
 
 void printSchemeDetails(CCParams<CryptoContextCKKSRNS> parameters, CryptoContext<DCRTPoly> cc);
+
+void deserializeKeys(CryptoContext<DCRTPoly> cc, PrivateKey<DCRTPoly> sk);
 
 Ciphertext<DCRTPoly> binaryRotate(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, int factor);
 

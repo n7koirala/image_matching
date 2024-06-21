@@ -1,6 +1,6 @@
 #include "../include/config.h"
 #include "../include/receiver.h"
-#include "../include/receiver_secure.h"
+#include "../include/enroller.h"
 #include "../include/sender.h"
 #include "../include/vector_utils.h"
 #include "../include/openFHE_wrapper.h"
@@ -20,7 +20,7 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-  cout << "[main.cpp]\tMain execution entered..." << endl;
+  cout << "[main.cpp]\t\tMain execution entered..." << endl;
 
   // Open input file
   ifstream fileStream;
@@ -31,11 +31,11 @@ int main(int argc, char *argv[]) {
   }
 
   if (!fileStream.is_open()) {
-    cerr << "[main.cpp]\tError: input file not found" << endl;
+    cerr << "[main.cpp]\t\tError: input file not found" << endl;
     return 1;
   }
 
-  uint32_t multDepth = 12; // OpenFHEWrapper::computeMultDepth();
+  uint32_t multDepth = 4 + (4 * SIGN_COMPOSITIONS);
   CCParams<CryptoContextCKKSRNS> parameters;
   parameters.SetSecurityLevel(HEStd_128_classic);
   parameters.SetMultiplicativeDepth(multDepth);
@@ -50,27 +50,27 @@ int main(int argc, char *argv[]) {
   int batchSize = cc->GetEncodingParams()->GetBatchSize();
 
   // OpenFHEWrapper::printSchemeDetails(parameters, cc);
-  cout << "[main.cpp]\tCKKS scheme set up (depth = " << multDepth << ", batch size = " << batchSize << ")" << endl;
+  cout << "[main.cpp]\t\tCKKS scheme set up (depth = " << multDepth << ", batch size = " << batchSize << ")" << endl;
 
 
-  cout << "[main.cpp]\tGenerating key pair... " << flush;
+  cout << "[main.cpp]\t\tGenerating key pair... " << flush;
   auto keyPair = cc->KeyGen();
   auto pk = keyPair.publicKey;
   auto sk = keyPair.secretKey;
   cout << "done" << endl;
 
 
-  cout << "[main.cpp]\tGenerating mult keys... " << flush;
+  cout << "[main.cpp]\t\tGenerating mult keys... " << flush;
   cc->EvalMultKeyGen(sk);
   cout << "done" << endl;
 
 
-  cout << "[main.cpp]\tGenerating sum keys... " << flush;
+  cout << "[main.cpp]\t\tGenerating sum keys... " << flush;
   cc->EvalSumKeyGen(sk);
   cout << "done" << endl;
 
 
-  cout << "[main.cpp]\tGenerating rotation keys... " << flush;
+  cout << "[main.cpp]\t\tGenerating rotation keys... " << flush;
   vector<int> binaryRotationFactors;
   for(int i = 1; i < batchSize; i *= 2) {
     binaryRotationFactors.push_back(i);
@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
   cout << "done" << endl;
 
 
-  cout << "[main.cpp]\tReading in vectors from file... " << flush;
+  cout << "[main.cpp]\t\tReading in vectors from file... " << flush;
   int numVectors;
   fileStream >> numVectors;
 
@@ -101,8 +101,9 @@ int main(int argc, char *argv[]) {
   cout << "done" << endl;
 
 
-  // Initialize receiver and sender objects -- only the receiver possesses the secret key
+  // Initialize receiver, enroller, and sender objects -- only the receiver possesses the secret key
   Receiver receiver(cc, pk, sk, numVectors);
+  Enroller enroller(cc, pk, numVectors);
   Sender sender(cc, pk, numVectors);
 
 
@@ -111,7 +112,7 @@ int main(int argc, char *argv[]) {
 
 
   // Serialize the encrypted query vector for demonstration
-  cout << "[main.cpp]\tSerializing encrypted query vector... " << flush;
+  cout << "[main.cpp]\t\tSerializing encrypted query vector... " << flush;
   if (!Serial::SerializeToFile(SERIAL_FOLDER + "/query_cipher.txt", queryCipher, SerType::JSON)) {
       cerr << "Error: cannot serialize query cipher to" << SERIAL_FOLDER + "/query_cipher.txt" << endl;
       return 1;
@@ -120,19 +121,21 @@ int main(int argc, char *argv[]) {
 
 
   // Normalize, batch, and encrypt the database vectors
-  vector<Ciphertext<DCRTPoly>> databaseCipher =
-      receiver.encryptDB(plaintextVectors);
-
+  sender.setDatabaseCipher(enroller.encryptDB(plaintextVectors));
 
   // Run membership scenario upon similarity scores
-  /*
   Ciphertext<DCRTPoly> membershipCipher =
-      sender.membershipQuery(queryCipher, databaseCipher);
-  double membershipResults = receiver.decryptMembershipQuery(membershipCipher);
-  cout << endl << "Results of membership query:"" << endl;
-  cout << "\tThere exists " << membershipResults << " match(es) between the query vector and the database vectors" << endl;
-   */
+      sender.membershipQuery(queryCipher);
+  bool membershipResults = receiver.decryptMembershipQuery(membershipCipher);
+  cout << endl << "Results of membership query:" << endl;
+  if(membershipResults) {
+    cout << "\tThere exists a match between the query vector and the database vectors" << endl;
+  } else {
+    cout << "\tThere does not exist a match between the query vector and the database vectors" << endl;
+  }
+  
 
+  /*
   // Run index scenario upon similarity scores
   vector<Ciphertext<DCRTPoly>> indexCipher = sender.indexQuery(queryCipher, databaseCipher);
   vector<int> matchingIndices = receiver.decryptIndexQuery(indexCipher);
@@ -144,6 +147,7 @@ int main(int argc, char *argv[]) {
   for(size_t i = 0; i < matchingIndices.size(); i++) {
     cout << "\tMatch found between the query vector and database vector [" << matchingIndices[i] << "]" << endl;
   }
+   */
 
   return 0;
 }
