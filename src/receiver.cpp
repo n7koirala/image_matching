@@ -118,10 +118,11 @@ vector<Plaintext> Receiver::decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosin
 
 vector<double> Receiver::decryptMergedScores(vector<Ciphertext<DCRTPoly>> mergedCipher) {
   cout << "[receiver.cpp]\tDecrypting similarity scores... " << flush;
-  vector<double> output;
 
+  vector<double> output;
   Plaintext mergedPtxt;
   vector<double> mergedValues;
+
   for(long unsigned int i = 0; i < mergedCipher.size(); i++) {
     cc->Decrypt(sk, mergedCipher[i], &(mergedPtxt));
     mergedValues = mergedPtxt->GetRealPackedValue();
@@ -136,9 +137,44 @@ vector<double> Receiver::decryptMergedScores(vector<Ciphertext<DCRTPoly>> merged
 
 double Receiver::decryptMembershipQuery(Ciphertext<DCRTPoly> membershipCipher) {
   cout << "[receiver.cpp]\tDecrypting membership query... " << flush;
+
   Plaintext membershipPtxt;
   cc->Decrypt(sk, membershipCipher, &membershipPtxt);
   vector<double> membershipValues = membershipPtxt->GetRealPackedValue();
+
   cout << "done" << endl;
   return membershipValues[0];
+}
+
+
+
+vector<int> Receiver::decryptIndexQuery(vector<Ciphertext<DCRTPoly>> indexCipher) {
+  cout << "[receiver.cpp]\tDecrypting index query... " << flush;
+
+  int batchSize = cc->GetEncodingParams()->GetBatchSize();
+  vector<int> outputValues;
+  vector<double> indexValues;
+  Plaintext indexPtxt;
+  int currentIndex;
+
+  for(size_t i = 0; i < indexCipher.size(); i++) {
+    cc->Decrypt(sk, indexCipher[i], &indexPtxt);
+    indexValues = indexPtxt->GetRealPackedValue();
+
+    currentIndex = 0;
+    for(int j = 0; j < batchSize; j++) {
+
+      if(round(indexValues[currentIndex]) == 1) {
+        outputValues.push_back(j);
+      }
+
+      currentIndex += VECTOR_DIM;
+      if(currentIndex >= batchSize) {
+        currentIndex = (currentIndex % batchSize) + 1;
+      }
+    }
+  }
+  
+  cout << "done" << endl;
+  return outputValues;
 }
