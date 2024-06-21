@@ -38,6 +38,8 @@ public:
 
   double decryptMembershipQuery(Ciphertext<DCRTPoly> membershipCipher);
 
+  vector<int> decryptIndexQuery(vector<Ciphertext<DCRTPoly>> indexCipher);
+
 protected:
   // some protected members here -- inherited by subclass
   CryptoContext<DCRTPoly> cc;

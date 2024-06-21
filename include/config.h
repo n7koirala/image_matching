@@ -12,13 +12,13 @@ const double DELTA = 0.85;
 const int VECTOR_DIM = 512;
 
 // Default full-sized input source, 1 query vector and 10,000 database vectors
-const std::string BACKEND_VECTORS_FILE = "input/large.dat";
+const std::string DEFAULT_VECTORS_FILE = "input/large.dat";
 
-const std::string DATAFOLDER = "serial";
+const std::string SERIAL_FOLDER = "serial";
 
 // Number of threads used in multithreaded sections
-const int RECEIVER_NUM_CORES = 4;
-const int SENDER_NUM_CORES = 4;
+const int RECEIVER_NUM_CORES = 10;
+const int SENDER_NUM_CORES = 10;
 
 // exponent used in alpha-norm approximation of max values, invokes a mult. depth of alpha
 const int ALPHA = 2;
@@ -29,4 +29,4 @@ const int NEWTONS_ITERATIONS = 0;
 
 // Number of times the sign-approximating polynomial should be composed with itself, increasing accuracy
 // Results in a multiplicative depth of 4i
-const int SIGN_COMPOSITIONS = 4;
+const int SIGN_COMPOSITIONS = 2;

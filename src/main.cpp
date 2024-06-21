@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
   if (argc > 1) {
     fileStream.open(argv[1], ios::in);
   } else {
-    fileStream.open(BACKEND_VECTORS_FILE, ios::in);
+    fileStream.open(DEFAULT_VECTORS_FILE, ios::in);
   }
 
   if (!fileStream.is_open()) {
@@ -35,10 +35,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  // TODO: check / update these vals
-  // plaintext preprocessing currently requires multDepth = 8 -> batchSize = 8192
-  // secure preprocessing currently requires multDepth = 20 -> batchSize = 32768
-  uint32_t multDepth = 20;// OpenFHEWrapper::computeMultDepth();
+  uint32_t multDepth = 12; // OpenFHEWrapper::computeMultDepth();
   CCParams<CryptoContextCKKSRNS> parameters;
   parameters.SetSecurityLevel(HEStd_128_classic);
   parameters.SetMultiplicativeDepth(multDepth);
@@ -55,31 +52,34 @@ int main(int argc, char *argv[]) {
   // OpenFHEWrapper::printSchemeDetails(parameters, cc);
   cout << "[main.cpp]\tCKKS scheme set up (depth = " << multDepth << ", batch size = " << batchSize << ")" << endl;
 
+
   cout << "[main.cpp]\tGenerating key pair... " << flush;
   auto keyPair = cc->KeyGen();
   auto pk = keyPair.publicKey;
   auto sk = keyPair.secretKey;
   cout << "done" << endl;
 
-  vector<int> binaryRotationFactors;
-  for(int i = 1; i < batchSize; i *= 2) {
-    binaryRotationFactors.push_back(i);
-    binaryRotationFactors.push_back(-i);
-  }
 
   cout << "[main.cpp]\tGenerating mult keys... " << flush;
   cc->EvalMultKeyGen(sk);
   cout << "done" << endl;
 
+
   cout << "[main.cpp]\tGenerating sum keys... " << flush;
   cc->EvalSumKeyGen(sk);
   cout << "done" << endl;
 
+
   cout << "[main.cpp]\tGenerating rotation keys... " << flush;
+  vector<int> binaryRotationFactors;
+  for(int i = 1; i < batchSize; i *= 2) {
+    binaryRotationFactors.push_back(i);
+    binaryRotationFactors.push_back(-i);
+  }
   cc->EvalRotateKeyGen(sk, binaryRotationFactors);
   cout << "done" << endl;
 
-  // Read in vectors from file
+
   cout << "[main.cpp]\tReading in vectors from file... " << flush;
   int numVectors;
   fileStream >> numVectors;
@@ -100,61 +100,50 @@ int main(int argc, char *argv[]) {
   fileStream.close();
   cout << "done" << endl;
 
+
   // Initialize receiver and sender objects -- only the receiver possesses the secret key
   Receiver receiver(cc, pk, sk, numVectors);
   Sender sender(cc, pk, numVectors);
 
-  // TESTING MERGE OPERATION
-  vector<double> testValues(batchSize);
-  for(int i = 0; i < batchSize; i++) {  testValues[i] = double(i);  }
-  Plaintext testPtxt = cc->MakeCKKSPackedPlaintext(testValues);
-  Ciphertext<DCRTPoly> testCipher;
-  testCipher = cc->Encrypt(pk, testPtxt);
-  testCipher = sender.mergeSingleCipher(testCipher, 16);
-
-  return 0;
-  cc->Decrypt(sk, testCipher, &testPtxt);
-  testValues = testPtxt->GetRealPackedValue();
-  cout << endl;
-  for(int i = 0; i < batchSize; i++) {
-    cout << "testValues[" << i << "]\t" << testValues[i] << endl;
-  }
-
-  return 0;
-  // END
 
   // Normalize, batch, and encrypt the query vector
   Ciphertext<DCRTPoly> queryCipher = receiver.encryptQuery(queryVector);
+
+
+  // Serialize the encrypted query vector for demonstration
+  cout << "[main.cpp]\tSerializing encrypted query vector... " << flush;
+  if (!Serial::SerializeToFile(SERIAL_FOLDER + "/query_cipher.txt", queryCipher, SerType::JSON)) {
+      cerr << "Error: cannot serialize query cipher to" << SERIAL_FOLDER + "/query_cipher.txt" << endl;
+      return 1;
+  }
+  cout << "done" << endl;
+
 
   // Normalize, batch, and encrypt the database vectors
   vector<Ciphertext<DCRTPoly>> databaseCipher =
       receiver.encryptDB(plaintextVectors);
 
-  // Cosine similarity is equivalent to inner product of normalized vectors
-  // TODO: In future, explore if key-switching is unnecessary / slower
-  // REMEMBER!!! : score merge operation has been removed from this function
-  vector<Ciphertext<DCRTPoly>> similarityCipher =
-      sender.computeSimilarity(queryCipher, databaseCipher);
-
-  // Receiver is then able to decrypt all scores
-  // This does not determine matches or protect provenance privacy, just contains all scores
-  vector<Ciphertext<DCRTPoly>> mergedCipher; // = sender.mergeScores(similarityCipher, VECTOR_DIM);
-  vector<double> mergedValues = receiver.decryptMergedScores(mergedCipher);
-
-  // Output raw scores
-  cout << endl;
-  for (int i = 0; i < numVectors; i++) {
-    cout << "Cosine similarity of query with database[" << i << "]" << endl;
-    cout << "Expected:\t" << VectorUtils::plaintextCosineSim(queryVector, plaintextVectors[i]) << endl;
-    cout << "Merged:  \t" << mergedValues[i] << endl;
-    cout << endl;
-  }
 
   // Run membership scenario upon similarity scores
+  /*
   Ciphertext<DCRTPoly> membershipCipher =
-      sender.membershipQuery(similarityCipher);
+      sender.membershipQuery(queryCipher, databaseCipher);
   double membershipResults = receiver.decryptMembershipQuery(membershipCipher);
-  cout << endl << "Membership Query: there exists " << membershipResults << " match(es) between the query and the database" << endl;
+  cout << endl << "Results of membership query:"" << endl;
+  cout << "\tThere exists " << membershipResults << " match(es) between the query vector and the database vectors" << endl;
+   */
+
+  // Run index scenario upon similarity scores
+  vector<Ciphertext<DCRTPoly>> indexCipher = sender.indexQuery(queryCipher, databaseCipher);
+  vector<int> matchingIndices = receiver.decryptIndexQuery(indexCipher);
+  cout << endl << "Results of index query:" << endl;
+  if(!matchingIndices.size()) {
+    cout << "\tNo matches found between query vector and database vectors" << endl;
+  }
+
+  for(size_t i = 0; i < matchingIndices.size(); i++) {
+    cout << "\tMatch found between the query vector and database vector [" << matchingIndices[i] << "]" << endl;
+  }
 
   return 0;
 }
