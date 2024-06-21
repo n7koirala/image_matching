@@ -9,6 +9,7 @@
 #include "openfhe.h"
 #include <vector>
 #include <omp.h>
+#include <time.h>
 
 using namespace lbcrypto;
 using namespace std;
@@ -19,9 +20,10 @@ public:
   Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, int vectorParam);
 
   // public methods
+  void setDatabaseCipher(vector<Ciphertext<DCRTPoly>> databaseCipherParam);
+
   vector<Ciphertext<DCRTPoly>>
-  computeSimilarity(Ciphertext<DCRTPoly> query,
-                    vector<Ciphertext<DCRTPoly>> database);
+  computeSimilarity(Ciphertext<DCRTPoly> query);
 
   Ciphertext<DCRTPoly>
   mergeSingleCipher(Ciphertext<DCRTPoly> similarityCipher, int reductionDim);
@@ -36,13 +38,14 @@ public:
 
   Ciphertext<DCRTPoly> alphaNormColumns(vector<Ciphertext<DCRTPoly>> mergedCipher, int alpha, int colLength);
 
-  Ciphertext<DCRTPoly> membershipQuery(Ciphertext<DCRTPoly> queryCipher, vector<Ciphertext<DCRTPoly>> databaseCipher);
+  Ciphertext<DCRTPoly> membershipQuery(Ciphertext<DCRTPoly> queryCipher);
 
-  vector<Ciphertext<DCRTPoly>> indexQuery(Ciphertext<DCRTPoly> queryCipher, vector<Ciphertext<DCRTPoly>> databaseCipher);
+  vector<Ciphertext<DCRTPoly>> indexQuery(Ciphertext<DCRTPoly> queryCipher);
 
 private:
   // some private members here
   CryptoContext<DCRTPoly> cc;
   PublicKey<DCRTPoly> pk;
   int numVectors;
+  vector<Ciphertext<DCRTPoly>> databaseCipher;
 };

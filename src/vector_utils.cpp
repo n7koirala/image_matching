@@ -19,11 +19,42 @@ double VectorUtils::plaintextCosineSim(vector<double> x, vector<double> y) {
     return -1.0;
   }
 
-  for (unsigned int i = 0; i < x.size(); i++) {
+  for (size_t i = 0; i < x.size(); i++) {
     xMag += (x[i] * x[i]);
     yMag += (y[i] * y[i]);
     innerProduct += (x[i] * y[i]);
   }
 
   return innerProduct / (sqrt(xMag) * sqrt(yMag));
+}
+
+
+double VectorUtils::plaintextMagnitude(vector<double> x, int vectorDim) {
+  double m = 0.0;
+  for (int i = 0; i < vectorDim; i++) {
+    m += (x[i] * x[i]);
+  }
+  m = sqrt(m);
+  return m;
+}
+
+
+vector<double> VectorUtils::plaintextNormalize(vector<double> x, int vectorDim) {
+  double m = plaintextMagnitude(x, vectorDim);
+  vector<double> x_norm = x;
+  if (m != 0) {
+    for (int i = 0; i < vectorDim; i++) {
+      x_norm[i] = x[i] / m;
+    }
+  }
+  return x_norm;
+}
+
+
+double VectorUtils::plaintextInnerProduct(vector<double> x, vector<double> y, int vectorDim) {
+  double prod = 0.0;
+  for (int i = 0; i < vectorDim; i++) {
+    prod += x[i] * y[i];
+  }
+  return prod;
 }

@@ -18,4 +18,10 @@ void concatenateVectors(vector<double> &dest, vector<double> source,
 
 
 double plaintextCosineSim(vector<double> x, vector<double> y);
+
+double plaintextMagnitude(vector<double> x, int vectorDim);
+
+vector<double> plaintextNormalize(vector<double> x, int vectorDim);
+
+double plaintextInnerProduct(vector<double> x, vector<double> y, int vectorDim);
 } // namespace VectorUtils

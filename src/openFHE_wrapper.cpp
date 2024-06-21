@@ -1,33 +1,5 @@
 #include "../include/openFHE_wrapper.h"
 
-// computes required multiplicative depth based on parameters from config.h
-int OpenFHEWrapper::computeMultDepth() {
-  // for initial similarity computation
-  int depth = 1;
-
-  // for the merge operation upon the similarity scores
-  depth += 2;
-
-  // for computing max approximations
-  depth += ALPHA + 1;
-
-  // for merge operation upon the max approximations
-  depth += 2;
-
-  // for approximating inverse magnitude
-  // depth += 3*NEWTONS_ITERATIONS;
-
-  // each composition of the sign(x) polynomial requires a depth of 4
-  depth += 4*SIGN_COMPOSITIONS;
-
-  // TODO: determine untracked depth
-  depth += 3;
-
-  return depth;
-}
-
-
-
 void OpenFHEWrapper::printSchemeDetails(CCParams<CryptoContextCKKSRNS> parameters, CryptoContext<DCRTPoly> cc) {
   cout << "batch size: " << cc->GetEncodingParams()->GetBatchSize() << endl;
   cout << endl;
@@ -40,6 +12,92 @@ void OpenFHEWrapper::printSchemeDetails(CCParams<CryptoContextCKKSRNS> parameter
   cout << "noise estimate: " << parameters.GetNoiseEstimate() << endl;
   cout << "multiplicative depth: " << parameters.GetMultiplicativeDepth() <<
   endl; cout << "noise level: " << parameters.GetNoiseEstimate() << endl;
+}
+
+
+
+void OpenFHEWrapper::deserializeKeys(CryptoContext<DCRTPoly> cc, PrivateKey<DCRTPoly> sk) {
+  // Attempting to serialize / deserialize keys, need help on this
+  int batchSize = cc->GetEncodingParams()->GetBatchSize();
+
+  // Attempt to deserialize mult keys
+  ifstream multKeyIStream(SERIAL_FOLDER + "/key_mult.txt", ios::in | ios::binary);
+  if (!multKeyIStream.is_open() || !cc->DeserializeEvalMultKey(multKeyIStream, SerType::BINARY)) {
+    cerr << "Error: Cannot read serialization from " << SERIAL_FOLDER + "/key_mult.txt" << endl;
+    
+    cc->EvalMultKeyGen(sk);
+    cout << "[main.cpp]\tMult key generated..." << endl;
+    ofstream multKeyFile(SERIAL_FOLDER + "/key_mult.txt", ios::out | ios::binary);
+    if (multKeyFile.is_open()) {
+      if (!cc->SerializeEvalMultKey(multKeyFile, SerType::BINARY)) {
+        cerr << "Error: writing mult keys" << endl;
+        exit(1);
+      }
+      cout << "[main.cpp]\tMult keys serialized..." << endl;
+      multKeyFile.close();
+    } else {
+      cerr << "Error: serializing mult keys" << endl;
+      exit(1);
+    }
+  } else {
+    cout << "[main.cpp]\tSuccessfully deserialized mult keys" << endl;
+  }
+
+  // Attempt to deserialize sum keys
+  ifstream sumKeyIStream(SERIAL_FOLDER + "/key_sum.txt", ios::in | ios::binary);
+  if (!sumKeyIStream.is_open() || !cc->DeserializeEvalSumKey(sumKeyIStream, SerType::BINARY)) {
+    cerr << "Error: Cannot read serialization from " << SERIAL_FOLDER + "/key_sum.txt" << endl;
+    
+    cc->EvalSumKeyGen(sk);
+    cout << "[main.cpp]\tSum key generated..." << endl;
+    ofstream sumKeyFile(SERIAL_FOLDER + "/key_sum.txt", ios::out | ios::binary);
+    if (sumKeyFile.is_open()) {
+      if (!cc->SerializeEvalSumKey(sumKeyFile, SerType::BINARY)) {
+        cerr << "Error: writing sum keys" << endl;
+        exit(1);
+      }
+      cout << "[main.cpp]\tSum keys serialized..." << endl;
+      sumKeyFile.close();
+    } else {
+      cerr << "Error: serializing sum keys" << endl;
+      exit(1);
+    }
+  } else {
+    cout << "[main.cpp]\tSuccessfully deserialized sum keys" << endl;
+  }
+
+  // Attempt to deserialize rotation key
+  ifstream rotKeyIStream(SERIAL_FOLDER + "/key_rot.txt", ios::in | ios::binary);
+  if (!rotKeyIStream.is_open() || !cc->DeserializeEvalAutomorphismKey(rotKeyIStream, SerType::BINARY)) {
+    cerr << "Cannot read serialization from " << SERIAL_FOLDER + "/key_rot.txt" << endl;
+    
+    // If deserialization fails, generate and serialize new key
+
+    // these specific rotations needed for merge operation
+    vector<int> binaryRotationFactors;
+    for(int i = 1; i < batchSize; i *= 2) {
+      binaryRotationFactors.push_back(i);
+      binaryRotationFactors.push_back(-i);
+    }
+
+    cc->EvalRotateKeyGen(sk, binaryRotationFactors);
+    cout << "[main.cpp]\tRotation keys generated..." << endl;
+    
+    ofstream rotationKeyFile(SERIAL_FOLDER + "/key_rot.txt", ios::out | ios::binary);
+    if (rotationKeyFile.is_open()) {
+      if (!cc->SerializeEvalAutomorphismKey(rotationKeyFile, SerType::BINARY)) {
+        cerr << "Error: writing rotation keys" << endl;
+        exit(1);
+      }
+      cout << "[main.cpp]\tRotation keys serialized..." << endl;
+    }
+    else {
+      cerr << "Error: serializing rotation keys" << endl;
+      exit(1);
+    }
+  } else {
+    cout << "[main.cpp]\tSuccessfully deserialized rotation keys" << endl;
+  }
 }
 
 

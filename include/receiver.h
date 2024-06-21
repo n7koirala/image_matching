@@ -30,13 +30,11 @@ public:
   
   Ciphertext<DCRTPoly> encryptQuery(vector<double> query);
   
-  vector<Ciphertext<DCRTPoly>> encryptDB(vector<vector<double>> database);
-  
   vector<Plaintext> decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosineCipher);
 
   vector<double> decryptMergedScores(vector<Ciphertext<DCRTPoly>> mergedCipher);
 
-  double decryptMembershipQuery(Ciphertext<DCRTPoly> membershipCipher);
+  bool decryptMembershipQuery(Ciphertext<DCRTPoly> membershipCipher);
 
   vector<int> decryptIndexQuery(vector<Ciphertext<DCRTPoly>> indexCipher);
 
