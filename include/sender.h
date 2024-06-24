@@ -22,6 +22,8 @@ public:
   // public methods
   void setDatabaseCipher(vector<Ciphertext<DCRTPoly>> databaseCipherParam);
 
+  void serializeDatabaseCipher(string location);
+
   vector<Ciphertext<DCRTPoly>>
   computeSimilarity(Ciphertext<DCRTPoly> query);
 

@@ -13,6 +13,16 @@ void Sender::setDatabaseCipher(vector<Ciphertext<DCRTPoly>> databaseCipherParam)
 }
 
 
+void Sender::serializeDatabaseCipher(string location) {
+  cout << "[sender.cpp]\tSerializing encrypted database vector... " << flush;
+  if (!Serial::SerializeToFile(SERIAL_FOLDER + location, databaseCipher[0], SerType::JSON)) {
+      cerr << "failed" << endl;
+  } else {
+    cout << "done" << endl;
+  }
+}
+
+
 
 vector<Ciphertext<DCRTPoly>>
 Sender::computeSimilarity(Ciphertext<DCRTPoly> query) {

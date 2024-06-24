@@ -79,18 +79,17 @@ int main(int argc, char *argv[]) {
   cc->EvalRotateKeyGen(sk, binaryRotationFactors);
   cout << "done" << endl;
 
-
   cout << "[main.cpp]\t\tReading in vectors from file... " << flush;
   int numVectors;
   fileStream >> numVectors;
 
-  // Read in query vector
+  // Read in query vector from file
   vector<double> queryVector(VECTOR_DIM);
   for (int i = 0; i < VECTOR_DIM; i++) {
     fileStream >> queryVector[i];
   }
 
-  // Read in database vectors
+  // Read in database vectors from file
   vector<vector<double>> plaintextVectors(numVectors, vector<double>(VECTOR_DIM));
   for (int i = 0; i < numVectors; i++) {
     for (int j = 0; j < VECTOR_DIM; j++) {
@@ -114,16 +113,22 @@ int main(int argc, char *argv[]) {
   // Serialize the encrypted query vector for demonstration
   cout << "[main.cpp]\t\tSerializing encrypted query vector... " << flush;
   if (!Serial::SerializeToFile(SERIAL_FOLDER + "/query_cipher.txt", queryCipher, SerType::JSON)) {
-      cerr << "Error: cannot serialize query cipher to" << SERIAL_FOLDER + "/query_cipher.txt" << endl;
-      return 1;
+      cerr << "failed" << endl;
+  } else {
+    cout << "done" << endl;
   }
-  cout << "done" << endl;
-
+  
 
   // Normalize, batch, and encrypt the database vectors
   sender.setDatabaseCipher(enroller.encryptDB(plaintextVectors));
 
+
+  // Serialize an encrypted database vector for demonstration
+  sender.serializeDatabaseCipher("/database_cipher.txt");
+
+
   // Run membership scenario upon similarity scores
+  cout << endl << "Simulating membership scenario" << endl << endl;
   Ciphertext<DCRTPoly> membershipCipher =
       sender.membershipQuery(queryCipher);
   bool membershipResults = receiver.decryptMembershipQuery(membershipCipher);
@@ -135,19 +140,17 @@ int main(int argc, char *argv[]) {
   }
   
 
-  /*
   // Run index scenario upon similarity scores
-  vector<Ciphertext<DCRTPoly>> indexCipher = sender.indexQuery(queryCipher, databaseCipher);
+  cout << endl << "Simulating index scenario" << endl << endl;
+  vector<Ciphertext<DCRTPoly>> indexCipher = sender.indexQuery(queryCipher);
   vector<int> matchingIndices = receiver.decryptIndexQuery(indexCipher);
   cout << endl << "Results of index query:" << endl;
   if(!matchingIndices.size()) {
     cout << "\tNo matches found between query vector and database vectors" << endl;
   }
-
   for(size_t i = 0; i < matchingIndices.size(); i++) {
     cout << "\tMatch found between the query vector and database vector [" << matchingIndices[i] << "]" << endl;
   }
-   */
 
   return 0;
 }

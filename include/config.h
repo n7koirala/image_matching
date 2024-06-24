@@ -12,7 +12,7 @@ const double DELTA = 0.85;
 const int VECTOR_DIM = 512;
 
 // Default full-sized input source, 1 query vector and 10,000 database vectors (matches at indices 2, 9998)
-const std::string DEFAULT_VECTORS_FILE = "input/large.dat";
+const std::string DEFAULT_VECTORS_FILE = "../test/two_matches_large.dat";
 
 const std::string SERIAL_FOLDER = "serial";
 

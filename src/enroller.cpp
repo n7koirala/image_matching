@@ -35,6 +35,6 @@ Enroller::encryptDB(vector<vector<double>> database) {
     databaseCipher[i] = cc->Encrypt(pk, databasePtxt);
   }
 
-  cout << "done" << endl;
+  cout << "done (" << numVectors << " vectors, " << totalBatches << " ciphertexts)" << endl;
   return databaseCipher;
 }
