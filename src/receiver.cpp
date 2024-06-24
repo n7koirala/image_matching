@@ -6,6 +6,7 @@ Receiver::Receiver(CryptoContext<DCRTPoly> ccParam,
     : cc(ccParam), pk(pkParam), sk(skParam), numVectors(vectorParam) {}
 
 
+
 Ciphertext<DCRTPoly> Receiver::encryptQuery(vector<double> query) {
   cout << "[receiver.cpp]\tEncrypting query vector... " << flush;
   int vectorsPerBatch =

@@ -16,7 +16,7 @@ void Sender::setDatabaseCipher(vector<Ciphertext<DCRTPoly>> databaseCipherParam)
 void Sender::serializeDatabaseCipher(string location) {
   cout << "[sender.cpp]\tSerializing encrypted database vector... " << flush;
   if (!Serial::SerializeToFile(location, databaseCipher[0], SerType::JSON)) {
-      cout << "failed" << endl;
+      cout << "failed (cannot write to " << location << ")" << endl;
   } else {
     cout << "done" << endl;
   }

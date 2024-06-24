@@ -1,5 +1,5 @@
-// ** cosine_similarity: Contains the definition and implementation of the
-// cosine similarity computation logic using plaintext preprocessing.
+// ** sender: defines the sender (server) base class
+// Stores encrypted database vectors and homomorphically computes membership/index queries 
 
 #pragma once
 
@@ -45,7 +45,7 @@ public:
   vector<Ciphertext<DCRTPoly>> indexQuery(Ciphertext<DCRTPoly> queryCipher);
 
 private:
-  // some private members here
+  // private members
   CryptoContext<DCRTPoly> cc;
   PublicKey<DCRTPoly> pk;
   int numVectors;

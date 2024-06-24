@@ -102,7 +102,7 @@ void OpenFHEWrapper::deserializeKeys(CryptoContext<DCRTPoly> cc, PrivateKey<DCRT
 
 
 
-// performs any rotation on a ciphertext using 2log2(batchsize) rotation keys and (1/2)log2(batchsize) rotations
+// performs any rotation on a ciphertext using 2log_2(batchsize) rotation keys and (1/2)log_2(batchsize) rotations
 Ciphertext<DCRTPoly> OpenFHEWrapper::binaryRotate(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, int factor) {
   int batchSize = cc->GetEncodingParams()->GetBatchSize();
 
@@ -132,8 +132,8 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::binaryRotate(CryptoContext<DCRTPoly> cc, Ci
 
 
 
-// Approximating polynomial f4 determined from JH Cheon, 2019/1234
-// TODO: properly cite
+// Sign-approximating polynomial f_4(x) determined from JH Cheon, 2019/1234
+// https://ia.cr/2019/1234
 Ciphertext<DCRTPoly> OpenFHEWrapper::sign(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> x) {
   
   // extends range of sign-approximating poly to (-2, 2)

@@ -7,7 +7,7 @@
 #include "openfhe.h"
 #include <iostream>
 
-// header files needed for serialization
+// Header files needed for serialization
 #include "ciphertext-ser.h"
 #include "cryptocontext-ser.h"
 #include "key/key-ser.h"
@@ -16,7 +16,7 @@
 using namespace lbcrypto;
 using namespace std;
 
-// ** Entry point of the application that orchestrates the flow. **
+// Entry point of the application that orchestrates the flow
 
 int main(int argc, char *argv[]) {
 
@@ -113,7 +113,7 @@ int main(int argc, char *argv[]) {
   // Serialize the encrypted query vector for demonstration
   cout << "[main.cpp]\t\tSerializing encrypted query vector... " << flush;
   if (!Serial::SerializeToFile("query_cipher.txt", queryCipher, SerType::JSON)) {
-      cout << "failed" << endl;
+      cout << "failed (cannot write to query_cipher.txt)" << endl;
   } else {
     cout << "done" << endl;
   }
@@ -127,7 +127,7 @@ int main(int argc, char *argv[]) {
   sender.serializeDatabaseCipher("database_cipher.txt");
 
 
-  // Run membership scenario upon similarity scores
+  // Simulate the membership scenario given the query vector
   cout << endl << "Simulating membership scenario" << endl << endl;
   Ciphertext<DCRTPoly> membershipCipher =
       sender.membershipQuery(queryCipher);
@@ -140,7 +140,7 @@ int main(int argc, char *argv[]) {
   }
   
 
-  // Run index scenario upon similarity scores
+  // Simulate the index scenario given the query vector
   cout << endl << "Simulating index scenario" << endl << endl;
   vector<Ciphertext<DCRTPoly>> indexCipher = sender.indexQuery(queryCipher);
   vector<int> matchingIndices = receiver.decryptIndexQuery(indexCipher);
@@ -151,8 +151,6 @@ int main(int argc, char *argv[]) {
   for(size_t i = 0; i < matchingIndices.size(); i++) {
     cout << "\tMatch found between the query vector and database vector [" << matchingIndices[i] << "]" << endl;
   }
-
-  cout << VectorUtils::plaintextCosineSim(queryVector, plaintextVectors[2]) << endl;
 
   return 0;
 }
