@@ -152,5 +152,7 @@ int main(int argc, char *argv[]) {
     cout << "\tMatch found between the query vector and database vector [" << matchingIndices[i] << "]" << endl;
   }
 
+  cout << VectorUtils::plaintextCosineSim(queryVector, plaintextVectors[2]) << endl;
+
   return 0;
 }

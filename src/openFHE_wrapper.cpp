@@ -136,6 +136,9 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::binaryRotate(CryptoContext<DCRTPoly> cc, Ci
 // TODO: properly cite
 Ciphertext<DCRTPoly> OpenFHEWrapper::sign(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> x) {
   
+  // extends range of sign-approximating poly to (-2, 2)
+  // x = cc->EvalMult(x, 0.75);
+
   vector<double> coefficients({ 0.0, 
                                 315.0 / 128.0,  
                                 0.0, 
