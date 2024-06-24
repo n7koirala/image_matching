@@ -7,7 +7,7 @@
 #include "openfhe.h"
 #include <iostream>
 
-// header files needed for serialization -- discuss how to implement
+// header files needed for serialization
 #include "ciphertext-ser.h"
 #include "cryptocontext-ser.h"
 #include "key/key-ser.h"
@@ -112,8 +112,8 @@ int main(int argc, char *argv[]) {
 
   // Serialize the encrypted query vector for demonstration
   cout << "[main.cpp]\t\tSerializing encrypted query vector... " << flush;
-  if (!Serial::SerializeToFile(SERIAL_FOLDER + "/query_cipher.txt", queryCipher, SerType::JSON)) {
-      cerr << "failed" << endl;
+  if (!Serial::SerializeToFile("query_cipher.txt", queryCipher, SerType::JSON)) {
+      cout << "failed" << endl;
   } else {
     cout << "done" << endl;
   }
@@ -124,7 +124,7 @@ int main(int argc, char *argv[]) {
 
 
   // Serialize an encrypted database vector for demonstration
-  sender.serializeDatabaseCipher("/database_cipher.txt");
+  sender.serializeDatabaseCipher("database_cipher.txt");
 
 
   // Run membership scenario upon similarity scores

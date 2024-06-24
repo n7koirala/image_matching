@@ -15,8 +15,8 @@ void Sender::setDatabaseCipher(vector<Ciphertext<DCRTPoly>> databaseCipherParam)
 
 void Sender::serializeDatabaseCipher(string location) {
   cout << "[sender.cpp]\tSerializing encrypted database vector... " << flush;
-  if (!Serial::SerializeToFile(SERIAL_FOLDER + location, databaseCipher[0], SerType::JSON)) {
-      cerr << "failed" << endl;
+  if (!Serial::SerializeToFile(location, databaseCipher[0], SerType::JSON)) {
+      cout << "failed" << endl;
   } else {
     cout << "done" << endl;
   }
@@ -212,7 +212,7 @@ Sender::membershipQuery(Ciphertext<DCRTPoly> queryCipher) {
   cout << "[sender.cpp]\tApplying comparison function... " << flush;
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < mergedCipher.size(); i++) {
-    mergedCipher[i] = cc->EvalAdd(mergedCipher[i], -DELTA);
+    mergedCipher[i] = cc->EvalAdd(mergedCipher[i], -MATCH_THRESHOLD);
     mergedCipher[i] = OpenFHEWrapper::sign(cc, mergedCipher[i]);
     mergedCipher[i] = OpenFHEWrapper::sumAllSlots(cc, mergedCipher[i]);
   }
@@ -250,7 +250,7 @@ vector<Ciphertext<DCRTPoly>> Sender::indexQuery(Ciphertext<DCRTPoly> queryCipher
   cout << "[sender.cpp]\tApplying comparison function... " << flush;
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < mergedCipher.size(); i++) {
-    mergedCipher[i] = cc->EvalAdd(mergedCipher[i], -DELTA);
+    mergedCipher[i] = cc->EvalAdd(mergedCipher[i], -MATCH_THRESHOLD);
     mergedCipher[i] = OpenFHEWrapper::sign(cc, mergedCipher[i]);
   }
   cout << "done" << endl;

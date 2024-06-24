@@ -21,13 +21,13 @@ void OpenFHEWrapper::deserializeKeys(CryptoContext<DCRTPoly> cc, PrivateKey<DCRT
   int batchSize = cc->GetEncodingParams()->GetBatchSize();
 
   // Attempt to deserialize mult keys
-  ifstream multKeyIStream(SERIAL_FOLDER + "/key_mult.txt", ios::in | ios::binary);
+  ifstream multKeyIStream("/key_mult.txt", ios::in | ios::binary);
   if (!multKeyIStream.is_open() || !cc->DeserializeEvalMultKey(multKeyIStream, SerType::BINARY)) {
-    cerr << "Error: Cannot read serialization from " << SERIAL_FOLDER + "/key_mult.txt" << endl;
+    cerr << "Error: Cannot read serialization from " << "/key_mult.txt" << endl;
     
     cc->EvalMultKeyGen(sk);
     cout << "[main.cpp]\tMult key generated..." << endl;
-    ofstream multKeyFile(SERIAL_FOLDER + "/key_mult.txt", ios::out | ios::binary);
+    ofstream multKeyFile("/key_mult.txt", ios::out | ios::binary);
     if (multKeyFile.is_open()) {
       if (!cc->SerializeEvalMultKey(multKeyFile, SerType::BINARY)) {
         cerr << "Error: writing mult keys" << endl;
@@ -44,13 +44,13 @@ void OpenFHEWrapper::deserializeKeys(CryptoContext<DCRTPoly> cc, PrivateKey<DCRT
   }
 
   // Attempt to deserialize sum keys
-  ifstream sumKeyIStream(SERIAL_FOLDER + "/key_sum.txt", ios::in | ios::binary);
+  ifstream sumKeyIStream("/key_sum.txt", ios::in | ios::binary);
   if (!sumKeyIStream.is_open() || !cc->DeserializeEvalSumKey(sumKeyIStream, SerType::BINARY)) {
-    cerr << "Error: Cannot read serialization from " << SERIAL_FOLDER + "/key_sum.txt" << endl;
+    cerr << "Error: Cannot read serialization from " << "/key_sum.txt" << endl;
     
     cc->EvalSumKeyGen(sk);
     cout << "[main.cpp]\tSum key generated..." << endl;
-    ofstream sumKeyFile(SERIAL_FOLDER + "/key_sum.txt", ios::out | ios::binary);
+    ofstream sumKeyFile("/key_sum.txt", ios::out | ios::binary);
     if (sumKeyFile.is_open()) {
       if (!cc->SerializeEvalSumKey(sumKeyFile, SerType::BINARY)) {
         cerr << "Error: writing sum keys" << endl;
@@ -67,9 +67,9 @@ void OpenFHEWrapper::deserializeKeys(CryptoContext<DCRTPoly> cc, PrivateKey<DCRT
   }
 
   // Attempt to deserialize rotation key
-  ifstream rotKeyIStream(SERIAL_FOLDER + "/key_rot.txt", ios::in | ios::binary);
+  ifstream rotKeyIStream("/key_rot.txt", ios::in | ios::binary);
   if (!rotKeyIStream.is_open() || !cc->DeserializeEvalAutomorphismKey(rotKeyIStream, SerType::BINARY)) {
-    cerr << "Cannot read serialization from " << SERIAL_FOLDER + "/key_rot.txt" << endl;
+    cerr << "Cannot read serialization from " << "/key_rot.txt" << endl;
     
     // If deserialization fails, generate and serialize new key
 
@@ -83,7 +83,7 @@ void OpenFHEWrapper::deserializeKeys(CryptoContext<DCRTPoly> cc, PrivateKey<DCRT
     cc->EvalRotateKeyGen(sk, binaryRotationFactors);
     cout << "[main.cpp]\tRotation keys generated..." << endl;
     
-    ofstream rotationKeyFile(SERIAL_FOLDER + "/key_rot.txt", ios::out | ios::binary);
+    ofstream rotationKeyFile("/key_rot.txt", ios::out | ios::binary);
     if (rotationKeyFile.is_open()) {
       if (!cc->SerializeEvalAutomorphismKey(rotationKeyFile, SerType::BINARY)) {
         cerr << "Error: writing rotation keys" << endl;
