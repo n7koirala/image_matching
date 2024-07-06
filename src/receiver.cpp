@@ -75,7 +75,6 @@ bool Receiver::decryptMembershipQuery(Ciphertext<DCRTPoly> membershipCipher) {
 }
 
 
-
 vector<int> Receiver::decryptIndexQuery(vector<Ciphertext<DCRTPoly>> indexCipher) {
   cout << "[receiver.cpp]\tDecrypting index query... " << flush;
 
@@ -105,4 +104,54 @@ vector<int> Receiver::decryptIndexQuery(vector<Ciphertext<DCRTPoly>> indexCipher
   
   cout << "done" << endl;
   return outputValues;
+}
+
+
+vector<size_t> Receiver::decryptMatrixIndexQuery(Ciphertext<DCRTPoly> rowCipher, Ciphertext<DCRTPoly> colCipher) {
+
+  int batchSize = cc->GetEncodingParams()->GetBatchSize();
+  int rowFactor = (batchSize / VECTOR_DIM) * ceil(double(numVectors) / double(batchSize));
+  
+  vector<size_t> rowMatches;
+  vector<size_t> colMatches;
+  vector<size_t> matchIndices;
+
+  Plaintext ptxt;
+  cc->Decrypt(sk, rowCipher, &ptxt);
+  vector<double> rowValues = ptxt->GetRealPackedValue();
+  cc->Decrypt(sk, colCipher, &ptxt);
+  vector<double> colValues = ptxt->GetRealPackedValue();
+
+  // we need a separate index-tracking variable for row max values, since they are not in index-sorted order within rowCipher
+  int rowIndex = 0;
+
+  // loop over row / col maxes to find which rows / cols contain matches
+  for(int i = 0; i < batchSize; i++) {
+    
+    if(colValues[rowIndex] >= 0.5) {
+      colMatches.push_back(i);
+    }
+
+    if(rowValues[i] >= 0.5) {
+      rowMatches.push_back(i);
+    }
+
+    rowIndex += VECTOR_DIM;
+    if(rowIndex >= batchSize) {
+      rowIndex = (rowIndex % batchSize) + 1;
+    }
+  }
+
+  cout << "\tRow Factor: " << rowFactor << endl;
+  cout << "\tRow Matches: " << rowMatches << endl;
+  cout << "\tCol Matches: " << colMatches << endl;
+
+  // use row / col numbers to determine candidate match indices
+  for(size_t i = 0; i < rowMatches.size(); i++) {
+    for(size_t j = 0; j < colMatches.size(); j++) {
+      matchIndices.push_back(rowMatches[i] * rowFactor + colMatches[j]);
+    }
+  }
+
+  return matchIndices;
 }

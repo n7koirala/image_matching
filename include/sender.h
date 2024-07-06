@@ -10,9 +10,12 @@
 #include <vector>
 #include <omp.h>
 #include <time.h>
+#include <ctime>
 
 using namespace lbcrypto;
 using namespace std;
+using namespace std::chrono;
+using measure_typ = std::chrono::milliseconds;
 
 class Sender {
 public:
@@ -42,7 +45,11 @@ public:
 
   Ciphertext<DCRTPoly> membershipQuery(Ciphertext<DCRTPoly> queryCipher);
 
+  Ciphertext<DCRTPoly> matrixMembershipQuery(Ciphertext<DCRTPoly> queryCipher);
+
   vector<Ciphertext<DCRTPoly>> indexQuery(Ciphertext<DCRTPoly> queryCipher);
+
+  tuple<Ciphertext<DCRTPoly>, Ciphertext<DCRTPoly>> matrixIndexQuery(Ciphertext<DCRTPoly> queryCipher);
 
 private:
   // private members

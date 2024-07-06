@@ -6,6 +6,7 @@
 #include "../include/openFHE_wrapper.h"
 #include "openfhe.h"
 #include <iostream>
+#include <ctime>
 
 // Header files needed for serialization
 #include "ciphertext-ser.h"
@@ -15,12 +16,18 @@
 
 using namespace lbcrypto;
 using namespace std;
+using namespace std::chrono;
+using measure_typ = std::chrono::milliseconds;
 
 // Entry point of the application that orchestrates the flow
 
 int main(int argc, char *argv[]) {
 
   cout << "[main.cpp]\t\tMain execution entered..." << endl;
+
+  steady_clock::time_point start, end;
+  long double dur;
+  start = steady_clock::now();
 
   // Open input file
   ifstream fileStream;
@@ -35,7 +42,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  uint32_t multDepth = 4 + (4 * SIGN_COMPOSITIONS);
+  uint32_t multDepth = 8 + (4 * SIGN_COMPOSITIONS);
   CCParams<CryptoContextCKKSRNS> parameters;
   parameters.SetSecurityLevel(HEStd_128_classic);
   parameters.SetMultiplicativeDepth(multDepth);
@@ -79,9 +86,11 @@ int main(int argc, char *argv[]) {
   cc->EvalRotateKeyGen(sk, binaryRotationFactors);
   cout << "done" << endl;
 
+
   cout << "[main.cpp]\t\tReading in vectors from file... " << flush;
   int numVectors;
   fileStream >> numVectors;
+
 
   // Read in query vector from file
   vector<double> queryVector(VECTOR_DIM);
@@ -108,26 +117,44 @@ int main(int argc, char *argv[]) {
 
   // Normalize, batch, and encrypt the query vector
   Ciphertext<DCRTPoly> queryCipher = receiver.encryptQuery(queryVector);
-
-
-  // Serialize the encrypted query vector for demonstration
-  cout << "[main.cpp]\t\tSerializing encrypted query vector... " << flush;
-  if (!Serial::SerializeToFile("query_cipher.txt", queryCipher, SerType::JSON)) {
-      cout << "failed (cannot write to query_cipher.txt)" << endl;
-  } else {
-    cout << "done" << endl;
-  }
   
 
   // Normalize, batch, and encrypt the database vectors
   sender.setDatabaseCipher(enroller.encryptDB(plaintextVectors));
 
+  end = steady_clock::now();
+  dur = duration_cast<measure_typ>(end - start).count();
+  cout << endl << "[main.cpp]\t\tSetup operations complete (" << dur / 1000.0 << "s)" << endl << endl;
 
-  // Serialize an encrypted database vector for demonstration
-  sender.serializeDatabaseCipher("database_cipher.txt");
+
+  // Simulate membership scenario using CODASPY group testing algorithm
+  start = steady_clock::now();
+  Ciphertext<DCRTPoly> rowCipher = sender.matrixMembershipQuery(queryCipher);
+  end = steady_clock::now();
+  dur = duration_cast<measure_typ>(end - start).count();
+  cout << endl << "[main.cpp]\t\tSender operations complete (" << dur / 1000.0 << "s)" << endl << endl;
+
+  start = steady_clock::now();
+  cout << "\tResults of membership query: " << receiver.decryptMembershipQuery(rowCipher) << endl;
+  end = steady_clock::now();
+  dur = duration_cast<measure_typ>(end - start).count();
+  cout << endl << "[main.cpp]\t\tReceiver operations complete (" << dur / 1000.0 << "s)" << endl << endl;
+
+  /*
+  // Simulate index scenario using CODASPY group testing algorithm
+  start = steady_clock::now();
+  auto [rowCipher, colCipher] = sender.matrixIndexQuery(queryCipher);
+  end = steady_clock::now();
+  dur = duration_cast<measure_typ>(end - start).count();
+  cout << endl << "[main.cpp]\t\tSender operations complete (" << dur / 1000.0 << "s)" << endl << endl;
+  start = steady_clock::now();
+  cout << "\tResults of index query: " << receiver.decryptMatrixIndexQuery(rowCipher, colCipher) << endl;
+  end = steady_clock::now();
+  dur = duration_cast<measure_typ>(end - start).count();
+  cout << endl << "[main.cpp]\t\tReceiver operations complete (" << dur / 1000.0 << "s)" << endl << endl;
 
 
-  // Simulate the membership scenario given the query vector
+  // Simulate the membership scenario using naive approach
   cout << endl << "Simulating membership scenario" << endl << endl;
   Ciphertext<DCRTPoly> membershipCipher =
       sender.membershipQuery(queryCipher);
@@ -140,7 +167,7 @@ int main(int argc, char *argv[]) {
   }
   
 
-  // Simulate the index scenario given the query vector
+  // Simulate the index scenario usig the naive approach
   cout << endl << "Simulating index scenario" << endl << endl;
   vector<Ciphertext<DCRTPoly>> indexCipher = sender.indexQuery(queryCipher);
   vector<int> matchingIndices = receiver.decryptIndexQuery(indexCipher);
@@ -151,6 +178,7 @@ int main(int argc, char *argv[]) {
   for(size_t i = 0; i < matchingIndices.size(); i++) {
     cout << "\tMatch found between the query vector and database vector [" << matchingIndices[i] << "]" << endl;
   }
+   */
 
   return 0;
 }

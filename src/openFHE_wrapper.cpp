@@ -131,7 +131,6 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::binaryRotate(CryptoContext<DCRTPoly> cc, Ci
 }
 
 
-
 // Sign-approximating polynomial f_4(x) determined from JH Cheon, 2019/1234
 // https://ia.cr/2019/1234
 Ciphertext<DCRTPoly> OpenFHEWrapper::sign(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> x) {
@@ -208,7 +207,16 @@ OpenFHEWrapper::normalizeVector(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly>
 }
 
 
+Ciphertext<DCRTPoly>
+OpenFHEWrapper::chebyshevSign(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, double lower, double upper, int polyDegree) {
+  Ciphertext<DCRTPoly> result = cc->EvalChebyshevFunction([](double x) -> double { return x / abs(x); }, ctxt, lower,
+                                          upper, polyDegree);
+  return result;
+}
 
+
+
+// raises each slot in the ciphertext to the (2^a + 1)th power, then sums together all slots within partition length
 Ciphertext<DCRTPoly> OpenFHEWrapper::alphaNorm(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, int alpha, int partitionLen) {
   Ciphertext<DCRTPoly> result = ctxt;
 

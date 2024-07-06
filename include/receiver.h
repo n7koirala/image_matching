@@ -30,6 +30,8 @@ public:
 
   vector<int> decryptIndexQuery(vector<Ciphertext<DCRTPoly>> indexCipher);
 
+  vector<size_t> decryptMatrixIndexQuery(Ciphertext<DCRTPoly> rowCipher, Ciphertext<DCRTPoly> colCipher);
+
 protected:
   // protected members
   CryptoContext<DCRTPoly> cc;
