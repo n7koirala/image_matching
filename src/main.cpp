@@ -147,7 +147,6 @@ int main(int argc, char *argv[]) {
   end = steady_clock::now();
   dur = duration_cast<measure_typ>(end - start).count();
   cout << endl << "[main.cpp]\t\tSender operations complete (" << dur / 1000.0 << "s)" << endl << endl;
-
   start = steady_clock::now();
   cout << "\tResults of index query: " << receiver.decryptMatrixIndexQuery(rowCipher, colCipher) << endl;
   end = steady_clock::now();
