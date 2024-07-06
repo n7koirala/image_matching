@@ -19,15 +19,7 @@ public:
   Receiver(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
               PrivateKey<DCRTPoly> skParam, int vectorParam);
 
-  // utility functions for computing cosine similarity
-  double plaintextMagnitude(vector<double> x);
-
-  double plaintextInnerProduct(vector<double> x, vector<double> y);
-  
-  std::vector<double> plaintextNormalize(vector<double> x);
-  
-  double plaintextCosineSim(vector<double> x, vector<double> y);
-  
+  // public methods
   Ciphertext<DCRTPoly> encryptQuery(vector<double> query);
   
   vector<Plaintext> decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosineCipher);
@@ -38,8 +30,10 @@ public:
 
   vector<int> decryptIndexQuery(vector<Ciphertext<DCRTPoly>> indexCipher);
 
+  vector<size_t> decryptMatrixIndexQuery(Ciphertext<DCRTPoly> rowCipher, Ciphertext<DCRTPoly> colCipher);
+
 protected:
-  // some protected members here -- inherited by subclass
+  // protected members
   CryptoContext<DCRTPoly> cc;
   PublicKey<DCRTPoly> pk;
   PrivateKey<DCRTPoly> sk;

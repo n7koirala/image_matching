@@ -1,9 +1,11 @@
 #include "../include/enroller.h"
 
-// implementation of functions declared in sender.h
+// implementation of functions declared in enroller.h
 Enroller::Enroller(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
                int vectorParam)
     : cc(ccParam), pk(pkParam), numVectors(vectorParam) {}
+
+
 
 vector<Ciphertext<DCRTPoly>>
 Enroller::encryptDB(vector<vector<double>> database) {

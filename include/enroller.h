@@ -21,7 +21,7 @@ public:
   vector<Ciphertext<DCRTPoly>> encryptDB(vector<vector<double>> database);
 
 private:
-  // some private members here
+  // private members
   CryptoContext<DCRTPoly> cc;
   PublicKey<DCRTPoly> pk;
   int numVectors;

@@ -24,5 +24,7 @@ Ciphertext<DCRTPoly> approxInverseRoot(CryptoContext<DCRTPoly> cc, Ciphertext<DC
 
 Ciphertext<DCRTPoly> normalizeVector(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, int dimension, double initialSlope, double initialIntercept);
 
+Ciphertext<DCRTPoly> chebyshevSign(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, double lower, double upper, int polyDegree);
+
 Ciphertext<DCRTPoly> alphaNorm(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, int alpha, int partitionLen);
 }

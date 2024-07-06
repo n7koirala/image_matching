@@ -102,7 +102,7 @@ void OpenFHEWrapper::deserializeKeys(CryptoContext<DCRTPoly> cc, PrivateKey<DCRT
 
 
 
-// performs any rotation on a ciphertext using 2log2(batchsize) rotation keys and (1/2)log2(batchsize) rotations
+// performs any rotation on a ciphertext using 2log_2(batchsize) rotation keys and (1/2)log_2(batchsize) rotations
 Ciphertext<DCRTPoly> OpenFHEWrapper::binaryRotate(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, int factor) {
   int batchSize = cc->GetEncodingParams()->GetBatchSize();
 
@@ -131,9 +131,8 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::binaryRotate(CryptoContext<DCRTPoly> cc, Ci
 }
 
 
-
-// Approximating polynomial f4 determined from JH Cheon, 2019/1234
-// TODO: properly cite
+// Sign-approximating polynomial f_4(x) determined from JH Cheon, 2019/1234
+// https://ia.cr/2019/1234
 Ciphertext<DCRTPoly> OpenFHEWrapper::sign(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> x) {
   
   // extends range of sign-approximating poly to (-2, 2)
@@ -208,7 +207,16 @@ OpenFHEWrapper::normalizeVector(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly>
 }
 
 
+Ciphertext<DCRTPoly>
+OpenFHEWrapper::chebyshevSign(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, double lower, double upper, int polyDegree) {
+  Ciphertext<DCRTPoly> result = cc->EvalChebyshevFunction([](double x) -> double { return x / abs(x); }, ctxt, lower,
+                                          upper, polyDegree);
+  return result;
+}
 
+
+
+// raises each slot in the ciphertext to the (2^a + 1)th power, then sums together all slots within partition length
 Ciphertext<DCRTPoly> OpenFHEWrapper::alphaNorm(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, int alpha, int partitionLen) {
   Ciphertext<DCRTPoly> result = ctxt;
 

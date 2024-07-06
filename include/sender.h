@@ -1,5 +1,5 @@
-// ** cosine_similarity: Contains the definition and implementation of the
-// cosine similarity computation logic using plaintext preprocessing.
+// ** sender: defines the sender (server) base class
+// Stores encrypted database vectors and homomorphically computes membership/index queries 
 
 #pragma once
 
@@ -10,9 +10,12 @@
 #include <vector>
 #include <omp.h>
 #include <time.h>
+#include <ctime>
 
 using namespace lbcrypto;
 using namespace std;
+using namespace std::chrono;
+using measure_typ = std::chrono::milliseconds;
 
 class Sender {
 public:
@@ -42,10 +45,14 @@ public:
 
   Ciphertext<DCRTPoly> membershipQuery(Ciphertext<DCRTPoly> queryCipher);
 
+  Ciphertext<DCRTPoly> matrixMembershipQuery(Ciphertext<DCRTPoly> queryCipher);
+
   vector<Ciphertext<DCRTPoly>> indexQuery(Ciphertext<DCRTPoly> queryCipher);
 
+  tuple<Ciphertext<DCRTPoly>, Ciphertext<DCRTPoly>> matrixIndexQuery(Ciphertext<DCRTPoly> queryCipher);
+
 private:
-  // some private members here
+  // private members
   CryptoContext<DCRTPoly> cc;
   PublicKey<DCRTPoly> pk;
   int numVectors;

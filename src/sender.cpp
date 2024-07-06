@@ -16,7 +16,7 @@ void Sender::setDatabaseCipher(vector<Ciphertext<DCRTPoly>> databaseCipherParam)
 void Sender::serializeDatabaseCipher(string location) {
   cout << "[sender.cpp]\tSerializing encrypted database vector... " << flush;
   if (!Serial::SerializeToFile(location, databaseCipher[0], SerType::JSON)) {
-      cout << "failed" << endl;
+      cout << "failed (cannot write to " << location << ")" << endl;
   } else {
     cout << "done" << endl;
   }
@@ -131,10 +131,10 @@ Sender::mergeScores(vector<Ciphertext<DCRTPoly>> scoreCipher, int reductionDim) 
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
     scoreCipher[i] = cc->EvalMult(scoreCipher[i], scoreMaskPtxt);
+    scoreCipher[i] = OpenFHEWrapper::binaryRotate(cc, scoreCipher[i], -i);
   }
 
   for(size_t i = 0; i < scoreCipher.size(); i++) {
-    scoreCipher[i] = OpenFHEWrapper::binaryRotate(cc, scoreCipher[i], -i);
     if(i % reductionDim == 0) {
       mergedCipher[i / reductionDim] = scoreCipher[i];
     } else {
@@ -144,7 +144,6 @@ Sender::mergeScores(vector<Ciphertext<DCRTPoly>> scoreCipher, int reductionDim) 
 
   return mergedCipher;
 }
-
 
 
 Ciphertext<DCRTPoly> Sender::alphaNormRows(vector<Ciphertext<DCRTPoly>> mergedCipher, int alpha, int rowLength) {
@@ -169,13 +168,15 @@ Ciphertext<DCRTPoly> Sender::alphaNormColumns(vector<Ciphertext<DCRTPoly>> merge
   int batchSize = cc->GetEncodingParams()->GetBatchSize();
   int scoresPerBatch = batchSize / colLength;
   
+  // raise all slots to the (2^a)th power
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < mergedCipher.size(); i++) {
     for(int a = 0; a < alpha; a++) {
-      mergedCipher[i] = cc->EvalMult(mergedCipher[i], mergedCipher[i]);
+      cc->EvalSquareInPlace(mergedCipher[i]);
     }
   }
 
+  // add all ciphertexts in merged cipher together
   for(size_t i = 1; i < mergedCipher.size(); i++) {
     mergedCipher[0] = cc->EvalAdd(mergedCipher[0], mergedCipher[i]);
   }
@@ -184,7 +185,7 @@ Ciphertext<DCRTPoly> Sender::alphaNormColumns(vector<Ciphertext<DCRTPoly>> merge
     mergedCipher[0] = cc->EvalAdd(mergedCipher[0], OpenFHEWrapper::binaryRotate(cc, mergedCipher[0], colLength*i));
   }
 
-  vector<double> batchMask(batchSize);
+  vector<double> batchMask(batchSize, 0);
   for(int i = 0; i < colLength; i++) {
     batchMask[i] = 1.0;
   }
@@ -224,6 +225,7 @@ Sender::membershipQuery(Ciphertext<DCRTPoly> queryCipher) {
     mergedCipher[0] = cc->EvalAdd(mergedCipher[0], mergedCipher[i]);
   }
 
+  // apply random noise cipher
   srand (time(0));
   vector<double> noiseValues(batchSize);
   noiseValues[0] = (rand() % 50) + 50.0; // random scalar from [50, 100]
@@ -236,8 +238,63 @@ Sender::membershipQuery(Ciphertext<DCRTPoly> queryCipher) {
 }
 
 
+Ciphertext<DCRTPoly> Sender::matrixMembershipQuery(Ciphertext<DCRTPoly> queryCipher) {   
+
+  int batchSize = cc->GetEncodingParams()->GetBatchSize();
+  steady_clock::time_point start, end;
+  long double dur;
+
+  cout << "[sender.cpp]\tComputing similarity scores... " << flush;
+  start = steady_clock::now();
+  vector<Ciphertext<DCRTPoly>> similarityCipher = computeSimilarity(queryCipher);
+  end = steady_clock::now();
+  dur = duration_cast<measure_typ>(end - start).count();
+  cout << "done (" << dur / 1000.0 << "s)" << endl;
+
+  cout << "[sender.cpp]\tMerging similarity scores... " << flush;
+  start = steady_clock::now();
+  vector<Ciphertext<DCRTPoly>> mergedCipher = mergeScores(similarityCipher, VECTOR_DIM);
+  end = steady_clock::now();
+  dur = duration_cast<measure_typ>(end - start).count();
+  cout << "done (" << dur / 1000.0 << "s)" << endl;
+
+  cout << "[sender.cpp]\tComputing alpha norms... " << flush;
+  start = steady_clock::now();
+  Ciphertext<DCRTPoly> rowCipher = alphaNormColumns(mergedCipher, ALPHA, VECTOR_DIM);
+  end = steady_clock::now();
+  dur = duration_cast<measure_typ>(end - start).count();
+  cout << "done (" << dur / 1000.0 << "s)" << endl;
+
+  double threshold = pow(MATCH_THRESHOLD, pow(2, ALPHA)+1);
+  cc->EvalAddInPlace(rowCipher, -threshold);
+
+  cout << "[sender.cpp]\tComputing sign function... " << flush;
+  start = steady_clock::now();
+  rowCipher = OpenFHEWrapper::sign(cc, rowCipher);
+  end = steady_clock::now();
+  dur = duration_cast<measure_typ>(end - start).count();
+  cout << "done (" << dur / 1000.0 << "s)" << endl;
+
+  cout << "[sender.cpp]\tAggregating boolean values... " << flush;
+  start = steady_clock::now();
+  rowCipher = OpenFHEWrapper::sumAllSlots(cc, rowCipher);
+  end = steady_clock::now();
+  dur = duration_cast<measure_typ>(end - start).count();
+  cout << "done (" << dur / 1000.0 << "s)" << endl;
+
+  // apply random noise cipher
+  srand (time(0));
+  vector<double> noiseValues(batchSize);
+  noiseValues[0] = (rand() % 50) + 50.0; // random scalar from [50, 100]
+  Plaintext noisePtxt = cc->MakeCKKSPackedPlaintext(noiseValues);
+  rowCipher = cc->EvalMult(rowCipher, noisePtxt);
+
+  return rowCipher;
+}
+
 
 vector<Ciphertext<DCRTPoly>> Sender::indexQuery(Ciphertext<DCRTPoly> queryCipher) {
+
 
   cout << "[sender.cpp]\tComputing similarity scores... " << flush;
   vector<Ciphertext<DCRTPoly>> similarityCipher = computeSimilarity(queryCipher);
@@ -256,4 +313,44 @@ vector<Ciphertext<DCRTPoly>> Sender::indexQuery(Ciphertext<DCRTPoly> queryCipher
   cout << "done" << endl;
 
   return mergedCipher;
+}
+
+tuple<Ciphertext<DCRTPoly>, Ciphertext<DCRTPoly>> Sender::matrixIndexQuery(Ciphertext<DCRTPoly> queryCipher) {
+  
+  steady_clock::time_point start, end;
+  long double dur;
+
+  cout << "[sender.cpp]\tComputing similarity scores... " << flush;
+  start = steady_clock::now();
+  vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
+  end = steady_clock::now();
+  dur = duration_cast<measure_typ>(end - start).count();
+  cout << "done (" << dur / 1000.0 << "s)" << endl;
+
+  cout << "[sender.cpp]\tMerging similarity scores... " << flush;
+  start = steady_clock::now();
+  scoreCipher = mergeScores(scoreCipher, VECTOR_DIM);
+  end = steady_clock::now();
+  dur = duration_cast<measure_typ>(end - start).count();
+  cout << "done (" << dur / 1000.0 << "s)" << endl;
+
+  cout << "[sender.cpp]\tComputing alpha norms... " << flush;
+  start = steady_clock::now();
+  // these functions are purposely inverted, merge operation rotates the matrix into column order rather than row order
+  Ciphertext<DCRTPoly> colCipher = alphaNormRows(scoreCipher, ALPHA, VECTOR_DIM);
+  Ciphertext<DCRTPoly> rowCipher = alphaNormColumns(scoreCipher, ALPHA, VECTOR_DIM);
+  end = steady_clock::now();
+  dur = duration_cast<measure_typ>(end - start).count();
+  cout << "done (" << dur / 1000.0 << "s)" << endl;
+
+  cout << "[sender.cpp]\tComputing sign function... " << flush;
+  start = steady_clock::now();
+  double threshold = pow(MATCH_THRESHOLD, pow(2, ALPHA)+1);
+  rowCipher = OpenFHEWrapper::sign(cc, cc->EvalAdd(rowCipher, -threshold));
+  colCipher = OpenFHEWrapper::sign(cc, cc->EvalAdd(colCipher, -threshold));
+  end = steady_clock::now();
+  dur = duration_cast<measure_typ>(end - start).count();
+  cout << "done (" << dur / 1000.0 << "s)" << endl;
+  
+  return make_tuple(rowCipher, colCipher);
 }
