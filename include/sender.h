@@ -30,15 +30,6 @@ public:
   vector<Ciphertext<DCRTPoly>>
   computeSimilarity(Ciphertext<DCRTPoly> query);
 
-  Ciphertext<DCRTPoly>
-  mergeSingleCipher(Ciphertext<DCRTPoly> similarityCipher, int reductionDim);
-
-  vector<Ciphertext<DCRTPoly>>
-  mergeScores(vector<Ciphertext<DCRTPoly>> similarityCipher, int reductionDim);
-
-  vector<Ciphertext<DCRTPoly>>
-  mergeScoresOrdered(vector<Ciphertext<DCRTPoly>> similarityCipher, int reductionDim);
-
   Ciphertext<DCRTPoly> alphaNormRows(vector<Ciphertext<DCRTPoly>> mergedCipher, int alpha, int rowLength);
 
   Ciphertext<DCRTPoly> alphaNormColumns(vector<Ciphertext<DCRTPoly>> mergedCipher, int alpha, int colLength);
