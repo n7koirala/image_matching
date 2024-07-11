@@ -6,6 +6,8 @@ Welcome to the **Image Matching** project! This repository contains a comprehens
 
 The primary goal of this project is to provide a robust framework for the comparison and matching of facial representation vectors using advanced cryptographic techniques, specifically homomorphic encryption.
 
+For theoretical details of this implementation, refer to this document: [Image Matching Documentation](https://www.overleaf.com/read/cbqxkzbbxjvd#ea7444).
+
 ## Features
 
 - **Homomorphic Encryption**: Leverages the OpenFHE library to perform secure computations on encrypted data.
