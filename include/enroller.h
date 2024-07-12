@@ -18,7 +18,9 @@ public:
   Enroller(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, int vectorParam);
 
   // public methods
-  vector<Ciphertext<DCRTPoly>> encryptDB(vector<vector<double>> database);
+  Ciphertext<DCRTPoly> encryptDBThread(size_t matrix, size_t index, vector<vector<double>> database);
+
+  vector<vector<Ciphertext<DCRTPoly>>> encryptDB(vector<vector<double>> database);
 
 private:
   // private members

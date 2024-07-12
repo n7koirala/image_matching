@@ -20,7 +20,9 @@ public:
               PrivateKey<DCRTPoly> skParam, int vectorParam);
 
   // public methods
-  Ciphertext<DCRTPoly> encryptQuery(vector<double> query);
+  Ciphertext<DCRTPoly> encryptQueryThread(double indexValue);
+
+  vector<Ciphertext<DCRTPoly>> encryptQuery(vector<double> query);
   
   vector<Plaintext> decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosineCipher);
 

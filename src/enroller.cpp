@@ -6,37 +6,44 @@ Enroller::Enroller(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
     : cc(ccParam), pk(pkParam), numVectors(vectorParam) {}
 
 
+Ciphertext<DCRTPoly> Enroller::encryptDBThread(size_t matrix, size_t index, vector<vector<double>> database) {
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
+  size_t startIndex = matrix * batchSize;
 
-vector<Ciphertext<DCRTPoly>>
+  vector<double> indexVector(batchSize);
+  for(size_t k = startIndex; (k < startIndex + batchSize) && (k < size_t(numVectors)); k++) {
+    indexVector[k] = database[k][index];
+  }
+
+  return cc->Encrypt(pk, cc->MakeCKKSPackedPlaintext(indexVector));
+}
+
+
+vector<vector<Ciphertext<DCRTPoly>>>
 Enroller::encryptDB(vector<vector<double>> database) {
   cout << "[enroller.cpp]\tEncrypting database vectors... " << flush;
 
-  int vectorsPerBatch =
-      (int)(cc->GetEncodingParams()->GetBatchSize() / VECTOR_DIM);
-  int totalBatches = ceil(double(numVectors) / double(vectorsPerBatch));
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
+  size_t numMatrices = ceil(double(numVectors) / double(batchSize));
 
   // embarrassingly parallel
-  #pragma omp parallel for num_threads(RECEIVER_NUM_CORES)
+  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for (int i = 0; i < numVectors; i++) {
     database[i] = VectorUtils::plaintextNormalize(database[i], VECTOR_DIM);
   }
 
-  vector<vector<double>> batchedDatabase(totalBatches, vector<double>(0));
-  for (int i = 0; i < numVectors; i++) {
-    int batchNum = (int)(i / vectorsPerBatch);
-    VectorUtils::concatenateVectors(batchedDatabase[batchNum], database[i], 1);
+  vector<vector<Ciphertext<DCRTPoly>>> databaseCipher( numMatrices, vector<Ciphertext<DCRTPoly>>(VECTOR_DIM) );
+
+  // TODO: can any of this be parallelized?
+  for(size_t i = 0; i < numMatrices; i++) {
+
+    #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+    for(size_t j = 0; j < VECTOR_DIM; j++) {
+      databaseCipher[i][j] = encryptDBThread(i, j, database);
+    }
+
   }
 
-  Plaintext databasePtxt;
-  vector<Ciphertext<DCRTPoly>> databaseCipher(totalBatches);
-
-  // embarrassingly parallel
-  #pragma omp parallel for num_threads(RECEIVER_NUM_CORES)
-  for(int i = 0; i < totalBatches; i++) {
-    databasePtxt = cc->MakeCKKSPackedPlaintext(batchedDatabase[i]);
-    databaseCipher[i] = cc->Encrypt(pk, databasePtxt);
-  }
-
-  cout << "done (" << numVectors << " vectors, " << totalBatches << " ciphertexts)" << endl;
+  cout << "done (" << numVectors << " vectors, " << numMatrices * VECTOR_DIM << " ciphertexts)" << endl;
   return databaseCipher;
 }
