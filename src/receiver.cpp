@@ -14,7 +14,6 @@ Ciphertext<DCRTPoly> Receiver::encryptQueryThread(double indexValue) {
 }
 
 vector<Ciphertext<DCRTPoly>> Receiver::encryptQuery(vector<double> query) {
-  cout << "[receiver.cpp]\tEncrypting query vector... " << flush;
   
   vector<Ciphertext<DCRTPoly>> queryCipher(VECTOR_DIM);
   query = VectorUtils::plaintextNormalize(query, VECTOR_DIM);
@@ -24,21 +23,27 @@ vector<Ciphertext<DCRTPoly>> Receiver::encryptQuery(vector<double> query) {
     queryCipher[i] = encryptQueryThread(query[i]);
   }
 
-  cout << "done" << endl;
   return queryCipher;
 }
 
 
+// Decrypts a vector of ciphertexts and packs their values into a single output vector
+vector<double> Receiver::decryptScores(vector<Ciphertext<DCRTPoly>> scoreCipher) {
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
+  vector<double> scoreVector(numVectors);
+  vector<double> currentVector(batchSize);
+  Plaintext ptxt;
 
-vector<Plaintext> Receiver::decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosineCipher) {
-  int vectorsPerBatch =
-      (int)(cc->GetEncodingParams()->GetBatchSize() / VECTOR_DIM);
-  int totalBatches = (int)(numVectors / vectorsPerBatch + 1);
-  vector<Plaintext> resultPtxts(totalBatches);
-  for (int i = 0; i < totalBatches; i++) {
-    cc->Decrypt(sk, cosineCipher[i], &(resultPtxts[i]));
+  size_t startIndex;
+  size_t copyLength;
+  for(size_t i = 0; i < scoreCipher.size(); i++) {
+    cc->Decrypt(sk, scoreCipher[i], &ptxt);
+    currentVector = ptxt->GetRealPackedValue();
+    startIndex = i * batchSize;
+    copyLength = min(size_t(numVectors) - startIndex, batchSize);
+    copy(currentVector.begin(), currentVector.begin()+copyLength, scoreVector.begin()+startIndex);
   }
-  return resultPtxts;
+  return scoreVector;
 }
 
 

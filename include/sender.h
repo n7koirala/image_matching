@@ -23,29 +23,24 @@ public:
   Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, int vectorParam);
 
   // public methods
-  void setDatabaseCipher(vector<Ciphertext<DCRTPoly>> databaseCipherParam);
+  void setDatabaseCipher(vector<vector<Ciphertext<DCRTPoly>>> databaseCipherParam);
 
   void serializeDatabaseCipher(string location);
 
+  Ciphertext<DCRTPoly> 
+  computeSimilarityHelper(size_t matrixIndex, vector<Ciphertext<DCRTPoly>> queryCipher);
+
   vector<Ciphertext<DCRTPoly>>
-  computeSimilarity(Ciphertext<DCRTPoly> query);
+  computeSimilarity(vector<Ciphertext<DCRTPoly>> queryCipher);
 
   Ciphertext<DCRTPoly> alphaNormRows(vector<Ciphertext<DCRTPoly>> mergedCipher, int alpha, int rowLength);
 
   Ciphertext<DCRTPoly> alphaNormColumns(vector<Ciphertext<DCRTPoly>> mergedCipher, int alpha, int colLength);
-
-  Ciphertext<DCRTPoly> membershipQuery(Ciphertext<DCRTPoly> queryCipher);
-
-  Ciphertext<DCRTPoly> matrixMembershipQuery(Ciphertext<DCRTPoly> queryCipher);
-
-  vector<Ciphertext<DCRTPoly>> indexQuery(Ciphertext<DCRTPoly> queryCipher);
-
-  tuple<Ciphertext<DCRTPoly>, Ciphertext<DCRTPoly>> matrixIndexQuery(Ciphertext<DCRTPoly> queryCipher);
 
 private:
   // private members
   CryptoContext<DCRTPoly> cc;
   PublicKey<DCRTPoly> pk;
   int numVectors;
-  vector<Ciphertext<DCRTPoly>> databaseCipher;
+  vector<vector<Ciphertext<DCRTPoly>>> databaseCipher;
 };

@@ -24,7 +24,7 @@ public:
 
   vector<Ciphertext<DCRTPoly>> encryptQuery(vector<double> query);
   
-  vector<Plaintext> decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosineCipher);
+  vector<double> decryptScores(vector<Ciphertext<DCRTPoly>> scoreCipher);
 
   vector<double> decryptMergedScores(vector<Ciphertext<DCRTPoly>> mergedCipher);
 

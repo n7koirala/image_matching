@@ -26,8 +26,6 @@ int main(int argc, char *argv[]) {
   cout << "[main.cpp]\t\tMain execution entered..." << endl;
 
   steady_clock::time_point start, end;
-  long double dur;
-  start = steady_clock::now();
 
   // Open input file
   ifstream fileStream;
@@ -42,11 +40,12 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  uint32_t multDepth = 8 + (4 * SIGN_COMPOSITIONS);
+  uint32_t multDepth = 20;
   CCParams<CryptoContextCKKSRNS> parameters;
   parameters.SetSecurityLevel(HEStd_128_classic);
   parameters.SetMultiplicativeDepth(multDepth);
   parameters.SetScalingModSize(45);
+  parameters.SetScalingTechnique(FIXEDMANUAL);
 
   CryptoContext<DCRTPoly> cc = GenCryptoContext(parameters);
   cc->Enable(PKE);
@@ -71,11 +70,10 @@ int main(int argc, char *argv[]) {
   cc->EvalMultKeyGen(sk);
   cout << "done" << endl;
 
-
+  /* Not needed for plain similarity computations
   cout << "[main.cpp]\t\tGenerating sum keys... " << flush;
   cc->EvalSumKeyGen(sk);
   cout << "done" << endl;
-
 
   cout << "[main.cpp]\t\tGenerating rotation keys... " << flush;
   vector<int> binaryRotationFactors;
@@ -85,6 +83,7 @@ int main(int argc, char *argv[]) {
   }
   cc->EvalRotateKeyGen(sk, binaryRotationFactors);
   cout << "done" << endl;
+   */
 
 
   cout << "[main.cpp]\t\tReading in vectors from file... " << flush;
@@ -113,72 +112,41 @@ int main(int argc, char *argv[]) {
   Receiver receiver(cc, pk, sk, numVectors);
   Enroller enroller(cc, pk, numVectors);
   Sender sender(cc, pk, numVectors);
-
-
-  // Normalize, batch, and encrypt the query vector
-  Ciphertext<DCRTPoly> queryCipher = receiver.encryptQuery(queryVector);
   
 
   // Normalize, batch, and encrypt the database vectors
+  cout << "[main.cpp]\t\tEncrypting database vectors... " << flush;
+  start = steady_clock::now();
   sender.setDatabaseCipher(enroller.encryptDB(plaintextVectors));
-
   end = steady_clock::now();
-  dur = duration_cast<measure_typ>(end - start).count();
-  cout << endl << "[main.cpp]\t\tSetup operations complete (" << dur / 1000.0 << "s)" << endl << endl;
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
 
 
-  // Simulate membership scenario using CODASPY group testing algorithm
+  // Normalize, batch, and encrypt the query vector
+  cout << "[main.cpp]\t\tEncrypting query vector... " << flush;
   start = steady_clock::now();
-  Ciphertext<DCRTPoly> rowCipher = sender.matrixMembershipQuery(queryCipher);
+  vector<Ciphertext<DCRTPoly>> queryCipher = receiver.encryptQuery(queryVector);
   end = steady_clock::now();
-  dur = duration_cast<measure_typ>(end - start).count();
-  cout << endl << "[main.cpp]\t\tSender operations complete (" << dur / 1000.0 << "s)" << endl << endl;
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
 
+
+  // TESTING SIMILARITY OPERATION
+  cout << "[main.cpp]\t\tComputing similarity scores... " << flush;
   start = steady_clock::now();
-  cout << "\tResults of membership query: " << receiver.decryptMembershipQuery(rowCipher) << endl;
+  vector<Ciphertext<DCRTPoly>> scoreCipher = sender.computeSimilarity(queryCipher);
   end = steady_clock::now();
-  dur = duration_cast<measure_typ>(end - start).count();
-  cout << endl << "[main.cpp]\t\tReceiver operations complete (" << dur / 1000.0 << "s)" << endl << endl;
+  cout <<  "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
 
-  /*
-  // Simulate index scenario using CODASPY group testing algorithm
-  start = steady_clock::now();
-  auto [rowCipher, colCipher] = sender.matrixIndexQuery(queryCipher);
-  end = steady_clock::now();
-  dur = duration_cast<measure_typ>(end - start).count();
-  cout << endl << "[main.cpp]\t\tSender operations complete (" << dur / 1000.0 << "s)" << endl << endl;
-  start = steady_clock::now();
-  cout << "\tResults of index query: " << receiver.decryptMatrixIndexQuery(rowCipher, colCipher) << endl;
-  end = steady_clock::now();
-  dur = duration_cast<measure_typ>(end - start).count();
-  cout << endl << "[main.cpp]\t\tReceiver operations complete (" << dur / 1000.0 << "s)" << endl << endl;
-
-
-  // Simulate the membership scenario using naive approach
-  cout << endl << "Simulating membership scenario" << endl << endl;
-  Ciphertext<DCRTPoly> membershipCipher =
-      sender.membershipQuery(queryCipher);
-  bool membershipResults = receiver.decryptMembershipQuery(membershipCipher);
-  cout << endl << "Results of membership query:" << endl;
-  if(membershipResults) {
-    cout << "\tThere exists a match between the query vector and the database vectors" << endl;
-  } else {
-    cout << "\tThere does not exist a match between the query vector and the database vectors" << endl;
+  // Output similarity scores
+  cout << endl << "\tSimilarity Scores" << endl;
+  vector<double> scoreVector = receiver.decryptScores(scoreCipher);
+  for(size_t i = 0; i < size_t(numVectors); i++) {
+    cout << "Index:      \t" << i << endl;
+    cout << "Homomorphic:\t" << scoreVector[i] << endl;
+    cout << "Expected:   \t" << VectorUtils::plaintextCosineSim(queryVector, plaintextVectors[i]) << endl;
+    cout << endl;
   }
-  
-
-  // Simulate the index scenario usig the naive approach
-  cout << endl << "Simulating index scenario" << endl << endl;
-  vector<Ciphertext<DCRTPoly>> indexCipher = sender.indexQuery(queryCipher);
-  vector<int> matchingIndices = receiver.decryptIndexQuery(indexCipher);
-  cout << endl << "Results of index query:" << endl;
-  if(!matchingIndices.size()) {
-    cout << "\tNo matches found between query vector and database vectors" << endl;
-  }
-  for(size_t i = 0; i < matchingIndices.size(); i++) {
-    cout << "\tMatch found between the query vector and database vector [" << matchingIndices[i] << "]" << endl;
-  }
-   */
+  // END
 
   return 0;
 }

@@ -12,7 +12,7 @@ Ciphertext<DCRTPoly> Enroller::encryptDBThread(size_t matrix, size_t index, vect
 
   vector<double> indexVector(batchSize);
   for(size_t k = startIndex; (k < startIndex + batchSize) && (k < size_t(numVectors)); k++) {
-    indexVector[k] = database[k][index];
+    indexVector[k % batchSize] = database[k][index];
   }
 
   return cc->Encrypt(pk, cc->MakeCKKSPackedPlaintext(indexVector));
@@ -21,12 +21,11 @@ Ciphertext<DCRTPoly> Enroller::encryptDBThread(size_t matrix, size_t index, vect
 
 vector<vector<Ciphertext<DCRTPoly>>>
 Enroller::encryptDB(vector<vector<double>> database) {
-  cout << "[enroller.cpp]\tEncrypting database vectors... " << flush;
 
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t numMatrices = ceil(double(numVectors) / double(batchSize));
 
-  // embarrassingly parallel
+  // normalize all plaintext database vectors
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for (int i = 0; i < numVectors; i++) {
     database[i] = VectorUtils::plaintextNormalize(database[i], VECTOR_DIM);
@@ -34,7 +33,8 @@ Enroller::encryptDB(vector<vector<double>> database) {
 
   vector<vector<Ciphertext<DCRTPoly>>> databaseCipher( numMatrices, vector<Ciphertext<DCRTPoly>>(VECTOR_DIM) );
 
-  // TODO: can any of this be parallelized?
+  // encrypt normalized vectors in index-batched format
+  // TODO -- parallelize outer loop?
   for(size_t i = 0; i < numMatrices; i++) {
 
     #pragma omp parallel for num_threads(SENDER_NUM_CORES)
@@ -44,6 +44,5 @@ Enroller::encryptDB(vector<vector<double>> database) {
 
   }
 
-  cout << "done (" << numVectors << " vectors, " << numMatrices * VECTOR_DIM << " ciphertexts)" << endl;
   return databaseCipher;
 }
