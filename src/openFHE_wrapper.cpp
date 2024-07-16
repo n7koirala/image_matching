@@ -100,6 +100,21 @@ void OpenFHEWrapper::deserializeKeys(CryptoContext<DCRTPoly> cc, PrivateKey<DCRT
   }
 }
 
+// decrypts a given ciphertext and returns a vector of its contents
+// for ease of testing purposes
+Ciphertext<DCRTPoly> OpenFHEWrapper::encryptFromVector(CryptoContext<DCRTPoly> cc, PublicKey<DCRTPoly> pk, vector<double> vec) {
+  Plaintext ptxt = cc->MakeCKKSPackedPlaintext(vec);
+  return cc->Encrypt(pk, ptxt);
+}
+
+
+// decrypts a given ciphertext and returns a vector of its contents
+// for ease of testing purposes
+vector<double> OpenFHEWrapper::decryptToVector(CryptoContext<DCRTPoly> cc, PrivateKey<DCRTPoly> sk, Ciphertext<DCRTPoly> ctxt) {
+  Plaintext ptxt;
+  cc->Decrypt(sk, ctxt, &ptxt);
+  return ptxt->GetRealPackedValue();
+}
 
 
 // performs any rotation on a ciphertext using 2log_2(batchsize) rotation keys and (1/2)log_2(batchsize) rotations
@@ -217,13 +232,92 @@ OpenFHEWrapper::chebyshevSign(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> c
 
 
 // raises each slot in the ciphertext to the (2^a + 1)th power, then sums together all slots within partition length
-Ciphertext<DCRTPoly> OpenFHEWrapper::alphaNorm(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, int alpha, int partitionLen) {
+Ciphertext<DCRTPoly> OpenFHEWrapper::alphaNorm(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, size_t alpha, size_t partitionLen) {
   Ciphertext<DCRTPoly> result = ctxt;
 
-  for(int a = 0; a < alpha; a++) {
-    result = cc->EvalMult(result, result);
+  for(size_t a = 0; a < alpha; a++) {
+    cc->EvalSquareInPlace(result);
+    cc->RescaleInPlace(result);
   }
   result = cc->EvalInnerProduct(result, ctxt, partitionLen);
+  cc->RescaleInPlace(result);
 
   return result;
+}
+
+
+// packs every i-th slot of each cipher into a consecutive sequence at the front of the outputted cipher(s)
+// can handle cases where the number of slots is larger than the batch size of a single ciphertext
+// requires dimension param to be a power of two
+vector<Ciphertext<DCRTPoly>> OpenFHEWrapper::mergeCiphers(CryptoContext<DCRTPoly> cc, vector<Ciphertext<DCRTPoly>> ctxts, size_t dimension) {
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
+  size_t elementsPerCipher = batchSize / dimension;
+  size_t outputSize = elementsPerCipher * ctxts.size();
+  size_t neededCiphers = ceil(double(outputSize) / double(batchSize));
+  size_t outputCipher;
+  size_t outputSlot;
+  
+  vector<Ciphertext<DCRTPoly>> mergedCipher(neededCiphers);
+
+  for(size_t i = 0; i < ctxts.size(); i++) {
+    outputCipher = (elementsPerCipher * i) / batchSize;
+    outputSlot = (elementsPerCipher * i) % batchSize;
+
+    if(outputSlot == 0) {
+      mergedCipher[outputCipher] = OpenFHEWrapper::mergeSingleCipher(cc, ctxts[i], dimension);
+    } else {
+      cc->EvalAddInPlace(mergedCipher[outputCipher], OpenFHEWrapper::binaryRotate(cc, OpenFHEWrapper::mergeSingleCipher(cc, ctxts[i], dimension), -outputSlot));
+    }
+  }
+
+  return mergedCipher;
+}
+
+
+// packs every i-th slot of the cipher into a consecutive sequence at the front of the outputted cipher
+// requires dimension param to be a power of two
+Ciphertext<DCRTPoly> OpenFHEWrapper::mergeSingleCipher(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, size_t dimension) {
+
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
+  size_t outputSize = batchSize / dimension;
+  size_t paddingSize = 1;
+  size_t rotationFactor = dimension - 1;
+
+  // perform log2 rotations and additions
+  for(size_t i = 1; i < outputSize; i *= 2) {
+    
+    // apply multiplicative mask if rotations + additions have consumed all the padded zeros
+    if(i >= paddingSize) {
+      ctxt = cc->EvalMult(ctxt, OpenFHEWrapper::generateMergeMask(cc, dimension, i));
+      // cc->RescaleInPlace(ctxt); // Rescaling here introduces nonnegligible errors -- discuss why in next meeting
+      paddingSize = i * dimension;
+    }
+    
+    cc->EvalAddInPlace(ctxt, OpenFHEWrapper::binaryRotate(cc, ctxt, rotationFactor * i));
+  }
+
+  ctxt = cc->EvalMult(ctxt, generateMergeMask(cc, dimension, outputSize));
+  // cc->RescaleInPlace(ctxt);
+
+  return ctxt;
+}
+
+
+// generates a plaintext multiplicative mask to isolate needed slots during repeated rotations + additions
+// helper function for single-cipher merge operation
+Plaintext OpenFHEWrapper::generateMergeMask(CryptoContext<DCRTPoly> cc, size_t dimension, size_t segmentLength) {
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
+  vector<double> mask(batchSize, 0.0);
+
+  if(segmentLength > batchSize / dimension) {
+    cerr << "Mask generation index error" << endl;
+    return cc->MakeCKKSPackedPlaintext(mask);
+  }
+
+  size_t i = 0;
+  while(i < batchSize) {
+    fill(mask.begin()+i, mask.begin()+i+segmentLength, 1.0);
+    i += dimension * segmentLength;
+  }
+  return cc->MakeCKKSPackedPlaintext(mask);
 }
