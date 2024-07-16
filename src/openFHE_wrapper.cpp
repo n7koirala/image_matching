@@ -230,22 +230,6 @@ OpenFHEWrapper::chebyshevSign(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> c
 }
 
 
-
-// raises each slot in the ciphertext to the (2^a + 1)th power, then sums together all slots within partition length
-Ciphertext<DCRTPoly> OpenFHEWrapper::alphaNorm(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, size_t alpha, size_t partitionLen) {
-  Ciphertext<DCRTPoly> result = ctxt;
-
-  for(size_t a = 0; a < alpha; a++) {
-    cc->EvalSquareInPlace(result);
-    cc->RescaleInPlace(result);
-  }
-  result = cc->EvalInnerProduct(result, ctxt, partitionLen);
-  cc->RescaleInPlace(result);
-
-  return result;
-}
-
-
 // packs every i-th slot of each cipher into a consecutive sequence at the front of the outputted cipher(s)
 // can handle cases where the number of slots is larger than the batch size of a single ciphertext
 // requires dimension param to be a power of two

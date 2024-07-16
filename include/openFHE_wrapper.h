@@ -30,8 +30,6 @@ Ciphertext<DCRTPoly> normalizeVector(CryptoContext<DCRTPoly> cc, Ciphertext<DCRT
 
 Ciphertext<DCRTPoly> chebyshevSign(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, double lower, double upper, int polyDegree);
 
-Ciphertext<DCRTPoly> alphaNorm(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, size_t alpha, size_t partitionLen);
-
 vector<Ciphertext<DCRTPoly>> mergeCiphers(CryptoContext<DCRTPoly> cc, vector<Ciphertext<DCRTPoly>> ctxts, size_t dimension);
 
 Ciphertext<DCRTPoly> mergeSingleCipher(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, size_t dimension);
