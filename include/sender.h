@@ -20,7 +20,7 @@ using measure_typ = std::chrono::milliseconds;
 class Sender {
 public:
   // constructor
-  Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, int vectorParam);
+  Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam);
 
   // public methods
   void setDatabaseCipher(vector<vector<Ciphertext<DCRTPoly>>> databaseCipherParam);
@@ -33,14 +33,22 @@ public:
   vector<Ciphertext<DCRTPoly>>
   computeSimilarity(vector<Ciphertext<DCRTPoly>> queryCipher);
 
-  Ciphertext<DCRTPoly> alphaNormRows(vector<Ciphertext<DCRTPoly>> mergedCipher, int alpha, int rowLength);
+  vector<Ciphertext<DCRTPoly>>
+  indexScenarioNaive(vector<Ciphertext<DCRTPoly>> scoreCipher);
 
-  Ciphertext<DCRTPoly> alphaNormColumns(vector<Ciphertext<DCRTPoly>> mergedCipher, int alpha, int colLength);
+  Ciphertext<DCRTPoly>
+  membershipScenarioNaive(vector<Ciphertext<DCRTPoly>> scoreCipher);
+
+  vector<Ciphertext<DCRTPoly>> 
+  alphaNormRows(vector<Ciphertext<DCRTPoly>> scoreCipher, size_t alpha, size_t rowLength);
+
+  vector<Ciphertext<DCRTPoly>> 
+  alphaNormColumns(vector<Ciphertext<DCRTPoly>> scoreCipher, size_t alpha, size_t rowLength);
 
 private:
   // private members
   CryptoContext<DCRTPoly> cc;
   PublicKey<DCRTPoly> pk;
-  int numVectors;
+  size_t numVectors;
   vector<vector<Ciphertext<DCRTPoly>>> databaseCipher;
 };
