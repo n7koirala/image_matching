@@ -117,6 +117,20 @@ vector<double> OpenFHEWrapper::decryptToVector(CryptoContext<DCRTPoly> cc, Priva
 }
 
 
+vector<double> OpenFHEWrapper::decryptVectorToVector(CryptoContext<DCRTPoly> cc, PrivateKey<DCRTPoly> sk, vector<Ciphertext<DCRTPoly>> ctxt) {
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
+  vector<double> temp(batchSize);
+  vector<double> output(batchSize * ctxt.size());
+  Plaintext ptxt;
+  for(size_t i = 0; i < ctxt.size(); i++) {
+    cc->Decrypt(sk, ctxt[i], &ptxt);
+    temp = ptxt->GetRealPackedValue();
+    copy(temp.begin(), temp.end(), output.begin() + i * batchSize);
+  }
+  return output;
+}
+
+
 // performs any rotation on a ciphertext using 2log_2(batchsize) rotation keys and (1/2)log_2(batchsize) rotations
 Ciphertext<DCRTPoly> OpenFHEWrapper::binaryRotate(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, int factor) {
   int batchSize = cc->GetEncodingParams()->GetBatchSize();
