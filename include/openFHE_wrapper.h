@@ -13,8 +13,8 @@ namespace OpenFHEWrapper {
 void 
 printSchemeDetails(CCParams<CryptoContextCKKSRNS> parameters, CryptoContext<DCRTPoly> cc);
 
-void 
-deserializeKeys(CryptoContext<DCRTPoly> cc, PrivateKey<DCRTPoly> sk);
+void
+printCipherDetails(Ciphertext<DCRTPoly> ctxt);
 
 Ciphertext<DCRTPoly> 
 encryptFromVector(CryptoContext<DCRTPoly> cc, PublicKey<DCRTPoly> pk, vector<double> vec);
@@ -29,7 +29,7 @@ Ciphertext<DCRTPoly>
 binaryRotate(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, int factor);
 
 Ciphertext<DCRTPoly> 
-sign(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt);
+sign(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, size_t compositions);
 
 Ciphertext<DCRTPoly> 
 sumAllSlots(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt);

@@ -1,5 +1,6 @@
 #include "../include/openFHE_wrapper.h"
 
+// output relevant metadata of a given CKKS scheme
 void OpenFHEWrapper::printSchemeDetails(CCParams<CryptoContextCKKSRNS> parameters, CryptoContext<DCRTPoly> cc) {
   cout << "batch size: " << cc->GetEncodingParams()->GetBatchSize() << endl;
   cout << endl;
@@ -15,90 +16,16 @@ void OpenFHEWrapper::printSchemeDetails(CCParams<CryptoContextCKKSRNS> parameter
 }
 
 
-
-void OpenFHEWrapper::deserializeKeys(CryptoContext<DCRTPoly> cc, PrivateKey<DCRTPoly> sk) {
-  // Attempting to serialize / deserialize keys, need help on this
-  int batchSize = cc->GetEncodingParams()->GetBatchSize();
-
-  // Attempt to deserialize mult keys
-  ifstream multKeyIStream("/key_mult.txt", ios::in | ios::binary);
-  if (!multKeyIStream.is_open() || !cc->DeserializeEvalMultKey(multKeyIStream, SerType::BINARY)) {
-    cerr << "Error: Cannot read serialization from " << "/key_mult.txt" << endl;
-    
-    cc->EvalMultKeyGen(sk);
-    cout << "[main.cpp]\tMult key generated..." << endl;
-    ofstream multKeyFile("/key_mult.txt", ios::out | ios::binary);
-    if (multKeyFile.is_open()) {
-      if (!cc->SerializeEvalMultKey(multKeyFile, SerType::BINARY)) {
-        cerr << "Error: writing mult keys" << endl;
-        exit(1);
-      }
-      cout << "[main.cpp]\tMult keys serialized..." << endl;
-      multKeyFile.close();
-    } else {
-      cerr << "Error: serializing mult keys" << endl;
-      exit(1);
-    }
-  } else {
-    cout << "[main.cpp]\tSuccessfully deserialized mult keys" << endl;
-  }
-
-  // Attempt to deserialize sum keys
-  ifstream sumKeyIStream("/key_sum.txt", ios::in | ios::binary);
-  if (!sumKeyIStream.is_open() || !cc->DeserializeEvalSumKey(sumKeyIStream, SerType::BINARY)) {
-    cerr << "Error: Cannot read serialization from " << "/key_sum.txt" << endl;
-    
-    cc->EvalSumKeyGen(sk);
-    cout << "[main.cpp]\tSum key generated..." << endl;
-    ofstream sumKeyFile("/key_sum.txt", ios::out | ios::binary);
-    if (sumKeyFile.is_open()) {
-      if (!cc->SerializeEvalSumKey(sumKeyFile, SerType::BINARY)) {
-        cerr << "Error: writing sum keys" << endl;
-        exit(1);
-      }
-      cout << "[main.cpp]\tSum keys serialized..." << endl;
-      sumKeyFile.close();
-    } else {
-      cerr << "Error: serializing sum keys" << endl;
-      exit(1);
-    }
-  } else {
-    cout << "[main.cpp]\tSuccessfully deserialized sum keys" << endl;
-  }
-
-  // Attempt to deserialize rotation key
-  ifstream rotKeyIStream("/key_rot.txt", ios::in | ios::binary);
-  if (!rotKeyIStream.is_open() || !cc->DeserializeEvalAutomorphismKey(rotKeyIStream, SerType::BINARY)) {
-    cerr << "Cannot read serialization from " << "/key_rot.txt" << endl;
-    
-    // If deserialization fails, generate and serialize new key
-
-    // these specific rotations needed for merge operation
-    vector<int> binaryRotationFactors;
-    for(int i = 1; i < batchSize; i *= 2) {
-      binaryRotationFactors.push_back(i);
-      binaryRotationFactors.push_back(-i);
-    }
-
-    cc->EvalRotateKeyGen(sk, binaryRotationFactors);
-    cout << "[main.cpp]\tRotation keys generated..." << endl;
-    
-    ofstream rotationKeyFile("/key_rot.txt", ios::out | ios::binary);
-    if (rotationKeyFile.is_open()) {
-      if (!cc->SerializeEvalAutomorphismKey(rotationKeyFile, SerType::BINARY)) {
-        cerr << "Error: writing rotation keys" << endl;
-        exit(1);
-      }
-      cout << "[main.cpp]\tRotation keys serialized..." << endl;
-    }
-    else {
-      cerr << "Error: serializing rotation keys" << endl;
-      exit(1);
-    }
-  } else {
-    cout << "[main.cpp]\tSuccessfully deserialized rotation keys" << endl;
-  }
+// output relevant internal details of a given ciphertext
+void OpenFHEWrapper::printCipherDetails(Ciphertext<DCRTPoly> ctxt) {
+  cout << "---------- Ciphertext Details ----------" << endl;
+  cout << "\tBatch Size: " << ctxt->GetSlots() << endl;
+  cout << "\tScaling Degree: " << ctxt->GetNoiseScaleDeg() << "\t(" << ctxt->GetScalingFactor() << ")" << endl;
+  cout << "\tLevel: " << ctxt->GetLevel() << endl;
+  cout << "\tEncoding Parameters: " << ctxt->GetEncodingParameters() << endl;
+  cout << endl;
 }
+
 
 // decrypts a given ciphertext and returns a vector of its contents
 // for ease of testing purposes
@@ -109,14 +36,13 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::encryptFromVector(CryptoContext<DCRTPoly> c
 
 
 // decrypts a given ciphertext and returns a vector of its contents
-// for ease of testing purposes
 vector<double> OpenFHEWrapper::decryptToVector(CryptoContext<DCRTPoly> cc, PrivateKey<DCRTPoly> sk, Ciphertext<DCRTPoly> ctxt) {
   Plaintext ptxt;
   cc->Decrypt(sk, ctxt, &ptxt);
   return ptxt->GetRealPackedValue();
 }
 
-
+// decrypts a given vector of ciphertexts and returns a vector of their contents
 vector<double> OpenFHEWrapper::decryptVectorToVector(CryptoContext<DCRTPoly> cc, PrivateKey<DCRTPoly> sk, vector<Ciphertext<DCRTPoly>> ctxt) {
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   vector<double> temp(batchSize);
@@ -160,29 +86,35 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::binaryRotate(CryptoContext<DCRTPoly> cc, Ci
 }
 
 
-// Sign-approximating polynomial f_4(x) determined from JH Cheon, 2019/1234
-// https://ia.cr/2019/1234
-Ciphertext<DCRTPoly> OpenFHEWrapper::sign(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> x) {
-  
-  // extends range of sign-approximating poly to (-2, 2)
-  // x = cc->EvalMult(x, 0.75);
+// sign-approximating polynomial f_4(x) and composition method determined from JH Cheon, 2019/1234 (https://ia.cr/2019/1234)
+Ciphertext<DCRTPoly> OpenFHEWrapper::sign(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> x, size_t compositions) {
 
-  vector<double> coefficients({ 0.0, 
-                                315.0 / 128.0,  
-                                0.0, 
-                                -420.0 / 128.0, 
-                                0.0, 
-                                378.0 / 128.0,
-                                0.0, 
-                                -180.0 / 128.0,
-                                0.0,
-                                35.0 / 128.0});
+  // coefficients for sign-aproximating polynomial f_4(x)
+  const vector<double> COEFS({
+    0.0, 
+    315.0 / 128.0,  
+    0.0, 
+    -420.0 / 128.0, 
+    0.0, 
+    378.0 / 128.0,
+    0.0, 
+    -180.0 / 128.0,
+    0.0,
+    35.0 / 128.0
+  });
 
-  for(int i = 0; i < SIGN_COMPOSITIONS; i++) {
-    x = cc->EvalPoly(x, coefficients);
+  for(size_t i = 0; i < compositions; i++) {
+    // EvalPoly performs rescaling operation even with FIXEDMANUAL scaling technique, which is convenient
+    x = cc->EvalPoly(x, COEFS);
   }
 
-  return cc->EvalMult(0.5, cc->EvalAdd(x, 1.0));
+  // shift domain from [-1, 1] to [0, 1], allowing for additive VAFs
+  // TODO: is the mult here necessary? can we work with domain of [0, 2]?
+  cc->EvalAddInPlace(x, 1.0);
+  cc->EvalMultInPlace(x, 0.5);
+  cc->RescaleInPlace(x);
+
+  return x;
 }
 
 // Sets every slot in the ciphertext equal to the sum of all slots
@@ -300,9 +232,8 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::mergeSingleCipher(CryptoContext<DCRTPoly> c
   return ctxt;
 }
 
-
-// generates a plaintext multiplicative mask to isolate needed slots during repeated rotations + additions
 // helper function for single-cipher merge operation
+// generates a plaintext multiplicative mask to isolate needed slots during repeated rotations + additions
 Plaintext OpenFHEWrapper::generateMergeMask(CryptoContext<DCRTPoly> cc, size_t dimension, size_t segmentLength) {
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   vector<double> mask(batchSize, 0.0);
