@@ -6,9 +6,11 @@ tools/
 
 # datasets over 100.0MB cannot be tracked by GitHub
 # TODO -- consider Git LFS or script to download untracked datasets
-test/65k.dat
-test/131k.dat
-test/262k.dat
+test/*
+!test/1024.dat
+!test/16k.dat
+!test/no_matches_1024.dat
+!test/no_matches_16k.dat
 
 # misc untracked files
 .vscode/
