@@ -17,27 +17,25 @@ class Receiver {
 public:
   // constructor
   Receiver(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
-              PrivateKey<DCRTPoly> skParam, int vectorParam);
+              PrivateKey<DCRTPoly> skParam, size_t vectorParam);
 
   // public methods
   Ciphertext<DCRTPoly> encryptQueryThread(double indexValue);
 
   vector<Ciphertext<DCRTPoly>> encryptQuery(vector<double> query);
   
-  vector<double> decryptScores(vector<Ciphertext<DCRTPoly>> scoreCipher);
+  vector<double> decryptRawScores(vector<Ciphertext<DCRTPoly>> scoreCipher);
 
-  vector<double> decryptMergedScores(vector<Ciphertext<DCRTPoly>> mergedCipher);
+  bool decryptMembership(Ciphertext<DCRTPoly> membershipCipher);
 
-  bool decryptMembershipQuery(Ciphertext<DCRTPoly> membershipCipher);
+  vector<size_t> decryptIndexNaive(vector<Ciphertext<DCRTPoly>> indexCipher);
 
-  vector<int> decryptIndexQuery(vector<Ciphertext<DCRTPoly>> indexCipher);
+  vector<size_t> decryptIndex(vector<Ciphertext<DCRTPoly>> rowCipher, vector<Ciphertext<DCRTPoly>> colCipher, size_t rowLength);
 
-  vector<size_t> decryptMatrixIndexQuery(Ciphertext<DCRTPoly> rowCipher, Ciphertext<DCRTPoly> colCipher);
-
-protected:
-  // protected members
+private:
+  // private members
   CryptoContext<DCRTPoly> cc;
   PublicKey<DCRTPoly> pk;
   PrivateKey<DCRTPoly> sk;
-  int numVectors;
+  size_t numVectors;
 };

@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  uint32_t multDepth = 20;
+  uint32_t multDepth = 19;
   CCParams<CryptoContextCKKSRNS> parameters;
   parameters.SetSecurityLevel(HEStd_128_classic);
   parameters.SetMultiplicativeDepth(multDepth);
@@ -53,11 +53,10 @@ int main(int argc, char *argv[]) {
   cc->Enable(LEVELEDSHE);
   cc->Enable(ADVANCEDSHE);
   
-  int batchSize = cc->GetEncodingParams()->GetBatchSize();
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
 
   // OpenFHEWrapper::printSchemeDetails(parameters, cc);
   cout << "[main.cpp]\t\tCKKS scheme set up (depth = " << multDepth << ", batch size = " << batchSize << ")" << endl;
-
 
   cout << "[main.cpp]\t\tGenerating key pair... " << flush;
   auto keyPair = cc->KeyGen();
@@ -65,42 +64,39 @@ int main(int argc, char *argv[]) {
   auto sk = keyPair.secretKey;
   cout << "done" << endl;
 
-
   cout << "[main.cpp]\t\tGenerating mult keys... " << flush;
   cc->EvalMultKeyGen(sk);
   cout << "done" << endl;
 
-  /* Not needed for plain similarity computations
   cout << "[main.cpp]\t\tGenerating sum keys... " << flush;
   cc->EvalSumKeyGen(sk);
   cout << "done" << endl;
 
   cout << "[main.cpp]\t\tGenerating rotation keys... " << flush;
   vector<int> binaryRotationFactors;
-  for(int i = 1; i < batchSize; i *= 2) {
+  for(int i = 1; i < int(batchSize); i *= 2) {
     binaryRotationFactors.push_back(i);
     binaryRotationFactors.push_back(-i);
   }
   cc->EvalRotateKeyGen(sk, binaryRotationFactors);
   cout << "done" << endl;
-   */
 
 
   cout << "[main.cpp]\t\tReading in vectors from file... " << flush;
-  int numVectors;
+  size_t numVectors;
   fileStream >> numVectors;
 
 
   // Read in query vector from file
   vector<double> queryVector(VECTOR_DIM);
-  for (int i = 0; i < VECTOR_DIM; i++) {
+  for (size_t i = 0; i < VECTOR_DIM; i++) {
     fileStream >> queryVector[i];
   }
 
   // Read in database vectors from file
   vector<vector<double>> plaintextVectors(numVectors, vector<double>(VECTOR_DIM));
-  for (int i = 0; i < numVectors; i++) {
-    for (int j = 0; j < VECTOR_DIM; j++) {
+  for (size_t i = 0; i < numVectors; i++) {
+    for (size_t j = 0; j < VECTOR_DIM; j++) {
       fileStream >> plaintextVectors[i][j];
     }
   }
@@ -112,7 +108,7 @@ int main(int argc, char *argv[]) {
   Receiver receiver(cc, pk, sk, numVectors);
   Enroller enroller(cc, pk, numVectors);
   Sender sender(cc, pk, numVectors);
-  
+
 
   // Normalize, batch, and encrypt the database vectors
   cout << "[main.cpp]\t\tEncrypting database vectors... " << flush;
@@ -130,23 +126,26 @@ int main(int argc, char *argv[]) {
   cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
 
 
-  // TESTING SIMILARITY OPERATION
-  cout << "[main.cpp]\t\tComputing similarity scores... " << flush;
-  start = steady_clock::now();
-  vector<Ciphertext<DCRTPoly>> scoreCipher = sender.computeSimilarity(queryCipher);
-  end = steady_clock::now();
-  cout <<  "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  // ---------- TESTING CODASPY ALGORITHMS ---------
+  size_t rowLength = 256;
+  auto [rowCipher, colCipher] = sender.indexScenario(queryCipher, rowLength);
+  OpenFHEWrapper::printCipherDetails(rowCipher[0]);
+  OpenFHEWrapper::printCipherDetails(colCipher[0]);
 
-  // Output similarity scores
-  cout << endl << "\tSimilarity Scores" << endl;
-  vector<double> scoreVector = receiver.decryptScores(scoreCipher);
-  for(size_t i = 0; i < size_t(numVectors); i++) {
-    cout << "Index:      \t" << i << endl;
-    cout << "Homomorphic:\t" << scoreVector[i] << endl;
-    cout << "Expected:   \t" << VectorUtils::plaintextCosineSim(queryVector, plaintextVectors[i]) << endl;
+  cout << receiver.decryptIndex(rowCipher, colCipher, rowLength);
+
+  return 0;
+
+  auto rowVals = OpenFHEWrapper::decryptVectorToVector(cc, sk, rowCipher);
+  auto colVals = OpenFHEWrapper::decryptVectorToVector(cc, sk, colCipher);
+  for(size_t i = 0; i < batchSize; i++) {
+    cout << "Ind: " << i << endl;
+    cout << "Row: " << rowVals[i] << endl;
+    cout << "Col: " << colVals[i] << endl;
     cout << endl;
   }
-  // END
+
+  // ---------- TESTING CODASPY ALGORITHMS ---------
 
   return 0;
 }

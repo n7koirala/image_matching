@@ -20,7 +20,7 @@ void OpenFHEWrapper::printSchemeDetails(CCParams<CryptoContextCKKSRNS> parameter
 void OpenFHEWrapper::printCipherDetails(Ciphertext<DCRTPoly> ctxt) {
   cout << "---------- Ciphertext Details ----------" << endl;
   cout << "\tBatch Size: " << ctxt->GetSlots() << endl;
-  cout << "\tScaling Degree: " << ctxt->GetNoiseScaleDeg() << "\t(" << ctxt->GetScalingFactor() << ")" << endl;
+  cout << "\tScaling Degree: " << ctxt->GetNoiseScaleDeg() << "\t(delta = " << ctxt->GetScalingFactor() << ")" << endl;
   cout << "\tLevel: " << ctxt->GetLevel() << endl;
   cout << "\tEncoding Parameters: " << ctxt->GetEncodingParameters() << endl;
   cout << endl;
@@ -28,7 +28,6 @@ void OpenFHEWrapper::printCipherDetails(Ciphertext<DCRTPoly> ctxt) {
 
 
 // decrypts a given ciphertext and returns a vector of its contents
-// for ease of testing purposes
 Ciphertext<DCRTPoly> OpenFHEWrapper::encryptFromVector(CryptoContext<DCRTPoly> cc, PublicKey<DCRTPoly> pk, vector<double> vec) {
   Plaintext ptxt = cc->MakeCKKSPackedPlaintext(vec);
   return cc->Encrypt(pk, ptxt);
@@ -86,8 +85,12 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::binaryRotate(CryptoContext<DCRTPoly> cc, Ci
 }
 
 
+// implements the sign function sgn(x) = { 1 if x>0, 0.5 if x=0, 0 if x<0 }
 // sign-approximating polynomial f_4(x) and composition method determined from JH Cheon, 2019/1234 (https://ia.cr/2019/1234)
-Ciphertext<DCRTPoly> OpenFHEWrapper::sign(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> x, size_t compositions) {
+// performs i compositions, where 4i+1 <= maxDepth, ideally choose maxDepth to equal some 4i+1
+Ciphertext<DCRTPoly> OpenFHEWrapper::sign(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> x, size_t maxDepth) {
+
+  size_t comps = (maxDepth - 1) / 4;
 
   // coefficients for sign-aproximating polynomial f_4(x)
   const vector<double> COEFS({
@@ -103,7 +106,7 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::sign(CryptoContext<DCRTPoly> cc, Ciphertext
     35.0 / 128.0
   });
 
-  for(size_t i = 0; i < compositions; i++) {
+  for(size_t i = 0; i < comps; i++) {
     // EvalPoly performs rescaling operation even with FIXEDMANUAL scaling technique, which is convenient
     x = cc->EvalPoly(x, COEFS);
   }
@@ -117,6 +120,8 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::sign(CryptoContext<DCRTPoly> cc, Ciphertext
   return x;
 }
 
+
+// TODO: remove, replace with built-in EvalSum function
 // Sets every slot in the ciphertext equal to the sum of all slots
 Ciphertext<DCRTPoly> OpenFHEWrapper::sumAllSlots(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt) {
   int batchSize = cc->GetEncodingParams()->GetBatchSize();
@@ -219,7 +224,7 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::mergeSingleCipher(CryptoContext<DCRTPoly> c
     // apply multiplicative mask if rotations + additions have consumed all the padded zeros
     if(i >= paddingSize) {
       ctxt = cc->EvalMult(ctxt, OpenFHEWrapper::generateMergeMask(cc, dimension, i));
-      // cc->RescaleInPlace(ctxt); // Rescaling here introduces nonnegligible errors -- discuss why in next meeting
+      cc->RescaleInPlace(ctxt);
       paddingSize = i * dimension;
     }
     
@@ -227,7 +232,7 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::mergeSingleCipher(CryptoContext<DCRTPoly> c
   }
 
   ctxt = cc->EvalMult(ctxt, generateMergeMask(cc, dimension, outputSize));
-  // cc->RescaleInPlace(ctxt);
+  cc->RescaleInPlace(ctxt);
 
   return ctxt;
 }

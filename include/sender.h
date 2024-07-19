@@ -34,16 +34,22 @@ public:
   computeSimilarity(vector<Ciphertext<DCRTPoly>> queryCipher);
 
   vector<Ciphertext<DCRTPoly>>
-  indexScenarioNaive(vector<Ciphertext<DCRTPoly>> scoreCipher);
+  indexScenarioNaive(vector<Ciphertext<DCRTPoly>> queryCipher);
 
   Ciphertext<DCRTPoly>
-  membershipScenarioNaive(vector<Ciphertext<DCRTPoly>> scoreCipher);
+  membershipScenarioNaive(vector<Ciphertext<DCRTPoly>> queryCipher);
 
   vector<Ciphertext<DCRTPoly>> 
   alphaNormRows(vector<Ciphertext<DCRTPoly>> scoreCipher, size_t alpha, size_t rowLength);
 
   vector<Ciphertext<DCRTPoly>> 
   alphaNormColumns(vector<Ciphertext<DCRTPoly>> scoreCipher, size_t alpha, size_t rowLength);
+
+  Ciphertext<DCRTPoly>
+  membershipScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength);
+
+  tuple<vector<Ciphertext<DCRTPoly>>, vector<Ciphertext<DCRTPoly>>>
+  indexScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength);
 
 private:
   // private members

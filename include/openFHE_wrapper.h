@@ -29,7 +29,7 @@ Ciphertext<DCRTPoly>
 binaryRotate(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, int factor);
 
 Ciphertext<DCRTPoly> 
-sign(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, size_t compositions);
+sign(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, size_t maxDepth);
 
 Ciphertext<DCRTPoly> 
 sumAllSlots(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt);
