@@ -8,6 +8,7 @@
 #include "../include/vector_utils.h"
 #include "openfhe.h"
 #include <vector>
+#include <filesystem>
 
 using namespace lbcrypto;
 using namespace std;
@@ -15,16 +16,20 @@ using namespace std;
 class Enroller {
 public:
   // constructor
-  Enroller(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, int vectorParam);
+  Enroller(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam);
 
   // public methods
   Ciphertext<DCRTPoly> encryptDBThread(size_t matrix, size_t index, vector<vector<double>> database);
 
   vector<vector<Ciphertext<DCRTPoly>>> encryptDB(vector<vector<double>> database);
 
+  void serializeDB(vector<vector<double>> database);
+
+  void serializeDBThread(size_t matrix, size_t index, vector<vector<double>> database);
+
 private:
   // private members
   CryptoContext<DCRTPoly> cc;
   PublicKey<DCRTPoly> pk;
-  int numVectors;
+  size_t numVectors;
 };
