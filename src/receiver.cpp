@@ -1,17 +1,14 @@
 #include "../include/receiver.h"
 
 // implementation of functions declared in receiver_plain.h
+
+// -------------------- CONSTRUCTOR --------------------
+
 Receiver::Receiver(CryptoContext<DCRTPoly> ccParam,
                          PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, size_t vectorParam)
     : cc(ccParam), pk(pkParam), sk(skParam), numVectors(vectorParam) {}
 
-
-Ciphertext<DCRTPoly> Receiver::encryptQueryThread(double indexValue) {
-  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
-  vector<double> indexVector(batchSize, indexValue);
-  Plaintext ptxt = cc->MakeCKKSPackedPlaintext(indexVector);
-  return cc->Encrypt(pk, ptxt);
-}
+// -------------------- PUBLIC FUNCTIONS --------------------
 
 vector<Ciphertext<DCRTPoly>> Receiver::encryptQuery(vector<double> query) {
   
@@ -24,6 +21,21 @@ vector<Ciphertext<DCRTPoly>> Receiver::encryptQuery(vector<double> query) {
   }
 
   return queryCipher;
+}
+
+
+// encrypts the query vector into a single cipher, requires sender to generate 512 needed ciphers
+Ciphertext<DCRTPoly> Receiver::encryptQueryAlt(vector<double> query) {
+  
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
+
+  query = VectorUtils::plaintextNormalize(query, VECTOR_DIM);
+  vector<double> batchedQuery(batchSize);
+  for(size_t i = 0; i < batchSize; i += VECTOR_DIM) {
+    copy(query.begin(), query.end(), batchedQuery.begin() + i);
+  }
+
+  return OpenFHEWrapper::encryptFromVector(cc, pk, batchedQuery);
 }
 
 
@@ -77,7 +89,7 @@ vector<size_t> Receiver::decryptIndexNaive(vector<Ciphertext<DCRTPoly>> indexCip
     for(size_t j = 0; j < batchSize; j++) {
       // TODO: remove / justify hardcoded value
       if(indexValues[j] >= 0.5) {
-        outputValues.push_back(j);
+        outputValues.push_back(j + (i * batchSize));
       }
     }
   }
@@ -117,10 +129,6 @@ vector<size_t> Receiver::decryptIndex(vector<Ciphertext<DCRTPoly>> rowCipher, ve
 
     for(size_t j = 0; j < colMatches.size(); j++) {
       colMatrixNum = colMatches[j] / rowLength;
-
-      cout << rowMatches[i] << " " << rowMatrixNum << endl;
-      cout << colMatches[j] << " " << colMatrixNum << endl;
-      cout << (rowMatches[i] * rowLength) + (colMatches[j] % rowLength) << endl << endl;
       
       if(rowMatrixNum == colMatrixNum) {
         matchIndices.push_back((rowMatches[i] * rowLength) + (colMatches[j] % rowLength));
@@ -130,4 +138,13 @@ vector<size_t> Receiver::decryptIndex(vector<Ciphertext<DCRTPoly>> rowCipher, ve
   }
 
   return matchIndices;
+}
+
+// -------------------- PRIVATE FUNCTIONS --------------------
+
+Ciphertext<DCRTPoly> Receiver::encryptQueryThread(double indexValue) {
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
+  vector<double> indexVector(batchSize, indexValue);
+  Plaintext ptxt = cc->MakeCKKSPackedPlaintext(indexVector);
+  return cc->Encrypt(pk, ptxt);
 }

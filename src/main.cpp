@@ -14,6 +14,9 @@
 #include "key/key-ser.h"
 #include "scheme/ckksrns/ckksrns-ser.h"
 
+// experimenting with scheme switching -- discuss if this can be included?
+// #include "binfhecontext.h"
+
 using namespace lbcrypto;
 using namespace std;
 using namespace std::chrono;
@@ -58,6 +61,7 @@ int main(int argc, char *argv[]) {
   // OpenFHEWrapper::printSchemeDetails(parameters, cc);
   cout << "[main.cpp]\t\tCKKS scheme set up (depth = " << multDepth << ", batch size = " << batchSize << ")" << endl;
 
+  start = steady_clock::now();
   cout << "[main.cpp]\t\tGenerating key pair... " << flush;
   auto keyPair = cc->KeyGen();
   auto pk = keyPair.publicKey;
@@ -80,6 +84,8 @@ int main(int argc, char *argv[]) {
   }
   cc->EvalRotateKeyGen(sk, binaryRotationFactors);
   cout << "done" << endl;
+  end = steady_clock::now();
+  cout << "[main.cpp]\t\tTotal keygen time:  " << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s" << endl;
 
 
   cout << "[main.cpp]\t\tReading in vectors from file... " << flush;
@@ -110,7 +116,7 @@ int main(int argc, char *argv[]) {
   Sender sender(cc, pk, numVectors);
 
 
-  // Normalize, batch, and encrypt the database vectors
+  // Normalize, batch, encrypt the database vectors
   cout << "[main.cpp]\t\tEncrypting database vectors... " << flush;
   start = steady_clock::now();
   sender.setDatabaseCipher(enroller.encryptDB(plaintextVectors));
@@ -126,26 +132,22 @@ int main(int argc, char *argv[]) {
   cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
 
 
-  // ---------- TESTING CODASPY ALGORITHMS ---------
-  size_t rowLength = 256;
-  auto [rowCipher, colCipher] = sender.indexScenario(queryCipher, rowLength);
-  OpenFHEWrapper::printCipherDetails(rowCipher[0]);
-  OpenFHEWrapper::printCipherDetails(colCipher[0]);
+  // Perform membership scenario
+  cout << "[main.cpp]\t\tRunning membership scenario... " << endl;
+  start = steady_clock::now();
+  Ciphertext<DCRTPoly> membershipCipher = sender.membershipScenario(queryCipher, 256);
+  end = steady_clock::now();
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  cout << receiver.decryptMembership(membershipCipher) << endl;
 
-  cout << receiver.decryptIndex(rowCipher, colCipher, rowLength);
 
-  return 0;
-
-  auto rowVals = OpenFHEWrapper::decryptVectorToVector(cc, sk, rowCipher);
-  auto colVals = OpenFHEWrapper::decryptVectorToVector(cc, sk, colCipher);
-  for(size_t i = 0; i < batchSize; i++) {
-    cout << "Ind: " << i << endl;
-    cout << "Row: " << rowVals[i] << endl;
-    cout << "Col: " << colVals[i] << endl;
-    cout << endl;
-  }
-
-  // ---------- TESTING CODASPY ALGORITHMS ---------
+  // Perform index scenario
+  cout << "[main.cpp]\t\tRunning index scenario... " << endl;
+  start = steady_clock::now();
+  auto [rowCipher, colCipher] = sender.indexScenario(queryCipher, 256);
+  end = steady_clock::now();
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  cout << receiver.decryptIndex(rowCipher, colCipher, 256) << endl;
 
   return 0;
 }

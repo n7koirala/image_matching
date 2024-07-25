@@ -20,9 +20,9 @@ public:
               PrivateKey<DCRTPoly> skParam, size_t vectorParam);
 
   // public methods
-  Ciphertext<DCRTPoly> encryptQueryThread(double indexValue);
-
   vector<Ciphertext<DCRTPoly>> encryptQuery(vector<double> query);
+
+  Ciphertext<DCRTPoly> encryptQueryAlt(vector<double> query);
   
   vector<double> decryptRawScores(vector<Ciphertext<DCRTPoly>> scoreCipher);
 
@@ -38,4 +38,7 @@ private:
   PublicKey<DCRTPoly> pk;
   PrivateKey<DCRTPoly> sk;
   size_t numVectors;
+
+  // private functions
+  Ciphertext<DCRTPoly> encryptQueryThread(double indexValue);
 };

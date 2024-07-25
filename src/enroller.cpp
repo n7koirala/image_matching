@@ -1,23 +1,14 @@
 #include "../include/enroller.h"
 
 // implementation of functions declared in enroller.h
+
+// -------------------- CONSTRUCTOR --------------------
+
 Enroller::Enroller(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
                size_t vectorParam)
     : cc(ccParam), pk(pkParam), numVectors(vectorParam) {}
 
-
-Ciphertext<DCRTPoly> Enroller::encryptDBThread(size_t matrix, size_t index, vector<vector<double>> database) {
-  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
-  size_t startIndex = matrix * batchSize;
-
-  vector<double> indexVector(batchSize);
-  for(size_t k = startIndex; (k < startIndex + batchSize) && (k < size_t(numVectors)); k++) {
-    indexVector[k % batchSize] = database[k][index];
-  }
-
-  return cc->Encrypt(pk, cc->MakeCKKSPackedPlaintext(indexVector));
-}
-
+// -------------------- PUBLIC FUNCTIONS --------------------
 
 vector<vector<Ciphertext<DCRTPoly>>>
 Enroller::encryptDB(vector<vector<double>> database) {
@@ -59,7 +50,6 @@ void Enroller::serializeDB(vector<vector<double>> database) {
     }
   }
   
-
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t numMatrices = ceil(double(numVectors) / double(batchSize));
 
@@ -80,6 +70,21 @@ void Enroller::serializeDB(vector<vector<double>> database) {
 
   }
 }
+
+// -------------------- PRIVATE FUNCTIONS --------------------
+
+Ciphertext<DCRTPoly> Enroller::encryptDBThread(size_t matrix, size_t index, vector<vector<double>> database) {
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
+  size_t startIndex = matrix * batchSize;
+
+  vector<double> indexVector(batchSize);
+  for(size_t k = startIndex; (k < startIndex + batchSize) && (k < size_t(numVectors)); k++) {
+    indexVector[k % batchSize] = database[k][index];
+  }
+
+  return cc->Encrypt(pk, cc->MakeCKKSPackedPlaintext(indexVector));
+}
+
 
 void Enroller::serializeDBThread(size_t matrix, size_t index, vector<vector<double>> database) {
 

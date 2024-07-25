@@ -27,9 +27,6 @@ public:
 
   void serializeDatabaseCipher(string location);
 
-  Ciphertext<DCRTPoly> 
-  computeSimilarityHelper(size_t matrixIndex, vector<Ciphertext<DCRTPoly>> queryCipher);
-
   vector<Ciphertext<DCRTPoly>>
   computeSimilarity(vector<Ciphertext<DCRTPoly>> queryCipher);
 
@@ -38,12 +35,6 @@ public:
 
   Ciphertext<DCRTPoly>
   membershipScenarioNaive(vector<Ciphertext<DCRTPoly>> queryCipher);
-
-  vector<Ciphertext<DCRTPoly>> 
-  alphaNormRows(vector<Ciphertext<DCRTPoly>> scoreCipher, size_t alpha, size_t rowLength);
-
-  vector<Ciphertext<DCRTPoly>> 
-  alphaNormColumns(vector<Ciphertext<DCRTPoly>> scoreCipher, size_t alpha, size_t rowLength);
 
   Ciphertext<DCRTPoly>
   membershipScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength);
@@ -57,4 +48,17 @@ private:
   PublicKey<DCRTPoly> pk;
   size_t numVectors;
   vector<vector<Ciphertext<DCRTPoly>>> databaseCipher;
+
+  // private functions
+  Ciphertext<DCRTPoly> 
+  computeSimilarityHelper(size_t matrixIndex, vector<Ciphertext<DCRTPoly>> queryCipher);
+
+  Ciphertext<DCRTPoly>
+  generateQueryHelper(Ciphertext<DCRTPoly> queryCipher, size_t index);
+
+  vector<Ciphertext<DCRTPoly>> 
+  alphaNormRows(vector<Ciphertext<DCRTPoly>> scoreCipher, size_t alpha, size_t rowLength);
+
+  vector<Ciphertext<DCRTPoly>> 
+  alphaNormColumns(vector<Ciphertext<DCRTPoly>> scoreCipher, size_t alpha, size_t rowLength);
 };
