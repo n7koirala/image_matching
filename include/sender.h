@@ -20,41 +20,45 @@ using measure_typ = std::chrono::milliseconds;
 class Sender {
 public:
   // constructor
-  Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, int vectorParam);
+  Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam);
 
   // public methods
-  void setDatabaseCipher(vector<Ciphertext<DCRTPoly>> databaseCipherParam);
+  void setDatabaseCipher(vector<vector<Ciphertext<DCRTPoly>>> databaseCipherParam);
 
   void serializeDatabaseCipher(string location);
 
   vector<Ciphertext<DCRTPoly>>
-  computeSimilarity(Ciphertext<DCRTPoly> query);
+  computeSimilarity(vector<Ciphertext<DCRTPoly>> queryCipher);
+
+  vector<Ciphertext<DCRTPoly>>
+  indexScenarioNaive(vector<Ciphertext<DCRTPoly>> queryCipher);
 
   Ciphertext<DCRTPoly>
-  mergeSingleCipher(Ciphertext<DCRTPoly> similarityCipher, int reductionDim);
+  membershipScenarioNaive(vector<Ciphertext<DCRTPoly>> queryCipher);
 
-  vector<Ciphertext<DCRTPoly>>
-  mergeScores(vector<Ciphertext<DCRTPoly>> similarityCipher, int reductionDim);
+  Ciphertext<DCRTPoly>
+  membershipScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength);
 
-  vector<Ciphertext<DCRTPoly>>
-  mergeScoresOrdered(vector<Ciphertext<DCRTPoly>> similarityCipher, int reductionDim);
-
-  Ciphertext<DCRTPoly> alphaNormRows(vector<Ciphertext<DCRTPoly>> mergedCipher, int alpha, int rowLength);
-
-  Ciphertext<DCRTPoly> alphaNormColumns(vector<Ciphertext<DCRTPoly>> mergedCipher, int alpha, int colLength);
-
-  Ciphertext<DCRTPoly> membershipQuery(Ciphertext<DCRTPoly> queryCipher);
-
-  Ciphertext<DCRTPoly> matrixMembershipQuery(Ciphertext<DCRTPoly> queryCipher);
-
-  vector<Ciphertext<DCRTPoly>> indexQuery(Ciphertext<DCRTPoly> queryCipher);
-
-  tuple<Ciphertext<DCRTPoly>, Ciphertext<DCRTPoly>> matrixIndexQuery(Ciphertext<DCRTPoly> queryCipher);
+  tuple<vector<Ciphertext<DCRTPoly>>, vector<Ciphertext<DCRTPoly>>>
+  indexScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength);
 
 private:
   // private members
   CryptoContext<DCRTPoly> cc;
   PublicKey<DCRTPoly> pk;
-  int numVectors;
-  vector<Ciphertext<DCRTPoly>> databaseCipher;
+  size_t numVectors;
+  vector<vector<Ciphertext<DCRTPoly>>> databaseCipher;
+
+  // private functions
+  Ciphertext<DCRTPoly> 
+  computeSimilarityHelper(size_t matrixIndex, vector<Ciphertext<DCRTPoly>> queryCipher);
+
+  Ciphertext<DCRTPoly>
+  generateQueryHelper(Ciphertext<DCRTPoly> queryCipher, size_t index);
+
+  vector<Ciphertext<DCRTPoly>> 
+  alphaNormRows(vector<Ciphertext<DCRTPoly>> scoreCipher, size_t alpha, size_t rowLength);
+
+  vector<Ciphertext<DCRTPoly>> 
+  alphaNormColumns(vector<Ciphertext<DCRTPoly>> scoreCipher, size_t alpha, size_t rowLength);
 };

@@ -1,157 +1,150 @@
 #include "../include/receiver.h"
 
 // implementation of functions declared in receiver_plain.h
+
+// -------------------- CONSTRUCTOR --------------------
+
 Receiver::Receiver(CryptoContext<DCRTPoly> ccParam,
-                         PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, int vectorParam)
+                         PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, size_t vectorParam)
     : cc(ccParam), pk(pkParam), sk(skParam), numVectors(vectorParam) {}
 
+// -------------------- PUBLIC FUNCTIONS --------------------
 
-
-Ciphertext<DCRTPoly> Receiver::encryptQuery(vector<double> query) {
-  cout << "[receiver.cpp]\tEncrypting query vector... " << flush;
-  int vectorsPerBatch =
-      (int)(cc->GetEncodingParams()->GetBatchSize() / VECTOR_DIM);
-
+vector<Ciphertext<DCRTPoly>> Receiver::encryptQuery(vector<double> query) {
+  
+  vector<Ciphertext<DCRTPoly>> queryCipher(VECTOR_DIM);
   query = VectorUtils::plaintextNormalize(query, VECTOR_DIM);
 
-  vector<double> batchedQuery(0);
-  VectorUtils::concatenateVectors(batchedQuery, query, vectorsPerBatch);
+  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  for(size_t i = 0; i < VECTOR_DIM; i++) {
+    queryCipher[i] = encryptQueryThread(query[i]);
+  }
 
-  Plaintext queryPtxt = cc->MakeCKKSPackedPlaintext(batchedQuery);
-  Ciphertext<DCRTPoly> queryCipher = cc->Encrypt(pk, queryPtxt);
-
-  cout << "done" << endl;
   return queryCipher;
 }
 
 
+// encrypts the query vector into a single cipher, requires sender to generate 512 needed ciphers
+Ciphertext<DCRTPoly> Receiver::encryptQueryAlt(vector<double> query) {
+  
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
 
-vector<Plaintext> Receiver::decryptSimilarity(vector<Ciphertext<DCRTPoly>> cosineCipher) {
-  int vectorsPerBatch =
-      (int)(cc->GetEncodingParams()->GetBatchSize() / VECTOR_DIM);
-  int totalBatches = (int)(numVectors / vectorsPerBatch + 1);
-  vector<Plaintext> resultPtxts(totalBatches);
-  for (int i = 0; i < totalBatches; i++) {
-    cc->Decrypt(sk, cosineCipher[i], &(resultPtxts[i]));
+  query = VectorUtils::plaintextNormalize(query, VECTOR_DIM);
+  vector<double> batchedQuery(batchSize);
+  for(size_t i = 0; i < batchSize; i += VECTOR_DIM) {
+    copy(query.begin(), query.end(), batchedQuery.begin() + i);
   }
-  return resultPtxts;
+
+  return OpenFHEWrapper::encryptFromVector(cc, pk, batchedQuery);
 }
 
 
+// Decrypts a vector of ciphertexts and packs their values into a single output vector
+vector<double> Receiver::decryptRawScores(vector<Ciphertext<DCRTPoly>> scoreCipher) {
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
+  vector<double> scoreVector(numVectors);
+  vector<double> currentVector(batchSize);
+  Plaintext ptxt;
 
-vector<double> Receiver::decryptMergedScores(vector<Ciphertext<DCRTPoly>> mergedCipher) {
-  cout << "[receiver.cpp]\tDecrypting similarity scores... " << flush;
-
-  vector<double> output;
-  Plaintext mergedPtxt;
-  vector<double> mergedValues;
-
-  for(long unsigned int i = 0; i < mergedCipher.size(); i++) {
-    cc->Decrypt(sk, mergedCipher[i], &(mergedPtxt));
-    mergedValues = mergedPtxt->GetRealPackedValue();
-    VectorUtils::concatenateVectors(output, mergedValues, 1);
+  size_t startIndex;
+  size_t copyLength;
+  for(size_t i = 0; i < scoreCipher.size(); i++) {
+    cc->Decrypt(sk, scoreCipher[i], &ptxt);
+    currentVector = ptxt->GetRealPackedValue();
+    startIndex = i * batchSize;
+    copyLength = min(numVectors - startIndex, batchSize);
+    copy(currentVector.begin(), currentVector.begin()+copyLength, scoreVector.begin()+startIndex);
   }
-
-  cout << "done" << endl;
-  return output;
+  return scoreVector;
 }
 
 
-
-bool Receiver::decryptMembershipQuery(Ciphertext<DCRTPoly> membershipCipher) {
-  cout << "[receiver.cpp]\tDecrypting membership query... " << flush;
+bool Receiver::decryptMembership(Ciphertext<DCRTPoly> membershipCipher) {
 
   Plaintext membershipPtxt;
   cc->Decrypt(sk, membershipCipher, &membershipPtxt);
   vector<double> membershipValues = membershipPtxt->GetRealPackedValue();
   bool matchExists = false;
 
-  if(membershipValues[0] >= 1.0) {
+  // TODO: remove / justify hardcoded value
+  if(membershipValues[0] >= 0.5) {
     matchExists = true;
   }
 
-  cout << "done" << endl;
   return matchExists;
 }
 
 
-vector<int> Receiver::decryptIndexQuery(vector<Ciphertext<DCRTPoly>> indexCipher) {
-  cout << "[receiver.cpp]\tDecrypting index query... " << flush;
+vector<size_t> Receiver::decryptIndexNaive(vector<Ciphertext<DCRTPoly>> indexCipher) {
 
-  int batchSize = cc->GetEncodingParams()->GetBatchSize();
-  vector<int> outputValues;
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
+  vector<size_t> outputValues;
   vector<double> indexValues;
   Plaintext indexPtxt;
-  int currentIndex;
 
   for(size_t i = 0; i < indexCipher.size(); i++) {
     cc->Decrypt(sk, indexCipher[i], &indexPtxt);
     indexValues = indexPtxt->GetRealPackedValue();
 
-    currentIndex = 0;
-    for(int j = 0; j < batchSize; j++) {
-
-      if(round(indexValues[currentIndex]) == 1) {
-        outputValues.push_back(j);
-      }
-
-      currentIndex += VECTOR_DIM;
-      if(currentIndex >= batchSize) {
-        currentIndex = (currentIndex % batchSize) + 1;
+    for(size_t j = 0; j < batchSize; j++) {
+      // TODO: remove / justify hardcoded value
+      if(indexValues[j] >= 0.5) {
+        outputValues.push_back(j + (i * batchSize));
       }
     }
   }
   
-  cout << "done" << endl;
   return outputValues;
 }
 
 
-vector<size_t> Receiver::decryptMatrixIndexQuery(Ciphertext<DCRTPoly> rowCipher, Ciphertext<DCRTPoly> colCipher) {
+vector<size_t> Receiver::decryptIndex(vector<Ciphertext<DCRTPoly>> rowCipher, vector<Ciphertext<DCRTPoly>> colCipher, size_t rowLength) {
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
+  size_t colLength = batchSize / rowLength;
 
-  int batchSize = cc->GetEncodingParams()->GetBatchSize();
-  int rowFactor = (batchSize / VECTOR_DIM) * ceil(double(numVectors) / double(batchSize));
-  
+  // decrypt results
+  vector<double> rowVals = OpenFHEWrapper::decryptVectorToVector(cc, sk, rowCipher);
+  vector<double> colVals = OpenFHEWrapper::decryptVectorToVector(cc, sk, colCipher);
+
   vector<size_t> rowMatches;
   vector<size_t> colMatches;
   vector<size_t> matchIndices;
 
-  Plaintext ptxt;
-  cc->Decrypt(sk, rowCipher, &ptxt);
-  vector<double> rowValues = ptxt->GetRealPackedValue();
-  cc->Decrypt(sk, colCipher, &ptxt);
-  vector<double> colValues = ptxt->GetRealPackedValue();
-
-  // we need a separate index-tracking variable for row max values, since they are not in index-sorted order within rowCipher
-  int rowIndex = 0;
-
-  // loop over row / col maxes to find which rows / cols contain matches
-  for(int i = 0; i < batchSize; i++) {
-    
-    if(colValues[rowIndex] >= 0.5) {
-      colMatches.push_back(i);
-    }
-
-    if(rowValues[i] >= 0.5) {
+  for(size_t i = 0; i < rowVals.size(); i++) {
+    if(rowVals[i] >= 0.5) {
       rowMatches.push_back(i);
-    }
-
-    rowIndex += VECTOR_DIM;
-    if(rowIndex >= batchSize) {
-      rowIndex = (rowIndex % batchSize) + 1;
     }
   }
 
-  cout << "\tRow Factor: " << rowFactor << endl;
-  cout << "\tRow Matches: " << rowMatches << endl;
-  cout << "\tCol Matches: " << colMatches << endl;
+  for(size_t i = 0; i < colVals.size(); i++) {
+    if(colVals[i] >= 0.5) {
+      colMatches.push_back(i);
+    }
+  }
 
-  // use row / col numbers to determine candidate match indices
+  size_t rowMatrixNum;
+  size_t colMatrixNum;
   for(size_t i = 0; i < rowMatches.size(); i++) {
+    rowMatrixNum = rowMatches[i] / colLength;
+
     for(size_t j = 0; j < colMatches.size(); j++) {
-      matchIndices.push_back(rowMatches[i] * rowFactor + colMatches[j]);
+      colMatrixNum = colMatches[j] / rowLength;
+      
+      if(rowMatrixNum == colMatrixNum) {
+        matchIndices.push_back((rowMatches[i] * rowLength) + (colMatches[j] % rowLength));
+      }
+
     }
   }
 
   return matchIndices;
+}
+
+// -------------------- PRIVATE FUNCTIONS --------------------
+
+Ciphertext<DCRTPoly> Receiver::encryptQueryThread(double indexValue) {
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
+  vector<double> indexVector(batchSize, indexValue);
+  Plaintext ptxt = cc->MakeCKKSPackedPlaintext(indexVector);
+  return cc->Encrypt(pk, ptxt);
 }

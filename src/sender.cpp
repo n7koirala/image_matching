@@ -1,13 +1,16 @@
 #include "../include/sender.h"
 
 // implementation of functions declared in sender.h
+
+// -------------------- CONSTRUCTOR --------------------
+
 Sender::Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
-               int vectorParam)
+               size_t vectorParam)
     : cc(ccParam), pk(pkParam), numVectors(vectorParam) {}
 
+// -------------------- PUBLIC FUNCTIONS --------------------
 
-
-void Sender::setDatabaseCipher(vector<Ciphertext<DCRTPoly>> databaseCipherParam) {
+void Sender::setDatabaseCipher(vector<vector<Ciphertext<DCRTPoly>>> databaseCipherParam) {
   databaseCipher = databaseCipherParam;
   return;
 }
@@ -23,334 +26,274 @@ void Sender::serializeDatabaseCipher(string location) {
 }
 
 
+vector<Ciphertext<DCRTPoly>> Sender::computeSimilarity(vector<Ciphertext<DCRTPoly>> queryCipher) {
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
+  size_t ciphersNeeded = ceil(double(numVectors) / double(batchSize));
+  vector<Ciphertext<DCRTPoly>> similarityCipher(ciphersNeeded);
 
-vector<Ciphertext<DCRTPoly>>
-Sender::computeSimilarity(Ciphertext<DCRTPoly> query) {
-
-  vector<Ciphertext<DCRTPoly>> similarityCipher(databaseCipher.size());
-
-  // embarrassingly parallel
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
-  for (size_t i = 0; i < databaseCipher.size(); i++) {
-    similarityCipher[i] = cc->EvalInnerProduct(query, databaseCipher[i], VECTOR_DIM);
+  // note: parallelizing this loop seems to decrease performance, guessing due to nesting threads inside the helper func
+  for(size_t i = 0; i < ciphersNeeded; i++) {
+    similarityCipher[i] = computeSimilarityHelper(i, queryCipher);
   }
 
   return similarityCipher;
 }
 
 
-
-// for n=reductionFactor, moves the n-th slots to the front of the cipher, sets all other slots to zero
-// only works for reduction factors which are powers of 2
-Ciphertext<DCRTPoly> Sender::mergeSingleCipher(Ciphertext<DCRTPoly> scoreCipher, int reductionFactor) {
-
-  int batchSize = cc->GetEncodingParams()->GetBatchSize();
-  int scoresPerBatch = batchSize / reductionFactor;
-
-  // mergedCipher is the vector of ciphertexts to be returned
-  Ciphertext<DCRTPoly> tempCipher;
-  Ciphertext<DCRTPoly> currentBatchCipher;
-
-  vector<double> reductionMask(batchSize);
-  for(int i = 0; i < reductionFactor; i++) { reductionMask[i] = 1.0; }
-  Plaintext reductionMaskPtxt = cc->MakeCKKSPackedPlaintext(reductionMask);
-
-  // maskCount track the dimension of multiplicative masks needed
-  int maskCount = 0;
-  int rotationFactor = reductionFactor - 1;
-  currentBatchCipher = scoreCipher;
-  for(int i = 1; i < scoresPerBatch; i *= 2) {
-
-    // if we have run out of padded zeros in the current batch cipher, update and apply multiplicative mask
-    if(i == pow(reductionFactor, maskCount)) {
-      fill(reductionMask.begin(), reductionMask.end(), 0.0);
-      for(int j = 0; j < batchSize; j += pow(reductionFactor, maskCount+1)) {
-        for(int k = 0; k < pow(reductionFactor, maskCount); k++) { 
-          reductionMask[j + k] = 1.0;
-        }
-      }
-      reductionMaskPtxt = cc->MakeCKKSPackedPlaintext(reductionMask);
-      currentBatchCipher = cc->EvalMult(currentBatchCipher, reductionMaskPtxt);
-      maskCount++;
-    }
-
-    tempCipher = OpenFHEWrapper::binaryRotate(cc, currentBatchCipher, rotationFactor * i);
-    currentBatchCipher = cc->EvalAdd(currentBatchCipher, tempCipher);
-  }
-
-  vector<double> batchMask(batchSize);
-  for(int i = 0; i < scoresPerBatch; i++) { batchMask[i] = 1.0; }
-  Plaintext batchMaskPtxt = cc->MakeCKKSPackedPlaintext(batchMask);
-  currentBatchCipher = cc->EvalMult(currentBatchCipher, batchMaskPtxt);
-
-  return currentBatchCipher;
-}
-
-
-vector<Ciphertext<DCRTPoly>>
-Sender::mergeScoresOrdered(vector<Ciphertext<DCRTPoly>> scoreCipher, int reductionDim) {
-
-  int batchSize = cc->GetEncodingParams()->GetBatchSize();
-  int scoresPerCipher = batchSize / reductionDim;
-  int numScores = int(scoreCipher.size()) * scoresPerCipher;
-  int neededCiphers = ceil(double(numScores) / double(batchSize));
-  vector<Ciphertext<DCRTPoly>> mergedCipher(neededCiphers);
-
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
-  for(size_t i = 0; i < scoreCipher.size(); i++) {
-    scoreCipher[i] = mergeSingleCipher(scoreCipher[i], reductionDim);
-  }
-
-  int rotationFactor = 0;
-  for(size_t i = 0; i < scoreCipher.size(); i++) {
-    rotationFactor = i * scoresPerCipher;
-    scoreCipher[i] = OpenFHEWrapper::binaryRotate(cc, scoreCipher[i], -rotationFactor);
-    if(rotationFactor % batchSize == 0) {
-      mergedCipher[rotationFactor / batchSize] = scoreCipher[i];
-    } else {
-      mergedCipher[rotationFactor / batchSize] = cc->EvalAdd(mergedCipher[rotationFactor / batchSize], scoreCipher[i]);
-    }
-  }
-
-  return mergedCipher;
-}
-
-
-
-vector<Ciphertext<DCRTPoly>>
-Sender::mergeScores(vector<Ciphertext<DCRTPoly>> scoreCipher, int reductionDim) {
-
-  int batchSize = cc->GetEncodingParams()->GetBatchSize();
-  int neededCiphers = ceil(double(scoreCipher.size()) / double(reductionDim));
-  vector<Ciphertext<DCRTPoly>> mergedCipher(neededCiphers);
-
-  vector<double> scoreMask(batchSize);
-  for(int i = 0; i < batchSize; i += reductionDim) {  scoreMask[i] = 1.0; }
-  Plaintext scoreMaskPtxt = cc->MakeCKKSPackedPlaintext(scoreMask);
-
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
-  for(size_t i = 0; i < scoreCipher.size(); i++) {
-    scoreCipher[i] = cc->EvalMult(scoreCipher[i], scoreMaskPtxt);
-    scoreCipher[i] = OpenFHEWrapper::binaryRotate(cc, scoreCipher[i], -i);
-  }
-
-  for(size_t i = 0; i < scoreCipher.size(); i++) {
-    if(i % reductionDim == 0) {
-      mergedCipher[i / reductionDim] = scoreCipher[i];
-    } else {
-      mergedCipher[i / reductionDim] = cc->EvalAdd(mergedCipher[i / reductionDim], scoreCipher[i]);
-    }
-  }
-
-  return mergedCipher;
-}
-
-
-Ciphertext<DCRTPoly> Sender::alphaNormRows(vector<Ciphertext<DCRTPoly>> mergedCipher, int alpha, int rowLength) {
-  
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
-  for(size_t i = 0; i < mergedCipher.size(); i++) {
-    mergedCipher[i] = OpenFHEWrapper::alphaNorm(cc, mergedCipher[i], alpha, rowLength);
-  }
-
-  vector<Ciphertext<DCRTPoly>> resultCipher = mergeScores(mergedCipher, rowLength);
-  if(resultCipher.size() > 1) {
-    cerr << "Error: alpha-norm shouldn't be computed on rows of length greater than the batch size" << endl;
-  }
-
-  return resultCipher[0];
-}
-
-
-
-Ciphertext<DCRTPoly> Sender::alphaNormColumns(vector<Ciphertext<DCRTPoly>> mergedCipher, int alpha, int colLength) {
-
-  int batchSize = cc->GetEncodingParams()->GetBatchSize();
-  int scoresPerBatch = batchSize / colLength;
-  
-  // raise all slots to the (2^a)th power
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
-  for(size_t i = 0; i < mergedCipher.size(); i++) {
-    for(int a = 0; a < alpha; a++) {
-      cc->EvalSquareInPlace(mergedCipher[i]);
-    }
-  }
-
-  // add all ciphertexts in merged cipher together
-  for(size_t i = 1; i < mergedCipher.size(); i++) {
-    mergedCipher[0] = cc->EvalAdd(mergedCipher[0], mergedCipher[i]);
-  }
-
-  for(int i = 1; i < scoresPerBatch; i*=2) {
-    mergedCipher[0] = cc->EvalAdd(mergedCipher[0], OpenFHEWrapper::binaryRotate(cc, mergedCipher[0], colLength*i));
-  }
-
-  vector<double> batchMask(batchSize, 0);
-  for(int i = 0; i < colLength; i++) {
-    batchMask[i] = 1.0;
-  }
-  Plaintext batchMaskPtxt = cc->MakeCKKSPackedPlaintext(batchMask);
-  mergedCipher[0] = cc->EvalMult(mergedCipher[0], batchMaskPtxt);
-
-  return mergedCipher[0];
-}
-
-
-
-Ciphertext<DCRTPoly>
-Sender::membershipQuery(Ciphertext<DCRTPoly> queryCipher) {
-
-  int batchSize = cc->GetEncodingParams()->GetBatchSize();
-
-  cout << "[sender.cpp]\tComputing similarity scores... " << flush;
-  vector<Ciphertext<DCRTPoly>> similarityCipher = computeSimilarity(queryCipher);
-  cout << "done" << endl;
-
-  cout << "[sender.cpp]\tMerging similarity scores... " << flush;
-  vector<Ciphertext<DCRTPoly>> mergedCipher = mergeScores(similarityCipher, VECTOR_DIM);
-  cout << "done" << endl;
-
-  cout << "[sender.cpp]\tApplying comparison function... " << flush;
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
-  for(size_t i = 0; i < mergedCipher.size(); i++) {
-    mergedCipher[i] = cc->EvalAdd(mergedCipher[i], -MATCH_THRESHOLD);
-    mergedCipher[i] = OpenFHEWrapper::sign(cc, mergedCipher[i]);
-    mergedCipher[i] = OpenFHEWrapper::sumAllSlots(cc, mergedCipher[i]);
-  }
-  cout << "done" << endl;
-
-  cout << "[sender.cpp]\tCombining result values... " << flush;
-  // combine sums from all ciphertexts into first ciphertext, only return the first
-  for(size_t i = 1; i < mergedCipher.size(); i++) {
-    mergedCipher[0] = cc->EvalAdd(mergedCipher[0], mergedCipher[i]);
-  }
-
-  // apply random noise cipher
-  srand (time(0));
-  vector<double> noiseValues(batchSize);
-  noiseValues[0] = (rand() % 50) + 50.0; // random scalar from [50, 100]
-  Plaintext noisePtxt = cc->MakeCKKSPackedPlaintext(noiseValues);
-  mergedCipher[0] = cc->EvalMult(mergedCipher[0], noisePtxt);
-
-  cout << "done" << endl;
-
-  return mergedCipher[0];
-}
-
-
-Ciphertext<DCRTPoly> Sender::matrixMembershipQuery(Ciphertext<DCRTPoly> queryCipher) {   
-
-  int batchSize = cc->GetEncodingParams()->GetBatchSize();
-  steady_clock::time_point start, end;
-  long double dur;
-
-  cout << "[sender.cpp]\tComputing similarity scores... " << flush;
-  start = steady_clock::now();
-  vector<Ciphertext<DCRTPoly>> similarityCipher = computeSimilarity(queryCipher);
-  end = steady_clock::now();
-  dur = duration_cast<measure_typ>(end - start).count();
-  cout << "done (" << dur / 1000.0 << "s)" << endl;
-
-  cout << "[sender.cpp]\tMerging similarity scores... " << flush;
-  start = steady_clock::now();
-  vector<Ciphertext<DCRTPoly>> mergedCipher = mergeScores(similarityCipher, VECTOR_DIM);
-  end = steady_clock::now();
-  dur = duration_cast<measure_typ>(end - start).count();
-  cout << "done (" << dur / 1000.0 << "s)" << endl;
-
-  cout << "[sender.cpp]\tComputing alpha norms... " << flush;
-  start = steady_clock::now();
-  Ciphertext<DCRTPoly> rowCipher = alphaNormColumns(mergedCipher, ALPHA, VECTOR_DIM);
-  end = steady_clock::now();
-  dur = duration_cast<measure_typ>(end - start).count();
-  cout << "done (" << dur / 1000.0 << "s)" << endl;
-
-  double threshold = pow(MATCH_THRESHOLD, pow(2, ALPHA)+1);
-  cc->EvalAddInPlace(rowCipher, -threshold);
-
-  cout << "[sender.cpp]\tComputing sign function... " << flush;
-  start = steady_clock::now();
-  rowCipher = OpenFHEWrapper::sign(cc, rowCipher);
-  end = steady_clock::now();
-  dur = duration_cast<measure_typ>(end - start).count();
-  cout << "done (" << dur / 1000.0 << "s)" << endl;
-
-  cout << "[sender.cpp]\tAggregating boolean values... " << flush;
-  start = steady_clock::now();
-  rowCipher = OpenFHEWrapper::sumAllSlots(cc, rowCipher);
-  end = steady_clock::now();
-  dur = duration_cast<measure_typ>(end - start).count();
-  cout << "done (" << dur / 1000.0 << "s)" << endl;
-
-  // apply random noise cipher
-  srand (time(0));
-  vector<double> noiseValues(batchSize);
-  noiseValues[0] = (rand() % 50) + 50.0; // random scalar from [50, 100]
-  Plaintext noisePtxt = cc->MakeCKKSPackedPlaintext(noiseValues);
-  rowCipher = cc->EvalMult(rowCipher, noisePtxt);
-
-  return rowCipher;
-}
-
-
-vector<Ciphertext<DCRTPoly>> Sender::indexQuery(Ciphertext<DCRTPoly> queryCipher) {
-
-
-  cout << "[sender.cpp]\tComputing similarity scores... " << flush;
-  vector<Ciphertext<DCRTPoly>> similarityCipher = computeSimilarity(queryCipher);
-  cout << "done" << endl;
-
-  cout << "[sender.cpp]\tMerging similarity scores... " << flush;
-  vector<Ciphertext<DCRTPoly>> mergedCipher = mergeScores(similarityCipher, VECTOR_DIM);
-  cout << "done" << endl;
-
-  cout << "[sender.cpp]\tApplying comparison function... " << flush;
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
-  for(size_t i = 0; i < mergedCipher.size(); i++) {
-    mergedCipher[i] = cc->EvalAdd(mergedCipher[i], -MATCH_THRESHOLD);
-    mergedCipher[i] = OpenFHEWrapper::sign(cc, mergedCipher[i]);
-  }
-  cout << "done" << endl;
-
-  return mergedCipher;
-}
-
-tuple<Ciphertext<DCRTPoly>, Ciphertext<DCRTPoly>> Sender::matrixIndexQuery(Ciphertext<DCRTPoly> queryCipher) {
+vector<Ciphertext<DCRTPoly>> Sender::indexScenarioNaive(vector<Ciphertext<DCRTPoly>> queryCipher) {
   
   steady_clock::time_point start, end;
-  long double dur;
 
-  cout << "[sender.cpp]\tComputing similarity scores... " << flush;
+  // compute similarity scores between query and database
+  cout << "\tComputing similarity scores... " << flush;
   start = steady_clock::now();
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
   end = steady_clock::now();
-  dur = duration_cast<measure_typ>(end - start).count();
-  cout << "done (" << dur / 1000.0 << "s)" << endl;
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
 
-  cout << "[sender.cpp]\tMerging similarity scores... " << flush;
+  cout << "\tComparing with match threshold... " << flush;
   start = steady_clock::now();
-  scoreCipher = mergeScores(scoreCipher, VECTOR_DIM);
-  end = steady_clock::now();
-  dur = duration_cast<measure_typ>(end - start).count();
-  cout << "done (" << dur / 1000.0 << "s)" << endl;
+  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  for(size_t i = 0; i < scoreCipher.size(); i++) {
+    cc->EvalSubInPlace(scoreCipher[i], MATCH_THRESHOLD);
 
-  cout << "[sender.cpp]\tComputing alpha norms... " << flush;
-  start = steady_clock::now();
-  // these functions are purposely inverted, merge operation rotates the matrix into column order rather than row order
-  Ciphertext<DCRTPoly> colCipher = alphaNormRows(scoreCipher, ALPHA, VECTOR_DIM);
-  Ciphertext<DCRTPoly> rowCipher = alphaNormColumns(scoreCipher, ALPHA, VECTOR_DIM);
+    // TODO: un-hardcode depth parameter
+    scoreCipher[i] = OpenFHEWrapper::sign(cc, scoreCipher[i], 13);
+  }
   end = steady_clock::now();
-  dur = duration_cast<measure_typ>(end - start).count();
-  cout << "done (" << dur / 1000.0 << "s)" << endl;
-
-  cout << "[sender.cpp]\tComputing sign function... " << flush;
-  start = steady_clock::now();
-  double threshold = pow(MATCH_THRESHOLD, pow(2, ALPHA)+1);
-  rowCipher = OpenFHEWrapper::sign(cc, cc->EvalAdd(rowCipher, -threshold));
-  colCipher = OpenFHEWrapper::sign(cc, cc->EvalAdd(colCipher, -threshold));
-  end = steady_clock::now();
-  dur = duration_cast<measure_typ>(end - start).count();
-  cout << "done (" << dur / 1000.0 << "s)" << endl;
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
   
+  return scoreCipher;
+}
+
+
+Ciphertext<DCRTPoly> Sender::membershipScenarioNaive(vector<Ciphertext<DCRTPoly>> queryCipher) {
+  
+  steady_clock::time_point start, end;
+
+  // compute similarity scores between query and database
+  cout << "\tComputing similarity scores... " << flush;
+  start = steady_clock::now();
+  vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
+  end = steady_clock::now();
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+
+  cout << "\tComparing with match threshold... " << flush;
+  start = steady_clock::now();
+  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  for(size_t i = 0; i < scoreCipher.size(); i++) {
+    cc->EvalSubInPlace(scoreCipher[i], MATCH_THRESHOLD);
+
+    // TODO: un-hardcode depth parameter
+    scoreCipher[i] = OpenFHEWrapper::sign(cc, scoreCipher[i], 13);
+  }
+  end = steady_clock::now();
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  
+  // sum up all values into single result value at first slot of first cipher
+  cout << "\tCombining boolean match values... " << flush;
+  start = steady_clock::now();
+  Ciphertext<DCRTPoly> membershipCipher = cc->EvalAddManyInPlace(scoreCipher);
+  membershipCipher = cc->EvalSum(membershipCipher, cc->GetEncodingParams()->GetBatchSize());
+  end = steady_clock::now();
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+
+  return membershipCipher;
+}
+
+
+Ciphertext<DCRTPoly> Sender::membershipScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength) {
+
+  steady_clock::time_point start, end;
+
+  // compute similarity scores between query and database
+  cout << "\tComputing similarity scores... " << flush;
+  start = steady_clock::now();
+  vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
+  end = steady_clock::now();
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+
+  cout << "\tComputing alpha norm columns... " << flush;
+  start = steady_clock::now();
+  vector<Ciphertext<DCRTPoly>> colCipher = alphaNormColumns(scoreCipher, ALPHA, rowLength);
+  end = steady_clock::now();
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+
+  // compare maxes against similarity match threshold
+  double updatedThreshold = pow(MATCH_THRESHOLD, pow(2, ALPHA)+1);
+
+  cout << "\tComparing with match threshold... " << flush;
+  start = steady_clock::now();
+  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  for(size_t i = 0; i < scoreCipher.size(); i++) {
+    cc->EvalSubInPlace(scoreCipher[i], updatedThreshold);
+
+    // TODO: un-hardcode depth value
+    scoreCipher[i] = OpenFHEWrapper::sign(cc, scoreCipher[i], 13);
+  }
+  end = steady_clock::now();
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  
+  // sum up all values into single result value at first slot of first cipher
+  cout << "\tCombining boolean match values... " << flush;
+  start = steady_clock::now();
+  Ciphertext<DCRTPoly> membershipCipher = cc->EvalAddManyInPlace(scoreCipher);
+  membershipCipher = cc->EvalSum(membershipCipher, cc->GetEncodingParams()->GetBatchSize());
+  end = steady_clock::now();
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+
+  // return ciphertext containing boolean (0/1) result value
+  return membershipCipher;
+}
+
+
+tuple<vector<Ciphertext<DCRTPoly>>, vector<Ciphertext<DCRTPoly>>> 
+Sender::indexScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength) {
+
+  steady_clock::time_point start, end;
+  
+  // compute similarity scores between query and database
+  cout << "\tComputing similarity scores... " << flush;
+  start = steady_clock::now();
+  vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
+  end = steady_clock::now();
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+
+  // compute row and column maxes for group testing
+  cout << "\tComputing alpha norm rows... " << flush;
+  start = steady_clock::now();
+  vector<Ciphertext<DCRTPoly>> rowCipher = alphaNormRows(scoreCipher, ALPHA, rowLength);
+  end = steady_clock::now();
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+
+  cout << "\tComputing alpha norm columns... " << flush;
+  start = steady_clock::now();
+  vector<Ciphertext<DCRTPoly>> colCipher = alphaNormColumns(scoreCipher, ALPHA, rowLength);
+  end = steady_clock::now();
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+
+  // compare row and column maxes against similarity match threshold 
+  double updatedThreshold = pow(MATCH_THRESHOLD, pow(2, ALPHA)+1);
+
+  cout << "\tComparing with match threshold... " << flush;
+  start = steady_clock::now();
+  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  for(size_t i = 0; i < rowCipher.size(); i++) {
+    cc->EvalSubInPlace(rowCipher[i], updatedThreshold);
+
+    // TODO: un-hardcode depth value
+    rowCipher[i] = OpenFHEWrapper::sign(cc, rowCipher[i], 13);
+  }
+
+  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  for(size_t i = 0; i < colCipher.size(); i++) {
+    cc->EvalSubInPlace(colCipher[i], updatedThreshold);
+
+    // TODO: un-hardcode depth value
+    colCipher[i] = OpenFHEWrapper::sign(cc, colCipher[i], 13);
+  }
+  end = steady_clock::now();
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+
+  // return boolean (0/1) values dictating which rows and columns contain matches
   return make_tuple(rowCipher, colCipher);
+}
+
+// -------------------- PRIVATE FUNCTIONS --------------------
+
+Ciphertext<DCRTPoly>
+Sender::computeSimilarityHelper(size_t matrixIndex, vector<Ciphertext<DCRTPoly>> queryCipher) {
+
+  vector<Ciphertext<DCRTPoly>> scoreCipher(VECTOR_DIM);
+  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  for(size_t i = 0; i < VECTOR_DIM; i++) {
+    scoreCipher[i] = cc->EvalMultNoRelin(queryCipher[i], databaseCipher[matrixIndex][i]);
+  }
+
+  for(size_t i = 1; i < VECTOR_DIM; i++) {
+    cc->EvalAddInPlace(scoreCipher[0], scoreCipher[i]);
+  }
+
+  cc->RelinearizeInPlace(scoreCipher[0]);
+  cc->RescaleInPlace(scoreCipher[0]);
+
+  return scoreCipher[0];
+}
+
+
+Ciphertext<DCRTPoly> Sender::generateQueryHelper(Ciphertext<DCRTPoly> queryCipher, size_t index){
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
+
+  // generate mask to isolate only the values at the specified index
+  vector<double> mask(batchSize, 0.0);
+  for(size_t i = index; i < batchSize; i += VECTOR_DIM) {
+    mask[i] = 1.0;
+  }
+  Plaintext maskPtxt = cc->MakeCKKSPackedPlaintext(mask);
+  queryCipher = cc->EvalMult(queryCipher, maskPtxt);
+  cc->RescaleInPlace(queryCipher);
+
+  // add and rotate to fill all slots with that specified value
+  return cc->EvalSum(queryCipher, VECTOR_DIM);
+}
+
+
+vector<Ciphertext<DCRTPoly>> Sender::alphaNormRows(vector<Ciphertext<DCRTPoly>> scoreCipher, size_t alpha, size_t rowLength) {
+  vector<Ciphertext<DCRTPoly>> alphaCipher(scoreCipher);
+
+  for(size_t i = 0; i < alphaCipher.size(); i++) {
+    for(size_t a = 0; a < alpha; a++) {
+      cc->EvalSquareInPlace(alphaCipher[i]);
+      cc->RescaleInPlace(alphaCipher[i]);
+    }
+    alphaCipher[i] = cc->EvalInnerProduct(alphaCipher[i], scoreCipher[i], rowLength);
+    cc->RescaleInPlace(alphaCipher[i]);
+  }
+
+  return OpenFHEWrapper::mergeCiphers(cc, alphaCipher, rowLength);
+}
+
+
+// in current implementation, colLength is taken to be (batchSize / rowLength)
+vector<Ciphertext<DCRTPoly>> Sender::alphaNormColumns(vector<Ciphertext<DCRTPoly>> scoreCipher, size_t alpha, size_t rowLength) {
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
+  size_t ciphersNeeded = ceil(double(scoreCipher.size() * rowLength) / double(batchSize));
+  vector<Ciphertext<DCRTPoly>> colCipher(ciphersNeeded);
+  vector<Ciphertext<DCRTPoly>> alphaCipher(scoreCipher);
+
+  vector<double> rowMask(rowLength, 1.0);
+  Plaintext rowMaskPtxt = cc->MakeCKKSPackedPlaintext(rowMask);
+
+  size_t outputCipher;
+  size_t outputSlot;
+
+  for(size_t i = 0; i < alphaCipher.size(); i++) {
+
+    // perform exponential step of alpha norm operation
+    for(size_t a = 0; a < alpha; a++) {
+      cc->EvalSquareInPlace(alphaCipher[i]);
+      cc->RescaleInPlace(alphaCipher[i]);
+    }
+    alphaCipher[i] = cc->EvalMult(alphaCipher[i], scoreCipher[i]);
+    cc->RescaleInPlace(alphaCipher[i]);
+
+    // perform addition step of alpha norm operation, use mask to keep one set of alpha norm values
+    for(size_t j = rowLength; j < batchSize; j *= 2) {
+      cc->EvalAddInPlace(alphaCipher[i], OpenFHEWrapper::binaryRotate(cc, alphaCipher[i], -j));
+    }
+    alphaCipher[i] = cc->EvalMult(alphaCipher[i], rowMaskPtxt);
+    cc->RescaleInPlace(alphaCipher[i]);
+
+    // place alpha norm values into output ciphertexts in consecutive batched format
+    outputCipher = (i * rowLength) / batchSize;
+    outputSlot = (i * rowLength) % batchSize;
+    if(outputSlot == 0) {
+      colCipher[outputCipher] = alphaCipher[i];
+    } else {
+      alphaCipher[i] = OpenFHEWrapper::binaryRotate(cc, alphaCipher[i], -outputSlot);
+      cc->EvalAddInPlace(colCipher[outputCipher], alphaCipher[i]);
+    }
+  }
+  
+  return colCipher;
 }

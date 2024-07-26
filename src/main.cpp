@@ -14,6 +14,9 @@
 #include "key/key-ser.h"
 #include "scheme/ckksrns/ckksrns-ser.h"
 
+// experimenting with scheme switching -- discuss if this can be included?
+// #include "binfhecontext.h"
+
 using namespace lbcrypto;
 using namespace std;
 using namespace std::chrono;
@@ -26,8 +29,6 @@ int main(int argc, char *argv[]) {
   cout << "[main.cpp]\t\tMain execution entered..." << endl;
 
   steady_clock::time_point start, end;
-  long double dur;
-  start = steady_clock::now();
 
   // Open input file
   ifstream fileStream;
@@ -42,11 +43,12 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  uint32_t multDepth = 8 + (4 * SIGN_COMPOSITIONS);
+  uint32_t multDepth = 19;
   CCParams<CryptoContextCKKSRNS> parameters;
   parameters.SetSecurityLevel(HEStd_128_classic);
   parameters.SetMultiplicativeDepth(multDepth);
   parameters.SetScalingModSize(45);
+  parameters.SetScalingTechnique(FIXEDMANUAL);
 
   CryptoContext<DCRTPoly> cc = GenCryptoContext(parameters);
   cc->Enable(PKE);
@@ -54,54 +56,53 @@ int main(int argc, char *argv[]) {
   cc->Enable(LEVELEDSHE);
   cc->Enable(ADVANCEDSHE);
   
-  int batchSize = cc->GetEncodingParams()->GetBatchSize();
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
 
   // OpenFHEWrapper::printSchemeDetails(parameters, cc);
   cout << "[main.cpp]\t\tCKKS scheme set up (depth = " << multDepth << ", batch size = " << batchSize << ")" << endl;
 
-
+  start = steady_clock::now();
   cout << "[main.cpp]\t\tGenerating key pair... " << flush;
   auto keyPair = cc->KeyGen();
   auto pk = keyPair.publicKey;
   auto sk = keyPair.secretKey;
   cout << "done" << endl;
 
-
   cout << "[main.cpp]\t\tGenerating mult keys... " << flush;
   cc->EvalMultKeyGen(sk);
   cout << "done" << endl;
-
 
   cout << "[main.cpp]\t\tGenerating sum keys... " << flush;
   cc->EvalSumKeyGen(sk);
   cout << "done" << endl;
 
-
   cout << "[main.cpp]\t\tGenerating rotation keys... " << flush;
   vector<int> binaryRotationFactors;
-  for(int i = 1; i < batchSize; i *= 2) {
+  for(int i = 1; i < int(batchSize); i *= 2) {
     binaryRotationFactors.push_back(i);
     binaryRotationFactors.push_back(-i);
   }
   cc->EvalRotateKeyGen(sk, binaryRotationFactors);
   cout << "done" << endl;
+  end = steady_clock::now();
+  cout << "[main.cpp]\t\tTotal keygen time:  " << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s" << endl;
 
 
   cout << "[main.cpp]\t\tReading in vectors from file... " << flush;
-  int numVectors;
+  size_t numVectors;
   fileStream >> numVectors;
 
 
   // Read in query vector from file
   vector<double> queryVector(VECTOR_DIM);
-  for (int i = 0; i < VECTOR_DIM; i++) {
+  for (size_t i = 0; i < VECTOR_DIM; i++) {
     fileStream >> queryVector[i];
   }
 
   // Read in database vectors from file
   vector<vector<double>> plaintextVectors(numVectors, vector<double>(VECTOR_DIM));
-  for (int i = 0; i < numVectors; i++) {
-    for (int j = 0; j < VECTOR_DIM; j++) {
+  for (size_t i = 0; i < numVectors; i++) {
+    for (size_t j = 0; j < VECTOR_DIM; j++) {
       fileStream >> plaintextVectors[i][j];
     }
   }
@@ -115,70 +116,38 @@ int main(int argc, char *argv[]) {
   Sender sender(cc, pk, numVectors);
 
 
-  // Normalize, batch, and encrypt the query vector
-  Ciphertext<DCRTPoly> queryCipher = receiver.encryptQuery(queryVector);
-  
-
-  // Normalize, batch, and encrypt the database vectors
+  // Normalize, batch, encrypt the database vectors
+  cout << "[main.cpp]\t\tEncrypting database vectors... " << flush;
+  start = steady_clock::now();
   sender.setDatabaseCipher(enroller.encryptDB(plaintextVectors));
-
   end = steady_clock::now();
-  dur = duration_cast<measure_typ>(end - start).count();
-  cout << endl << "[main.cpp]\t\tSetup operations complete (" << dur / 1000.0 << "s)" << endl << endl;
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
 
 
-  // Simulate membership scenario using CODASPY group testing algorithm
+  // Normalize, batch, and encrypt the query vector
+  cout << "[main.cpp]\t\tEncrypting query vector... " << flush;
   start = steady_clock::now();
-  Ciphertext<DCRTPoly> rowCipher = sender.matrixMembershipQuery(queryCipher);
+  vector<Ciphertext<DCRTPoly>> queryCipher = receiver.encryptQuery(queryVector);
   end = steady_clock::now();
-  dur = duration_cast<measure_typ>(end - start).count();
-  cout << endl << "[main.cpp]\t\tSender operations complete (" << dur / 1000.0 << "s)" << endl << endl;
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
 
+
+  // Perform membership scenario
+  cout << "[main.cpp]\t\tRunning membership scenario... " << endl;
   start = steady_clock::now();
-  cout << "\tResults of membership query: " << receiver.decryptMembershipQuery(rowCipher) << endl;
+  Ciphertext<DCRTPoly> membershipCipher = sender.membershipScenario(queryCipher, 256);
   end = steady_clock::now();
-  dur = duration_cast<measure_typ>(end - start).count();
-  cout << endl << "[main.cpp]\t\tReceiver operations complete (" << dur / 1000.0 << "s)" << endl << endl;
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  cout << receiver.decryptMembership(membershipCipher) << endl;
 
-  /*
-  // Simulate index scenario using CODASPY group testing algorithm
+
+  // Perform index scenario
+  cout << "[main.cpp]\t\tRunning index scenario... " << endl;
   start = steady_clock::now();
-  auto [rowCipher, colCipher] = sender.matrixIndexQuery(queryCipher);
+  auto [rowCipher, colCipher] = sender.indexScenario(queryCipher, 256);
   end = steady_clock::now();
-  dur = duration_cast<measure_typ>(end - start).count();
-  cout << endl << "[main.cpp]\t\tSender operations complete (" << dur / 1000.0 << "s)" << endl << endl;
-  start = steady_clock::now();
-  cout << "\tResults of index query: " << receiver.decryptMatrixIndexQuery(rowCipher, colCipher) << endl;
-  end = steady_clock::now();
-  dur = duration_cast<measure_typ>(end - start).count();
-  cout << endl << "[main.cpp]\t\tReceiver operations complete (" << dur / 1000.0 << "s)" << endl << endl;
-
-
-  // Simulate the membership scenario using naive approach
-  cout << endl << "Simulating membership scenario" << endl << endl;
-  Ciphertext<DCRTPoly> membershipCipher =
-      sender.membershipQuery(queryCipher);
-  bool membershipResults = receiver.decryptMembershipQuery(membershipCipher);
-  cout << endl << "Results of membership query:" << endl;
-  if(membershipResults) {
-    cout << "\tThere exists a match between the query vector and the database vectors" << endl;
-  } else {
-    cout << "\tThere does not exist a match between the query vector and the database vectors" << endl;
-  }
-  
-
-  // Simulate the index scenario usig the naive approach
-  cout << endl << "Simulating index scenario" << endl << endl;
-  vector<Ciphertext<DCRTPoly>> indexCipher = sender.indexQuery(queryCipher);
-  vector<int> matchingIndices = receiver.decryptIndexQuery(indexCipher);
-  cout << endl << "Results of index query:" << endl;
-  if(!matchingIndices.size()) {
-    cout << "\tNo matches found between query vector and database vectors" << endl;
-  }
-  for(size_t i = 0; i < matchingIndices.size(); i++) {
-    cout << "\tMatch found between the query vector and database vector [" << matchingIndices[i] << "]" << endl;
-  }
-   */
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  cout << receiver.decryptIndex(rowCipher, colCipher, 256) << endl;
 
   return 0;
 }
