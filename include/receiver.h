@@ -9,9 +9,12 @@
 #include "openfhe.h"
 #include <vector>
 #include <omp.h>
+#include <ctime>
 
 using namespace lbcrypto;
 using namespace std;
+using namespace std::chrono;
+using measure_typ = std::chrono::milliseconds;
 
 class Receiver {
 public:

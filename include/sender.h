@@ -54,6 +54,9 @@ private:
   computeSimilarityHelper(size_t matrixIndex, vector<Ciphertext<DCRTPoly>> queryCipher);
 
   Ciphertext<DCRTPoly>
+  computeSimilaritySerial(size_t matrix, size_t index, Ciphertext<DCRTPoly> queryCipher);
+
+  Ciphertext<DCRTPoly>
   generateQueryHelper(Ciphertext<DCRTPoly> queryCipher, size_t index);
 
   vector<Ciphertext<DCRTPoly>> 
