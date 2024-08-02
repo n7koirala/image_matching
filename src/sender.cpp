@@ -205,9 +205,10 @@ Ciphertext<DCRTPoly>
 Sender::computeSimilarityHelper(size_t matrixIndex, vector<Ciphertext<DCRTPoly>> queryCipher) {
 
   vector<Ciphertext<DCRTPoly>> scoreCipher(VECTOR_DIM);
+
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < VECTOR_DIM; i++) {
-    scoreCipher[i] = cc->EvalMultNoRelin(queryCipher[i], databaseCipher[matrixIndex][i]);
+    scoreCipher[i] = computeSimilaritySerial(matrixIndex, i, queryCipher[i]);
   }
 
   for(size_t i = 1; i < VECTOR_DIM; i++) {
@@ -218,6 +219,20 @@ Sender::computeSimilarityHelper(size_t matrixIndex, vector<Ciphertext<DCRTPoly>>
   cc->RescaleInPlace(scoreCipher[0]);
 
   return scoreCipher[0];
+}
+
+
+// single-thread helper function for computing similarity scores using serialized database vectors
+Ciphertext<DCRTPoly>
+Sender::computeSimilaritySerial(size_t matrix, size_t index, Ciphertext<DCRTPoly> queryCipher) {
+
+  string filepath = "serial/matrix" + to_string(matrix) + "/index" + to_string(index) + ".bin";
+  Ciphertext<DCRTPoly> databaseCipher;
+  if (Serial::DeserializeFromFile(filepath, databaseCipher, SerType::BINARY) == false) {
+    cerr << "Error: cannot deserialize from \"" << filepath << "\"" << endl;
+  }
+
+  return cc->EvalMultNoRelin(queryCipher, databaseCipher);
 }
 
 

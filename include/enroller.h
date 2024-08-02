@@ -33,5 +33,5 @@ private:
   // private functions
   Ciphertext<DCRTPoly> encryptDBThread(size_t matrix, size_t index, vector<vector<double>> database);
 
-  void serializeDBThread(size_t matrix, size_t index, vector<vector<double>> database);
+  void serializeDBThread(size_t matrix, size_t index, vector<vector<double>> &database);
 };

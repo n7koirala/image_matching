@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
   // Normalize, batch, encrypt the database vectors
   cout << "[main.cpp]\t\tEncrypting database vectors... " << flush;
   start = steady_clock::now();
-  sender.setDatabaseCipher(enroller.encryptDB(plaintextVectors));
+  enroller.serializeDB(plaintextVectors);
   end = steady_clock::now();
   cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
 
@@ -131,15 +131,29 @@ int main(int argc, char *argv[]) {
   end = steady_clock::now();
   cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
 
+  // Perform naive membership scenario
+  cout << "[main.cpp]\t\tRunning naive membership scenario... " << endl;
+  start = steady_clock::now();
+  Ciphertext<DCRTPoly> membershipCipher = sender.membershipScenarioNaive(queryCipher);
+  end = steady_clock::now();
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  cout << "Results: " << receiver.decryptMembership(membershipCipher) << endl << endl;
 
   // Perform membership scenario
   cout << "[main.cpp]\t\tRunning membership scenario... " << endl;
   start = steady_clock::now();
-  Ciphertext<DCRTPoly> membershipCipher = sender.membershipScenario(queryCipher, 256);
+  membershipCipher = sender.membershipScenario(queryCipher, 256);
   end = steady_clock::now();
   cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
-  cout << receiver.decryptMembership(membershipCipher) << endl;
+  cout << "Results: " << receiver.decryptMembership(membershipCipher) << endl << endl;
 
+  // Perform naive index scenario
+  cout << "[main.cpp]\t\tRunning naive index scenario... " << endl;
+  start = steady_clock::now();
+  vector<Ciphertext<DCRTPoly>> indexCipher = sender.indexScenarioNaive(queryCipher);
+  end = steady_clock::now();
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  cout << "Results: " << receiver.decryptIndexNaive(indexCipher) << endl << endl;
 
   // Perform index scenario
   cout << "[main.cpp]\t\tRunning index scenario... " << endl;
@@ -147,7 +161,7 @@ int main(int argc, char *argv[]) {
   auto [rowCipher, colCipher] = sender.indexScenario(queryCipher, 256);
   end = steady_clock::now();
   cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
-  cout << receiver.decryptIndex(rowCipher, colCipher, 256) << endl;
+  cout << "Results: " << receiver.decryptIndex(rowCipher, colCipher, 256) << endl << endl;
 
   return 0;
 }

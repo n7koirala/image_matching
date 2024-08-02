@@ -61,6 +61,10 @@ vector<double> Receiver::decryptRawScores(vector<Ciphertext<DCRTPoly>> scoreCiph
 
 bool Receiver::decryptMembership(Ciphertext<DCRTPoly> membershipCipher) {
 
+  steady_clock::time_point start, end;
+  cout << "\tDecrypting membership query... " << flush;
+  start = steady_clock::now();
+
   Plaintext membershipPtxt;
   cc->Decrypt(sk, membershipCipher, &membershipPtxt);
   vector<double> membershipValues = membershipPtxt->GetRealPackedValue();
@@ -71,11 +75,18 @@ bool Receiver::decryptMembership(Ciphertext<DCRTPoly> membershipCipher) {
     matchExists = true;
   }
 
+  end = steady_clock::now();
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+
   return matchExists;
 }
 
 
 vector<size_t> Receiver::decryptIndexNaive(vector<Ciphertext<DCRTPoly>> indexCipher) {
+
+  steady_clock::time_point start, end;
+  cout << "\tDecrypting naive index query... " << flush;
+  start = steady_clock::now();
 
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   vector<size_t> outputValues;
@@ -93,12 +104,20 @@ vector<size_t> Receiver::decryptIndexNaive(vector<Ciphertext<DCRTPoly>> indexCip
       }
     }
   }
+
+  end = steady_clock::now();
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
   
   return outputValues;
 }
 
 
 vector<size_t> Receiver::decryptIndex(vector<Ciphertext<DCRTPoly>> rowCipher, vector<Ciphertext<DCRTPoly>> colCipher, size_t rowLength) {
+  
+  steady_clock::time_point start, end;
+  cout << "\tDecrypting index query... " << flush;
+  start = steady_clock::now();
+  
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t colLength = batchSize / rowLength;
 
@@ -136,6 +155,9 @@ vector<size_t> Receiver::decryptIndex(vector<Ciphertext<DCRTPoly>> rowCipher, ve
 
     }
   }
+
+  end = steady_clock::now();
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
 
   return matchIndices;
 }
