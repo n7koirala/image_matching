@@ -1,16 +1,11 @@
 # individual users should follow build steps in README -- creating this folder themselves
 build/
 
-# scripts in tools folder currently unfinished
-tools/
-
 # datasets over 100.0MB cannot be tracked by GitHub
 # TODO -- consider Git LFS or script to download untracked datasets
 test/*
-!test/1024.dat
-!test/16k.dat
-!test/no_matches_1024.dat
-!test/no_matches_16k.dat
+!test/2_10.dat
+!test/2_14.dat
 
 # misc untracked files
 .vscode/
