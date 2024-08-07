@@ -11,6 +11,7 @@
 #include <omp.h>
 #include <time.h>
 #include <ctime>
+#include <fstream>
 
 using namespace lbcrypto;
 using namespace std;
@@ -20,7 +21,7 @@ using measure_typ = std::chrono::milliseconds;
 class Sender {
 public:
   // constructor
-  Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam);
+  Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam, ofstream& expStreamParam);
 
   // public methods
   void setDatabaseCipher(vector<vector<Ciphertext<DCRTPoly>>> databaseCipherParam);
@@ -48,6 +49,7 @@ private:
   PublicKey<DCRTPoly> pk;
   size_t numVectors;
   vector<vector<Ciphertext<DCRTPoly>>> databaseCipher;
+  ofstream& expStream;
 
   // private functions
   Ciphertext<DCRTPoly> 

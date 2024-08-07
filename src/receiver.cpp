@@ -5,8 +5,8 @@
 // -------------------- CONSTRUCTOR --------------------
 
 Receiver::Receiver(CryptoContext<DCRTPoly> ccParam,
-                         PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, size_t vectorParam)
-    : cc(ccParam), pk(pkParam), sk(skParam), numVectors(vectorParam) {}
+                         PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, size_t vectorParam, ofstream& expStreamParam)
+    : cc(ccParam), pk(pkParam), sk(skParam), numVectors(vectorParam), expStream(expStreamParam) {}
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 
@@ -77,6 +77,7 @@ bool Receiver::decryptMembership(Ciphertext<DCRTPoly> membershipCipher) {
 
   end = steady_clock::now();
   cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  expStream << duration_cast<measure_typ>(end - start).count() / 1000.0 << '\t' << flush;
 
   return matchExists;
 }

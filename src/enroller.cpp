@@ -72,8 +72,8 @@ void Enroller::serializeDB(vector<vector<double>> database) {
   }
 
   // encrypt normalized vectors in index-batched format
-  // TODO -- parallelize outer loop?
   for(size_t i = 0; i < numMatrices; i++) {
+    cout << "Matrix " << i << endl;
 
     #pragma omp parallel for num_threads(SENDER_NUM_CORES)
     for(size_t j = 0; j < VECTOR_DIM; j++) {

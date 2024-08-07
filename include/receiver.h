@@ -10,6 +10,7 @@
 #include <vector>
 #include <omp.h>
 #include <ctime>
+#include <fstream>
 
 using namespace lbcrypto;
 using namespace std;
@@ -20,7 +21,7 @@ class Receiver {
 public:
   // constructor
   Receiver(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
-              PrivateKey<DCRTPoly> skParam, size_t vectorParam);
+              PrivateKey<DCRTPoly> skParam, size_t vectorParam, ofstream& expStreamParam);
 
   // public methods
   vector<Ciphertext<DCRTPoly>> encryptQuery(vector<double> query);
@@ -41,6 +42,7 @@ private:
   PublicKey<DCRTPoly> pk;
   PrivateKey<DCRTPoly> sk;
   size_t numVectors;
+  ofstream& expStream;
 
   // private functions
   Ciphertext<DCRTPoly> encryptQueryThread(double indexValue);

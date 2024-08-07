@@ -5,8 +5,8 @@
 // -------------------- CONSTRUCTOR --------------------
 
 Sender::Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
-               size_t vectorParam)
-    : cc(ccParam), pk(pkParam), numVectors(vectorParam) {}
+               size_t vectorParam, ofstream& expStreamParam)
+    : cc(ccParam), pk(pkParam), numVectors(vectorParam), expStream(expStreamParam) {}
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 
@@ -77,6 +77,7 @@ Ciphertext<DCRTPoly> Sender::membershipScenarioNaive(vector<Ciphertext<DCRTPoly>
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
   end = steady_clock::now();
   cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  expStream << duration_cast<measure_typ>(end - start).count() / 1000.0 << '\t' << flush;
 
   cout << "\tComparing with match threshold... " << flush;
   start = steady_clock::now();
@@ -89,6 +90,7 @@ Ciphertext<DCRTPoly> Sender::membershipScenarioNaive(vector<Ciphertext<DCRTPoly>
   }
   end = steady_clock::now();
   cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  expStream << duration_cast<measure_typ>(end - start).count() / 1000.0 << '\t' << flush;
   
   // sum up all values into single result value at first slot of first cipher
   cout << "\tCombining boolean match values... " << flush;
@@ -97,6 +99,7 @@ Ciphertext<DCRTPoly> Sender::membershipScenarioNaive(vector<Ciphertext<DCRTPoly>
   membershipCipher = cc->EvalSum(membershipCipher, cc->GetEncodingParams()->GetBatchSize());
   end = steady_clock::now();
   cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  expStream << duration_cast<measure_typ>(end - start).count() / 1000.0 << '\t' << flush;
 
   return membershipCipher;
 }

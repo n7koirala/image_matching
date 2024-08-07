@@ -29,6 +29,14 @@ int main(int argc, char *argv[]) {
   cout << "[main.cpp]\t\tMain execution entered..." << endl;
 
   steady_clock::time_point start, end;
+  
+  // Open global experiment-tracking file
+  ofstream expStream;
+  expStream.open("output/experiment.tsv", ios::app);
+  if (!expStream.is_open()) {
+    cerr << "[main.cpp]\t\tError: experiment file not found" << endl;
+    return 1;
+  }
 
   // Open input file
   ifstream fileStream;
@@ -43,7 +51,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  uint32_t multDepth = 19;
+  uint32_t multDepth = 1 + SIGN_DEPTH;
   CCParams<CryptoContextCKKSRNS> parameters;
   parameters.SetSecurityLevel(HEStd_128_classic);
   parameters.SetMultiplicativeDepth(multDepth);
@@ -83,15 +91,17 @@ int main(int argc, char *argv[]) {
     binaryRotationFactors.push_back(-i);
   }
   cc->EvalRotateKeyGen(sk, binaryRotationFactors);
-  cout << "done" << endl;
   end = steady_clock::now();
-  cout << "[main.cpp]\t\tTotal keygen time:  " << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s" << endl;
+  cout << "done (Total keygen time:  " << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
 
 
   cout << "[main.cpp]\t\tReading in vectors from file... " << flush;
   size_t numVectors;
   fileStream >> numVectors;
 
+  // Experiment logging
+  expStream << numVectors << '\t' << flush;
+  expStream << duration_cast<measure_typ>(end - start).count() / 1000.0 << '\t' << flush;
 
   // Read in query vector from file
   vector<double> queryVector(VECTOR_DIM);
@@ -107,13 +117,13 @@ int main(int argc, char *argv[]) {
     }
   }
   fileStream.close();
-  cout << "done" << endl;
+  cout << "done (" << numVectors << " vectors)" << endl;
 
 
   // Initialize receiver, enroller, and sender objects -- only the receiver possesses the secret key
-  Receiver receiver(cc, pk, sk, numVectors);
+  Receiver receiver(cc, pk, sk, numVectors, expStream);
   Enroller enroller(cc, pk, numVectors);
-  Sender sender(cc, pk, numVectors);
+  Sender sender(cc, pk, numVectors, expStream);
 
 
   // Normalize, batch, encrypt the database vectors
@@ -122,7 +132,8 @@ int main(int argc, char *argv[]) {
   enroller.serializeDB(plaintextVectors);
   end = steady_clock::now();
   cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
-
+  expStream << duration_cast<measure_typ>(end - start).count() / 1000.0 << '\t' << flush;
+  
 
   // Normalize, batch, and encrypt the query vector
   cout << "[main.cpp]\t\tEncrypting query vector... " << flush;
@@ -130,6 +141,8 @@ int main(int argc, char *argv[]) {
   vector<Ciphertext<DCRTPoly>> queryCipher = receiver.encryptQuery(queryVector);
   end = steady_clock::now();
   cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  expStream << duration_cast<measure_typ>(end - start).count() / 1000.0 << '\t' << flush;
+
 
   // Perform naive membership scenario
   cout << "[main.cpp]\t\tRunning naive membership scenario... " << endl;
@@ -139,29 +152,9 @@ int main(int argc, char *argv[]) {
   cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
   cout << "Results: " << receiver.decryptMembership(membershipCipher) << endl << endl;
 
-  // Perform membership scenario
-  cout << "[main.cpp]\t\tRunning membership scenario... " << endl;
-  start = steady_clock::now();
-  membershipCipher = sender.membershipScenario(queryCipher, 256);
-  end = steady_clock::now();
-  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
-  cout << "Results: " << receiver.decryptMembership(membershipCipher) << endl << endl;
 
-  // Perform naive index scenario
-  cout << "[main.cpp]\t\tRunning naive index scenario... " << endl;
-  start = steady_clock::now();
-  vector<Ciphertext<DCRTPoly>> indexCipher = sender.indexScenarioNaive(queryCipher);
-  end = steady_clock::now();
-  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
-  cout << "Results: " << receiver.decryptIndexNaive(indexCipher) << endl << endl;
-
-  // Perform index scenario
-  cout << "[main.cpp]\t\tRunning index scenario... " << endl;
-  start = steady_clock::now();
-  auto [rowCipher, colCipher] = sender.indexScenario(queryCipher, 256);
-  end = steady_clock::now();
-  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
-  cout << "Results: " << receiver.decryptIndex(rowCipher, colCipher, 256) << endl << endl;
-
+  // Experiment logging
+  expStream << endl;
+  expStream.close();
   return 0;
 }
