@@ -8,7 +8,7 @@
 
 # it takes much much longer for OpenFHE to rewrite over existing serial files than to write new ones
 # therefore we remove old serializations after every experiment
-if [[ -e "serial/" -a -d "serial/" ]]; then
+if [[ -e "serial/" && -d "serial/" ]]; then
     rm -r serial/
 fi
 
