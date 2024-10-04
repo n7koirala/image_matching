@@ -69,7 +69,7 @@ This will execute the main application, showcasing both image matching algorithm
 The application can be configured using various parameters defined in the source code. Key parameters include:
 
 - **Similarity Match Threshold**: Set the cosine similarity value above which vectors are considered to be matching.
-- **Sign Compositions**: Set the number of compositions of the sign-approximating polynomial.
+- **Sign Depth**: Set the maximum multiplicative depth of the sign-approximating polynomial.
 - **Multiplicative Depth**: Set the depth of multiplicative operations.
 - **Scaling Mod Size**: Configure the size for scaling modulus.
 - **Batch Size**: Determine the batch size for encoding parameters.
