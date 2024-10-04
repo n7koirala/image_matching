@@ -53,10 +53,10 @@ To run the image matching application, navigate to the `build` folder and use th
 ./image_matching ../test/[image_file.dat]
 ```
 
-For instance, try:
+<!For instance, try:
 ```bash
-./image_matching ../test/two_matches_large.dat
-```
+./image_matching ../test/2^10.dat
+```>
 
 
 This will execute the main application, showcasing both image matching algorithms, more specifically their encryption, matching, and decryption steps.
@@ -79,12 +79,12 @@ The application can be configured using various parameters defined in the source
 ```cpp
 // include/config.h
 const double MATCH_THRESHOLD = 0.85;
-const int SIGN_COMPOSITIONS = 2;
+const int SIGN_DEPTH = 13;
 ```
 
 ```cpp
 // src/main.cpp
-uint32_t multDepth = 4 + (4 * SIGN_COMPOSITIONS);
+uint32_t multDepth = SIGN_DEPTH + 1;
 CCParams<CryptoContextCKKSRNS> parameters;
 parameters.SetSecurityLevel(HEStd_128_classic);
 parameters.SetMultiplicativeDepth(multDepth);
