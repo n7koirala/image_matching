@@ -14,9 +14,6 @@
 #include "key/key-ser.h"
 #include "scheme/ckksrns/ckksrns-ser.h"
 
-// experimenting with scheme switching -- discuss if this can be included?
-// #include "binfhecontext.h"
-
 using namespace lbcrypto;
 using namespace std;
 using namespace std::chrono;
@@ -51,53 +48,109 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  uint32_t multDepth = 1 + SIGN_DEPTH;
-  CCParams<CryptoContextCKKSRNS> parameters;
-  parameters.SetSecurityLevel(HEStd_128_classic);
-  parameters.SetMultiplicativeDepth(multDepth);
-  parameters.SetScalingModSize(45);
-  parameters.SetScalingTechnique(FIXEDMANUAL);
-
-  CryptoContext<DCRTPoly> cc = GenCryptoContext(parameters);
-  cc->Enable(PKE);
-  cc->Enable(KEYSWITCH);
-  cc->Enable(LEVELEDSHE);
-  cc->Enable(ADVANCEDSHE);
-  
-  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
-
-  // OpenFHEWrapper::printSchemeDetails(parameters, cc);
-  cout << "[main.cpp]\t\tCKKS scheme set up (depth = " << multDepth << ", batch size = " << batchSize << ")" << endl;
-
-  start = steady_clock::now();
-  cout << "[main.cpp]\t\tGenerating key pair... " << flush;
-  auto keyPair = cc->KeyGen();
-  auto pk = keyPair.publicKey;
-  auto sk = keyPair.secretKey;
-  cout << "done" << endl;
-
-  cout << "[main.cpp]\t\tGenerating mult keys... " << flush;
-  cc->EvalMultKeyGen(sk);
-  cout << "done" << endl;
-
-  cout << "[main.cpp]\t\tGenerating sum keys... " << flush;
-  cc->EvalSumKeyGen(sk);
-  cout << "done" << endl;
-
-  cout << "[main.cpp]\t\tGenerating rotation keys... " << flush;
-  vector<int> binaryRotationFactors;
-  for(int i = 1; i < int(batchSize); i *= 2) {
-    binaryRotationFactors.push_back(i);
-    binaryRotationFactors.push_back(-i);
-  }
-  cc->EvalRotateKeyGen(sk, binaryRotationFactors);
-  end = steady_clock::now();
-  cout << "done (Total keygen time:  " << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
-
-
-  cout << "[main.cpp]\t\tReading in vectors from file... " << flush;
   size_t numVectors;
   fileStream >> numVectors;
+
+  CryptoContext<DCRTPoly> cc;
+  cc->ClearEvalMultKeys();
+  cc->ClearEvalAutomorphismKeys();
+  CryptoContextFactory<DCRTPoly>::ReleaseAllContexts();
+
+  PublicKey<DCRTPoly> pk;
+  PrivateKey<DCRTPoly> sk;
+
+  size_t batchSize;
+
+  if (READ_FROM_SERIAL) { // Deserialize scheme context and keys if already serialized
+  
+    if(!Serial::DeserializeFromFile("serial/cryptocontext.bin", cc, SerType::BINARY)) {
+      cerr << "Error deserializing CryptoContext" << endl;
+    }
+    batchSize = cc->GetEncodingParams()->GetBatchSize();
+
+    if (!Serial::DeserializeFromFile("serial/publickey.bin", pk, SerType::BINARY)) {
+      cerr << "Error deserializing public key" << endl;
+    }
+
+    
+    if (!Serial::DeserializeFromFile("serial/privatekey.bin", sk, SerType::BINARY)) {
+      cerr << "Error deserializing private key" << endl;
+    }
+
+    ifstream multKeyDeserialFile("serial/multkey.bin", ios::in | ios::binary);
+    if (multKeyDeserialFile.is_open()) {
+      if (!cc->DeserializeEvalMultKey(multKeyDeserialFile, SerType::BINARY)) {
+        cerr << "Error deserializing mult keys" << endl;
+      }
+      multKeyDeserialFile.close();
+    } else {
+      cerr << "Error deserializing mult keys" << endl;
+    }
+
+    ifstream sumKeyDeserialFile("serial/sumkey.bin", ios::in | ios::binary);
+    if (sumKeyDeserialFile.is_open()) {
+      if (!cc->DeserializeEvalSumKey(sumKeyDeserialFile, SerType::BINARY)) {
+        cerr << "Error deserializing sum keys" << endl;
+      }
+      sumKeyDeserialFile.close();
+    } else {
+      cerr << "Error deserializing sum keys" << endl;
+    }
+
+    ifstream rotKeyDeserialFile("serial/rotkey.bin", ios::in | ios::binary);
+    if (rotKeyDeserialFile.is_open()) {
+      if (!cc->DeserializeEvalAutomorphismKey(rotKeyDeserialFile, SerType::BINARY)) {
+        cerr << "Error deserializing rotation keys" << endl;
+      }
+      rotKeyDeserialFile.close();
+    } else {
+      cerr << "Error deserializing rotation keys" << endl;
+    }
+
+  } else { // Else generate and serialize scheme context and keys
+
+    CCParams<CryptoContextCKKSRNS> parameters;
+    parameters.SetSecurityLevel(HEStd_128_classic);
+    parameters.SetMultiplicativeDepth(1 + SIGN_DEPTH);
+    parameters.SetScalingModSize(45);
+    parameters.SetScalingTechnique(FIXEDMANUAL);
+
+    cc = GenCryptoContext(parameters);
+    cc->Enable(PKE);
+    cc->Enable(KEYSWITCH);
+    cc->Enable(LEVELEDSHE);
+    cc->Enable(ADVANCEDSHE);
+
+    batchSize = cc->GetEncodingParams()->GetBatchSize();
+
+    start = steady_clock::now();
+    cout << "[main.cpp]\t\tGenerating key pair... " << flush;
+    auto keyPair = cc->KeyGen();
+    pk = keyPair.publicKey;
+    sk = keyPair.secretKey;
+    cout << "done" << endl;
+
+    cout << "[main.cpp]\t\tGenerating mult keys... " << flush;
+    cc->EvalMultKeyGen(sk);
+    cout << "done" << endl;
+
+    cout << "[main.cpp]\t\tGenerating sum keys... " << flush;
+    cc->EvalSumKeyGen(sk);
+    cout << "done" << endl;
+
+    cout << "[main.cpp]\t\tGenerating rotation keys... " << flush;
+    vector<int> binaryRotationFactors;
+    for(int i = 1; i < int(batchSize); i *= 2) {
+      binaryRotationFactors.push_back(i);
+      binaryRotationFactors.push_back(-i);
+    }
+    cc->EvalRotateKeyGen(sk, binaryRotationFactors);
+    end = steady_clock::now();
+    cout << "done (Total keygen time:  " << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  }
+
+  // OpenFHEWrapper::printSchemeDetails(parameters, cc);
+  cout << "[main.cpp]\t\tCKKS scheme set up (depth = " << 1 + SIGN_DEPTH << ", batch size = " << batchSize << ")" << endl;
 
   // Experiment logging
   expStream << numVectors << '\t' << flush;
@@ -117,7 +170,6 @@ int main(int argc, char *argv[]) {
     }
   }
   fileStream.close();
-  cout << "done (" << numVectors << " vectors)" << endl;
 
 
   // Initialize receiver, enroller, and sender objects -- only the receiver possesses the secret key
@@ -125,15 +177,53 @@ int main(int argc, char *argv[]) {
   Enroller enroller(cc, pk, numVectors);
   Sender sender(cc, pk, numVectors, expStream);
 
+  // Serialize the context, keys and database vectors if not already
+  if (!READ_FROM_SERIAL) {
+    cout << "[main.cpp]\t\tEncrypting database vectors... " << flush;
+    start = steady_clock::now();
+    enroller.serializeDB(plaintextVectors);
+    end = steady_clock::now();
+    cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+    expStream << duration_cast<measure_typ>(end - start).count() / 1000.0 << '\t' << flush;
 
-  // Normalize, batch, encrypt the database vectors
-  cout << "[main.cpp]\t\tEncrypting database vectors... " << flush;
-  start = steady_clock::now();
-  enroller.serializeDB(plaintextVectors);
-  end = steady_clock::now();
-  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
-  expStream << duration_cast<measure_typ>(end - start).count() / 1000.0 << '\t' << flush;
+    Serial::SerializeToFile("serial/cryptocontext.bin", cc, SerType::BINARY);
+    Serial::SerializeToFile("serial/publickey.bin", pk, SerType::BINARY);
+    Serial::SerializeToFile("serial/privatekey.bin", sk, SerType::BINARY);
+
+    ofstream multKeyFile("serial/multkey.bin", ios::out | ios::binary);
+    if (multKeyFile.is_open()) {
+      if (!cc->SerializeEvalMultKey(multKeyFile, SerType::BINARY)) {
+        cerr << "Error serializing mult keys" << endl;
+      }
+      multKeyFile.close();
+    } else {
+      cerr << "Error serializing mult keys" << endl;
+    }
+
+    ofstream rotKeyFile("serial/rotkey.bin", ios::out | ios::binary);
+    if (rotKeyFile.is_open()) {
+      if (!cc->SerializeEvalAutomorphismKey(rotKeyFile, SerType::BINARY)) {
+        cerr << "Error serializing rotation keys" << endl;
+      }
+      rotKeyFile.close();
+    }
+    else {
+      cerr << "Error serializing rotation keys" << endl;
+    }
+
+    ofstream sumKeyFile("serial/sumkey.bin", ios::out | ios::binary);
+    if (sumKeyFile.is_open()) {
+      if (!cc->SerializeEvalSumKey(sumKeyFile, SerType::BINARY)) {
+        cerr << "Error serializing sum keys" << endl;
+      }
+      sumKeyFile.close();
+    }
+    else {
+      cerr << "Error serializing sum keys" << endl;
+    }
+  }
   
+  // PER-QUERY OPERATIONS BEGIN HERE
 
   // Normalize, batch, and encrypt the query vector
   cout << "[main.cpp]\t\tEncrypting query vector... " << flush;
@@ -151,6 +241,14 @@ int main(int argc, char *argv[]) {
   end = steady_clock::now();
   cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
   cout << "Results: " << receiver.decryptMembership(membershipCipher) << endl << endl;
+
+  // Perform naive index scenario
+  cout << "[main.cpp]\t\tRunning naive index scenario... " << endl;
+  start = steady_clock::now();
+  vector<Ciphertext<DCRTPoly>> indexCipher = sender.indexScenarioNaive(queryCipher);
+  end = steady_clock::now();
+  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  cout << "Results: " << receiver.decryptIndexNaive(indexCipher) << endl << endl;
 
 
   // Experiment logging
