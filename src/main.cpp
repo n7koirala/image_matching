@@ -16,8 +16,6 @@
 
 using namespace lbcrypto;
 using namespace std;
-using namespace std::chrono;
-using measure_typ = std::chrono::milliseconds;
 
 // Entry point of the application that orchestrates the flow
 
@@ -25,7 +23,8 @@ int main(int argc, char *argv[]) {
 
   cout << "[main.cpp]\t\tMain execution entered..." << endl;
 
-  steady_clock::time_point start, end;
+  chrono::steady_clock::time_point start, end, queryStart, queryEnd;
+  chrono::duration<double> duration;
   
   // Open global experiment-tracking file
   ofstream expStream;
@@ -51,14 +50,14 @@ int main(int argc, char *argv[]) {
   size_t numVectors;
   fileStream >> numVectors;
 
+
+  // Declare CKKS scheme elements
   CryptoContext<DCRTPoly> cc;
   cc->ClearEvalMultKeys();
   cc->ClearEvalAutomorphismKeys();
   CryptoContextFactory<DCRTPoly>::ReleaseAllContexts();
-
   PublicKey<DCRTPoly> pk;
   PrivateKey<DCRTPoly> sk;
-
   size_t batchSize;
 
   if (READ_FROM_SERIAL) { // Deserialize scheme context and keys if already serialized
@@ -111,7 +110,7 @@ int main(int argc, char *argv[]) {
 
     CCParams<CryptoContextCKKSRNS> parameters;
     parameters.SetSecurityLevel(HEStd_128_classic);
-    parameters.SetMultiplicativeDepth(1 + SIGN_DEPTH);
+    parameters.SetMultiplicativeDepth(12);
     parameters.SetScalingModSize(45);
     parameters.SetScalingTechnique(FIXEDMANUAL);
 
@@ -123,7 +122,7 @@ int main(int argc, char *argv[]) {
 
     batchSize = cc->GetEncodingParams()->GetBatchSize();
 
-    start = steady_clock::now();
+    start = chrono::steady_clock::now();
     cout << "[main.cpp]\t\tGenerating key pair... " << flush;
     auto keyPair = cc->KeyGen();
     pk = keyPair.publicKey;
@@ -145,16 +144,17 @@ int main(int argc, char *argv[]) {
       binaryRotationFactors.push_back(-i);
     }
     cc->EvalRotateKeyGen(sk, binaryRotationFactors);
-    end = steady_clock::now();
-    cout << "done (Total keygen time:  " << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (Total keygen time:  " << duration.count() << "s)" << endl;
   }
 
   // OpenFHEWrapper::printSchemeDetails(parameters, cc);
-  cout << "[main.cpp]\t\tCKKS scheme set up (depth = " << 1 + SIGN_DEPTH << ", batch size = " << batchSize << ")" << endl;
+  cout << "[main.cpp]\t\tCKKS scheme set up (batch size = " << batchSize << ")" << endl;
 
   // Experiment logging
   expStream << numVectors << '\t' << flush;
-  expStream << duration_cast<measure_typ>(end - start).count() / 1000.0 << '\t' << flush;
+  expStream << duration.count() << '\t' << flush;
 
   // Read in query vector from file
   vector<double> queryVector(VECTOR_DIM);
@@ -171,7 +171,6 @@ int main(int argc, char *argv[]) {
   }
   fileStream.close();
 
-
   // Initialize receiver, enroller, and sender objects -- only the receiver possesses the secret key
   Receiver receiver(cc, pk, sk, numVectors, expStream);
   Enroller enroller(cc, pk, numVectors);
@@ -180,11 +179,12 @@ int main(int argc, char *argv[]) {
   // Serialize the context, keys and database vectors if not already
   if (!READ_FROM_SERIAL) {
     cout << "[main.cpp]\t\tEncrypting database vectors... " << flush;
-    start = steady_clock::now();
+    start = chrono::steady_clock::now();
     enroller.serializeDB(plaintextVectors);
-    end = steady_clock::now();
-    cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
-    expStream << duration_cast<measure_typ>(end - start).count() / 1000.0 << '\t' << flush;
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << '\t' << flush;
 
     Serial::SerializeToFile("serial/cryptocontext.bin", cc, SerType::BINARY);
     Serial::SerializeToFile("serial/publickey.bin", pk, SerType::BINARY);
@@ -224,32 +224,40 @@ int main(int argc, char *argv[]) {
   }
   
   // PER-QUERY OPERATIONS BEGIN HERE
+  queryStart = chrono::steady_clock::now();
 
   // Normalize, batch, and encrypt the query vector
   cout << "[main.cpp]\t\tEncrypting query vector... " << flush;
-  start = steady_clock::now();
+  start = chrono::steady_clock::now();
   vector<Ciphertext<DCRTPoly>> queryCipher = receiver.encryptQuery(queryVector);
-  end = steady_clock::now();
-  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
-  expStream << duration_cast<measure_typ>(end - start).count() / 1000.0 << '\t' << flush;
+  end = chrono::steady_clock::now();
+  duration = end - start;
+  cout << "done (" << duration.count() << "s)" << endl;
+  expStream << duration.count() << '\t' << flush;
 
-
-  // Perform naive membership scenario
-  cout << "[main.cpp]\t\tRunning naive membership scenario... " << endl;
-  start = steady_clock::now();
+  // Perform membership scenario
+  cout << "[main.cpp]\t\tRunning membership scenario... " << endl;
+  start = chrono::steady_clock::now();
   Ciphertext<DCRTPoly> membershipCipher = sender.membershipScenarioNaive(queryCipher);
-  end = steady_clock::now();
-  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
-  cout << "Results: " << receiver.decryptMembership(membershipCipher) << endl << endl;
+  end = chrono::steady_clock::now();
+  duration = end - start;
+  cout << "done (" << duration.count() << "s)" << endl;
+  bool membershipResult = receiver.decryptMembership(membershipCipher);
+  cout << "Results: " << membershipResult << endl << endl;
 
-  // Perform naive index scenario
-  cout << "[main.cpp]\t\tRunning naive index scenario... " << endl;
-  start = steady_clock::now();
+  // Perform index scenario
+  cout << "[main.cpp]\t\tRunning index scenario... " << endl;
+  start = chrono::steady_clock::now();
   vector<Ciphertext<DCRTPoly>> indexCipher = sender.indexScenarioNaive(queryCipher);
-  end = steady_clock::now();
-  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
-  cout << "Results: " << receiver.decryptIndexNaive(indexCipher) << endl << endl;
+  end = chrono::steady_clock::now();
+  duration = end - start;
+  cout << "done (" << duration.count() << "s)" << endl;
+  vector<size_t> indexResults = receiver.decryptIndexNaive(indexCipher);
+  cout << "Results: " << indexResults << endl << endl;
 
+  queryEnd = chrono::steady_clock::now();
+  duration = queryEnd - queryStart;
+  // cout << duration.count() << endl;
 
   // Experiment logging
   expStream << endl;

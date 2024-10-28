@@ -34,14 +34,8 @@ sign(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, size_t maxDepth);
 Ciphertext<DCRTPoly> 
 sumAllSlots(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt);
 
-Ciphertext<DCRTPoly> 
-approxInverseRoot(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, Ciphertext<DCRTPoly> initial);
-
-Ciphertext<DCRTPoly> 
-normalizeVector(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, int dimension, double initialSlope, double initialIntercept);
-
-Ciphertext<DCRTPoly> 
-chebyshevSign(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, double lower, double upper, int polyDegree);
+Ciphertext<DCRTPoly>
+chebyshevCompare(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, double delta, size_t polyDegree);
 
 vector<Ciphertext<DCRTPoly>> 
 mergeCiphers(CryptoContext<DCRTPoly> cc, vector<Ciphertext<DCRTPoly>> ctxts, size_t dimension);
@@ -51,7 +45,4 @@ mergeSingleCipher(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, size_t 
 
 Plaintext 
 generateMergeMask(CryptoContext<DCRTPoly> cc, size_t dimension, size_t segmentLength);
-
-vector<Ciphertext<DCRTPoly>> 
-rotateMatrix(CryptoContext<DCRTPoly> cc, vector<Ciphertext<DCRTPoly>> matrix, size_t rowLength, size_t colLength);
 }

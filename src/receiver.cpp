@@ -61,9 +61,11 @@ vector<double> Receiver::decryptRawScores(vector<Ciphertext<DCRTPoly>> scoreCiph
 
 bool Receiver::decryptMembership(Ciphertext<DCRTPoly> membershipCipher) {
 
-  steady_clock::time_point start, end;
+  chrono::steady_clock::time_point start, end;
+  chrono::duration<double> duration;
+  
   cout << "\tDecrypting membership query... " << flush;
-  start = steady_clock::now();
+  start = chrono::steady_clock::now();
 
   Plaintext membershipPtxt;
   cc->Decrypt(sk, membershipCipher, &membershipPtxt);
@@ -75,9 +77,10 @@ bool Receiver::decryptMembership(Ciphertext<DCRTPoly> membershipCipher) {
     matchExists = true;
   }
 
-  end = steady_clock::now();
-  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
-  expStream << duration_cast<measure_typ>(end - start).count() / 1000.0 << '\t' << flush;
+  end = chrono::steady_clock::now();
+  duration = end - start;
+  cout << "done (" << duration.count() << "s)" << endl;
+  expStream << duration.count() << '\t' << flush;
 
   return matchExists;
 }
@@ -85,9 +88,11 @@ bool Receiver::decryptMembership(Ciphertext<DCRTPoly> membershipCipher) {
 
 vector<size_t> Receiver::decryptIndexNaive(vector<Ciphertext<DCRTPoly>> indexCipher) {
 
-  steady_clock::time_point start, end;
+  chrono::steady_clock::time_point start, end;
+  chrono::duration<double> duration;
+
   cout << "\tDecrypting naive index query... " << flush;
-  start = steady_clock::now();
+  start = chrono::steady_clock::now();
 
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   vector<size_t> outputValues;
@@ -106,8 +111,9 @@ vector<size_t> Receiver::decryptIndexNaive(vector<Ciphertext<DCRTPoly>> indexCip
     }
   }
 
-  end = steady_clock::now();
-  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  end = chrono::steady_clock::now();
+  duration = end - start;
+  cout << "done (" << duration.count() << "s)" << endl;
   
   return outputValues;
 }
@@ -115,9 +121,11 @@ vector<size_t> Receiver::decryptIndexNaive(vector<Ciphertext<DCRTPoly>> indexCip
 
 vector<size_t> Receiver::decryptIndex(vector<Ciphertext<DCRTPoly>> rowCipher, vector<Ciphertext<DCRTPoly>> colCipher, size_t rowLength) {
   
-  steady_clock::time_point start, end;
+  chrono::steady_clock::time_point start, end;
+  chrono::duration<double> duration;
+
   cout << "\tDecrypting index query... " << flush;
-  start = steady_clock::now();
+  start = chrono::steady_clock::now();
   
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t colLength = batchSize / rowLength;
@@ -157,8 +165,9 @@ vector<size_t> Receiver::decryptIndex(vector<Ciphertext<DCRTPoly>> rowCipher, ve
     }
   }
 
-  end = steady_clock::now();
-  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  end = chrono::steady_clock::now();
+  duration = end - start;
+  cout << "done (" << duration.count() << "s)" << endl;
 
   return matchIndices;
 }

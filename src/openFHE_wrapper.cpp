@@ -11,8 +11,8 @@ void OpenFHEWrapper::printSchemeDetails(CCParams<CryptoContextCKKSRNS> parameter
   cout << "scaling mod size: " << parameters.GetScalingModSize() << endl;
   cout << "ring dimension: " << cc->GetRingDimension() << endl;
   cout << "noise estimate: " << parameters.GetNoiseEstimate() << endl;
-  cout << "multiplicative depth: " << parameters.GetMultiplicativeDepth() <<
-  endl; cout << "noise level: " << parameters.GetNoiseEstimate() << endl;
+  cout << "multiplicative depth: " << parameters.GetMultiplicativeDepth() << endl; 
+  cout << "noise level: " << parameters.GetNoiseEstimate() << endl;
 }
 
 
@@ -107,12 +107,11 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::sign(CryptoContext<DCRTPoly> cc, Ciphertext
   });
 
   for(size_t i = 0; i < comps; i++) {
-    // EvalPoly performs rescaling operation even with FIXEDMANUAL scaling technique, which is convenient
+    // Note EvalPoly performs rescaling operation even with FIXEDMANUAL set, which is convenient
     x = cc->EvalPoly(x, COEFS);
   }
 
-  // shift domain from [-1, 1] to [0, 1], allowing for additive VAFs
-  // TODO: is the mult here necessary? can we work with domain of [0, 2]?
+  // shift range from [-1, 1] to [0, 1], allowing for additive VAFs
   cc->EvalAddInPlace(x, 1.0);
   cc->EvalMultInPlace(x, 0.5);
   cc->RescaleInPlace(x);
@@ -121,7 +120,7 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::sign(CryptoContext<DCRTPoly> cc, Ciphertext
 }
 
 
-// TODO: remove, replace with built-in EvalSum function
+// TODO: replace built-in EvalSum function with this, remove generation of SumKey
 // Sets every slot in the ciphertext equal to the sum of all slots
 Ciphertext<DCRTPoly> OpenFHEWrapper::sumAllSlots(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt) {
   int batchSize = cc->GetEncodingParams()->GetBatchSize();
@@ -133,51 +132,28 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::sumAllSlots(CryptoContext<DCRTPoly> cc, Cip
   return ctxt;
 }
 
-// Uses Newton's Method to approximate the inverse square root of the slots of a ciphertext
-// Requires good initial approximation
+// implements the compare function comp(x, d) = { 1 if x>=d, else 0 if x<d }
+// Relationship with multiplicative depth described at the below link
+// https://github.com/openfheorg/openfhe-development/blob/main/src/pke/examples/FUNCTION_EVALUATION.md
 Ciphertext<DCRTPoly>
-OpenFHEWrapper::approxInverseRoot(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, Ciphertext<DCRTPoly> initial) {
+OpenFHEWrapper::chebyshevCompare(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, double delta, size_t polyDegree) {
 
-  Ciphertext<DCRTPoly> bn = ctxt;
-  Ciphertext<DCRTPoly> fn = initial;
-  Ciphertext<DCRTPoly> yn = fn;
+  const vector<double> SIGN_COEFS({
+    0.0, 
+    35.0 / 16.0,  
+    0.0, 
+    -35.0 / 16.0, 
+    0.0, 
+    21.0 / 16.0,
+    0.0, 
+    -5.0 / 16.0
+  });
 
-  // Perform Newton's method to approximate inverse magnitude of ctxt
-  // The multiplicative depth for i iterations is 3i+1
-  for (int i = 0; i < NEWTONS_ITERATIONS; i++) {
-    // b(n+1) = b(n) * f(n)^2
-    bn = cc->EvalMult(bn, fn);
-    bn = cc->EvalMult(bn, fn);
+  ctxt = cc->EvalChebyshevFunction([&delta](double x) -> double { return (x >= delta) ? 1 : -1; }, ctxt, -1, 1, polyDegree);
+  ctxt = cc->EvalPoly(ctxt, SIGN_COEFS);
+  cc->EvalAddInPlace(ctxt, 1.0);
 
-    // f(n+1) = (1/2) * (3 - b(n))
-    fn = cc->EvalSub(3.0, bn);
-    fn = cc->EvalMult(fn, 0.5);
-
-    // y(n+1) = y(n) * f(n)
-    yn = cc->EvalMult(yn, fn);
-  }
-
-  return yn;
-}
-
-
-
-Ciphertext<DCRTPoly>
-OpenFHEWrapper::normalizeVector(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, int dimension, double initialSlope, double initialIntercept) {
-
-  Ciphertext<DCRTPoly> selfInnerProduct = cc->EvalInnerProduct(ctxt, ctxt, dimension);
-  Ciphertext<DCRTPoly> initialGuess = cc->EvalAdd(cc->EvalMult(selfInnerProduct, initialSlope), initialIntercept);
-  Ciphertext<DCRTPoly> normalizationFactor = approxInverseRoot(cc, selfInnerProduct, initialGuess);
-  
-  return cc->EvalMult(ctxt, normalizationFactor);
-}
-
-
-Ciphertext<DCRTPoly>
-OpenFHEWrapper::chebyshevSign(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, double lower, double upper, int polyDegree) {
-  Ciphertext<DCRTPoly> result = cc->EvalChebyshevFunction([](double x) -> double { return x / abs(x); }, ctxt, lower,
-                                          upper, polyDegree);
-  return result;
+  return ctxt;
 }
 
 

@@ -42,26 +42,24 @@ vector<Ciphertext<DCRTPoly>> Sender::computeSimilarity(vector<Ciphertext<DCRTPol
 
 vector<Ciphertext<DCRTPoly>> Sender::indexScenarioNaive(vector<Ciphertext<DCRTPoly>> queryCipher) {
   
-  steady_clock::time_point start, end;
+  chrono::steady_clock::time_point start, end;
+  chrono::duration<double> duration;
 
   // compute similarity scores between query and database
   cout << "\tComputing similarity scores... " << flush;
-  start = steady_clock::now();
+  start = chrono::steady_clock::now();
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
-  end = steady_clock::now();
-  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  end = chrono::steady_clock::now();
+  cout << "done (" << duration.count() << "s)" << endl;
 
   cout << "\tComparing with match threshold... " << flush;
-  start = steady_clock::now();
+  start = chrono::steady_clock::now();
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
-    cc->EvalSubInPlace(scoreCipher[i], MATCH_THRESHOLD);
-
-    // TODO: un-hardcode depth parameter
-    scoreCipher[i] = OpenFHEWrapper::sign(cc, scoreCipher[i], 13);
+    scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, CHEBYSHEV_DEGREE);
   }
-  end = steady_clock::now();
-  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  end = chrono::steady_clock::now();
+  cout << "done (" << duration.count() << "s)" << endl;
   
   return scoreCipher;
 }
@@ -69,37 +67,38 @@ vector<Ciphertext<DCRTPoly>> Sender::indexScenarioNaive(vector<Ciphertext<DCRTPo
 
 Ciphertext<DCRTPoly> Sender::membershipScenarioNaive(vector<Ciphertext<DCRTPoly>> queryCipher) {
   
-  steady_clock::time_point start, end;
+  chrono::steady_clock::time_point start, end;
+  chrono::duration<double> duration;
 
   // compute similarity scores between query and database
   cout << "\tComputing similarity scores... " << flush;
-  start = steady_clock::now();
+  start = chrono::steady_clock::now();
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
-  end = steady_clock::now();
-  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
-  expStream << duration_cast<measure_typ>(end - start).count() / 1000.0 << '\t' << flush;
+  end = chrono::steady_clock::now();
+  duration = end - start;
+  cout << "done (" << duration.count() << "s)" << endl;
+  expStream << duration.count() << '\t' << flush;
 
   cout << "\tComparing with match threshold... " << flush;
-  start = steady_clock::now();
+  start = chrono::steady_clock::now();
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
-    cc->EvalSubInPlace(scoreCipher[i], MATCH_THRESHOLD);
-
-    // TODO: un-hardcode depth parameter
-    scoreCipher[i] = OpenFHEWrapper::sign(cc, scoreCipher[i], 13);
+    scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, CHEBYSHEV_DEGREE);
   }
-  end = steady_clock::now();
-  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
-  expStream << duration_cast<measure_typ>(end - start).count() / 1000.0 << '\t' << flush;
+  end = chrono::steady_clock::now();
+  duration = end - start;
+  cout << "done (" << duration.count() << "s)" << endl;
+  expStream << duration.count() << '\t' << flush;
   
   // sum up all values into single result value at first slot of first cipher
   cout << "\tCombining boolean match values... " << flush;
-  start = steady_clock::now();
+  start = chrono::steady_clock::now();
   Ciphertext<DCRTPoly> membershipCipher = cc->EvalAddManyInPlace(scoreCipher);
   membershipCipher = cc->EvalSum(membershipCipher, cc->GetEncodingParams()->GetBatchSize());
-  end = steady_clock::now();
-  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
-  expStream << duration_cast<measure_typ>(end - start).count() / 1000.0 << '\t' << flush;
+  end = chrono::steady_clock::now();
+  duration = end - start;
+  cout << "done (" << duration.count() << "s)" << endl;
+  expStream << duration.count() << '\t' << flush;
 
   return membershipCipher;
 }
@@ -107,43 +106,42 @@ Ciphertext<DCRTPoly> Sender::membershipScenarioNaive(vector<Ciphertext<DCRTPoly>
 
 Ciphertext<DCRTPoly> Sender::membershipScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength) {
 
-  steady_clock::time_point start, end;
+  chrono::steady_clock::time_point start, end;
+  chrono::duration<double> duration;
 
   // compute similarity scores between query and database
   cout << "\tComputing similarity scores... " << flush;
-  start = steady_clock::now();
+  start = chrono::steady_clock::now();
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
-  end = steady_clock::now();
-  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  end = chrono::steady_clock::now();
+  duration = end - start;
+  cout << "done (" << duration.count() << "s)" << endl;
 
   cout << "\tComputing alpha norm columns... " << flush;
-  start = steady_clock::now();
+  start = chrono::steady_clock::now();
   vector<Ciphertext<DCRTPoly>> colCipher = alphaNormColumns(scoreCipher, ALPHA, rowLength);
-  end = steady_clock::now();
-  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
-
-  // compare maxes against similarity match threshold
-  double updatedThreshold = pow(MATCH_THRESHOLD, pow(2, ALPHA)+1);
+  end = chrono::steady_clock::now();
+  duration = end - start;
+  cout << "done (" << duration.count() << "s)" << endl;
 
   cout << "\tComparing with match threshold... " << flush;
-  start = steady_clock::now();
+  start = chrono::steady_clock::now();
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
-    cc->EvalSubInPlace(scoreCipher[i], updatedThreshold);
-
-    // TODO: un-hardcode depth value
-    scoreCipher[i] = OpenFHEWrapper::sign(cc, scoreCipher[i], 13);
+    scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, CHEBYSHEV_DEGREE);
   }
-  end = steady_clock::now();
-  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  end = chrono::steady_clock::now();
+  duration = end - start;
+  cout << "done (" << duration.count() << "s)" << endl;
   
   // sum up all values into single result value at first slot of first cipher
   cout << "\tCombining boolean match values... " << flush;
-  start = steady_clock::now();
+  start = chrono::steady_clock::now();
   Ciphertext<DCRTPoly> membershipCipher = cc->EvalAddManyInPlace(scoreCipher);
   membershipCipher = cc->EvalSum(membershipCipher, cc->GetEncodingParams()->GetBatchSize());
-  end = steady_clock::now();
-  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  end = chrono::steady_clock::now();
+  duration = end - start;
+  cout << "done (" << duration.count() << "s)" << endl;
 
   // return ciphertext containing boolean (0/1) result value
   return membershipCipher;
@@ -153,50 +151,46 @@ Ciphertext<DCRTPoly> Sender::membershipScenario(vector<Ciphertext<DCRTPoly>> que
 tuple<vector<Ciphertext<DCRTPoly>>, vector<Ciphertext<DCRTPoly>>> 
 Sender::indexScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength) {
 
-  steady_clock::time_point start, end;
+  chrono::steady_clock::time_point start, end;
+  chrono::duration<double> duration;
   
   // compute similarity scores between query and database
   cout << "\tComputing similarity scores... " << flush;
-  start = steady_clock::now();
+  start = chrono::steady_clock::now();
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
-  end = steady_clock::now();
-  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  end = chrono::steady_clock::now();
+  duration = end - start;
+  cout << "done (" << duration.count() << "s)" << endl;
 
   // compute row and column maxes for group testing
   cout << "\tComputing alpha norm rows... " << flush;
-  start = steady_clock::now();
+  start = chrono::steady_clock::now();
   vector<Ciphertext<DCRTPoly>> rowCipher = alphaNormRows(scoreCipher, ALPHA, rowLength);
-  end = steady_clock::now();
-  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  end = chrono::steady_clock::now();
+  duration = end - start;
+  cout << "done (" << duration.count() << "s)" << endl;
 
   cout << "\tComputing alpha norm columns... " << flush;
-  start = steady_clock::now();
+  start = chrono::steady_clock::now();
   vector<Ciphertext<DCRTPoly>> colCipher = alphaNormColumns(scoreCipher, ALPHA, rowLength);
-  end = steady_clock::now();
-  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
-
-  // compare row and column maxes against similarity match threshold 
-  double updatedThreshold = pow(MATCH_THRESHOLD, pow(2, ALPHA)+1);
+  end = chrono::steady_clock::now();
+  duration = end - start;
+  cout << "done (" << duration.count() << "s)" << endl;
 
   cout << "\tComparing with match threshold... " << flush;
-  start = steady_clock::now();
+  start = chrono::steady_clock::now();
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < rowCipher.size(); i++) {
-    cc->EvalSubInPlace(rowCipher[i], updatedThreshold);
-
-    // TODO: un-hardcode depth value
-    rowCipher[i] = OpenFHEWrapper::sign(cc, rowCipher[i], 13);
+    rowCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, CHEBYSHEV_DEGREE);
   }
 
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < colCipher.size(); i++) {
-    cc->EvalSubInPlace(colCipher[i], updatedThreshold);
-
-    // TODO: un-hardcode depth value
-    colCipher[i] = OpenFHEWrapper::sign(cc, colCipher[i], 13);
+    colCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, CHEBYSHEV_DEGREE);
   }
-  end = steady_clock::now();
-  cout << "done (" << duration_cast<measure_typ>(end - start).count() / 1000.0 << "s)" << endl;
+  end = chrono::steady_clock::now();
+  duration = end - start;
+  cout << "done (" << duration.count() << "s)" << endl;
 
   // return boolean (0/1) values dictating which rows and columns contain matches
   return make_tuple(rowCipher, colCipher);
