@@ -1,5 +1,5 @@
-// ** cosine_similarity: Contains the definition and implementation of the
-// cosine similarity computation logic using plaintext preprocessing.
+// ** enroller: class for encrypting and/or serializing all database vectors
+// done according to our current fastest approach
 
 #pragma once
 
@@ -24,7 +24,7 @@ public:
   void serializeDB(vector<vector<double>> database);
 
 
-private:
+protected:
   // private members
   CryptoContext<DCRTPoly> cc;
   PublicKey<DCRTPoly> pk;
