@@ -1,7 +1,10 @@
 #include "../include/config.h"
 #include "../include/receiver.h"
+#include "../include/receiver_base.h"
 #include "../include/enroller.h"
+#include "../include/enroller_base.h"
 #include "../include/sender.h"
+#include "../include/sender_base.h"
 #include "../include/vector_utils.h"
 #include "../include/openFHE_wrapper.h"
 #include "openfhe.h"
@@ -110,7 +113,7 @@ int main(int argc, char *argv[]) {
 
     CCParams<CryptoContextCKKSRNS> parameters;
     parameters.SetSecurityLevel(HEStd_128_classic);
-    parameters.SetMultiplicativeDepth(12);
+    parameters.SetMultiplicativeDepth(14);
     parameters.SetScalingModSize(45);
     parameters.SetScalingTechnique(FIXEDMANUAL);
 
@@ -172,9 +175,9 @@ int main(int argc, char *argv[]) {
   fileStream.close();
 
   // Initialize receiver, enroller, and sender objects -- only the receiver possesses the secret key
-  Receiver receiver(cc, pk, sk, numVectors, expStream);
-  Enroller enroller(cc, pk, numVectors);
-  Sender sender(cc, pk, numVectors, expStream);
+  BaseReceiver receiver(cc, pk, sk, numVectors, expStream);
+  BaseEnroller enroller(cc, pk, numVectors);
+  BaseSender sender(cc, pk, numVectors, expStream);
 
   // Serialize the context, keys and database vectors if not already
   if (!READ_FROM_SERIAL) {
@@ -229,7 +232,7 @@ int main(int argc, char *argv[]) {
   // Normalize, batch, and encrypt the query vector
   cout << "[main.cpp]\t\tEncrypting query vector... " << flush;
   start = chrono::steady_clock::now();
-  vector<Ciphertext<DCRTPoly>> queryCipher = receiver.encryptQuery(queryVector);
+  auto queryCipher = receiver.encryptQuery(queryVector); // auto needed here for dynamic polymorphism
   end = chrono::steady_clock::now();
   duration = end - start;
   cout << "done (" << duration.count() << "s)" << endl;
@@ -238,7 +241,7 @@ int main(int argc, char *argv[]) {
   // Perform membership scenario
   cout << "[main.cpp]\t\tRunning membership scenario... " << endl;
   start = chrono::steady_clock::now();
-  Ciphertext<DCRTPoly> membershipCipher = sender.membershipScenarioNaive(queryCipher);
+  Ciphertext<DCRTPoly> membershipCipher = sender.membershipScenario(queryCipher);
   end = chrono::steady_clock::now();
   duration = end - start;
   cout << "done (" << duration.count() << "s)" << endl;
@@ -248,7 +251,7 @@ int main(int argc, char *argv[]) {
   // Perform index scenario
   cout << "[main.cpp]\t\tRunning index scenario... " << endl;
   start = chrono::steady_clock::now();
-  vector<Ciphertext<DCRTPoly>> indexCipher = sender.indexScenarioNaive(queryCipher);
+  vector<Ciphertext<DCRTPoly>> indexCipher = sender.indexScenario(queryCipher);
   end = chrono::steady_clock::now();
   duration = end - start;
   cout << "done (" << duration.count() << "s)" << endl;

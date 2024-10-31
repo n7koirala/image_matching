@@ -168,6 +168,11 @@ vector<Ciphertext<DCRTPoly>> OpenFHEWrapper::mergeCiphers(CryptoContext<DCRTPoly
   size_t outputCipher;
   size_t outputSlot;
   
+  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  for(size_t i = 0; i < ctxts.size(); i++) {
+    ctxts[i] = OpenFHEWrapper::mergeSingleCipher(cc, ctxts[i], dimension);
+  }
+
   vector<Ciphertext<DCRTPoly>> mergedCipher(neededCiphers);
 
   for(size_t i = 0; i < ctxts.size(); i++) {
@@ -175,9 +180,9 @@ vector<Ciphertext<DCRTPoly>> OpenFHEWrapper::mergeCiphers(CryptoContext<DCRTPoly
     outputSlot = (elementsPerCipher * i) % batchSize;
 
     if(outputSlot == 0) {
-      mergedCipher[outputCipher] = OpenFHEWrapper::mergeSingleCipher(cc, ctxts[i], dimension);
+      mergedCipher[outputCipher] = ctxts[i];
     } else {
-      cc->EvalAddInPlace(mergedCipher[outputCipher], OpenFHEWrapper::binaryRotate(cc, OpenFHEWrapper::mergeSingleCipher(cc, ctxts[i], dimension), -outputSlot));
+      cc->EvalAddInPlace(mergedCipher[outputCipher], OpenFHEWrapper::binaryRotate(cc, ctxts[i], -outputSlot));
     }
   }
 
@@ -200,6 +205,7 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::mergeSingleCipher(CryptoContext<DCRTPoly> c
     // apply multiplicative mask if rotations + additions have consumed all the padded zeros
     if(i >= paddingSize) {
       ctxt = cc->EvalMult(ctxt, OpenFHEWrapper::generateMergeMask(cc, dimension, i));
+      cc->RelinearizeInPlace(ctxt);
       cc->RescaleInPlace(ctxt);
       paddingSize = i * dimension;
     }
@@ -208,6 +214,7 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::mergeSingleCipher(CryptoContext<DCRTPoly> c
   }
 
   ctxt = cc->EvalMult(ctxt, generateMergeMask(cc, dimension, outputSize));
+  cc->RelinearizeInPlace(ctxt);
   cc->RescaleInPlace(ctxt);
 
   return ctxt;

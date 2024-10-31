@@ -34,14 +34,14 @@ public:
 
   vector<size_t> decryptIndex(vector<Ciphertext<DCRTPoly>> rowCipher, vector<Ciphertext<DCRTPoly>> colCipher, size_t rowLength);
 
-private:
-  // private members
+protected:
+  // protected members
   CryptoContext<DCRTPoly> cc;
   PublicKey<DCRTPoly> pk;
   PrivateKey<DCRTPoly> sk;
   size_t numVectors;
   ofstream& expStream;
 
-  // private functions
+  // protected functions
   Ciphertext<DCRTPoly> encryptQueryThread(double indexValue);
 };

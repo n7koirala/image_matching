@@ -59,9 +59,12 @@ endif()
 ### add_executable( test demo-simple-example.cpp )
 add_executable(ImageMatching
     src/main.cpp
-    src/receiver.cpp
-    src/enroller.cpp
-    src/sender.cpp
     src/openFHE_wrapper.cpp
     src/vector_utils.cpp
+    src/receiver.cpp
+    src/receiver_base.cpp
+    src/enroller.cpp
+    src/enroller_base.cpp
+    src/sender.cpp
+    src/sender_base.cpp
 )

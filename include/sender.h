@@ -41,7 +41,7 @@ public:
   tuple<vector<Ciphertext<DCRTPoly>>, vector<Ciphertext<DCRTPoly>>>
   indexScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength);
 
-private:
+protected:
   // private members
   CryptoContext<DCRTPoly> cc;
   PublicKey<DCRTPoly> pk;
