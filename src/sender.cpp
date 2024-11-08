@@ -5,8 +5,8 @@
 // -------------------- CONSTRUCTOR --------------------
 
 Sender::Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
-               size_t vectorParam, ofstream& expStreamParam)
-    : cc(ccParam), pk(pkParam), numVectors(vectorParam), expStream(expStreamParam) {}
+               size_t vectorParam)
+    : cc(ccParam), pk(pkParam), numVectors(vectorParam) {}
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 
@@ -17,11 +17,8 @@ void Sender::setDatabaseCipher(vector<vector<Ciphertext<DCRTPoly>>> databaseCiph
 
 
 void Sender::serializeDatabaseCipher(string location) {
-  cout << "[sender.cpp]\tSerializing encrypted database vector... " << flush;
   if (!Serial::SerializeToFile(location, databaseCipher[0], SerType::JSON)) {
-      cout << "failed (cannot write to " << location << ")" << endl;
-  } else {
-    cout << "done" << endl;
+      cerr << "failed (cannot write to " << location << ")" << endl;
   }
 }
 
@@ -41,64 +38,32 @@ vector<Ciphertext<DCRTPoly>> Sender::computeSimilarity(vector<Ciphertext<DCRTPol
 
 
 vector<Ciphertext<DCRTPoly>> Sender::indexScenarioNaive(vector<Ciphertext<DCRTPoly>> queryCipher) {
-  
-  chrono::steady_clock::time_point start, end;
-  chrono::duration<double> duration;
 
   // compute similarity scores between query and database
-  cout << "\tComputing similarity scores... " << flush;
-  start = chrono::steady_clock::now();
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
-  end = chrono::steady_clock::now();
-  cout << "done (" << duration.count() << "s)" << endl;
-
-  cout << "\tComparing with match threshold... " << flush;
-  start = chrono::steady_clock::now();
+  
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
     scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, CHEBYSHEV_DEGREE);
   }
-  end = chrono::steady_clock::now();
-  cout << "done (" << duration.count() << "s)" << endl;
   
   return scoreCipher;
 }
 
 
 Ciphertext<DCRTPoly> Sender::membershipScenarioNaive(vector<Ciphertext<DCRTPoly>> queryCipher) {
-  
-  chrono::steady_clock::time_point start, end;
-  chrono::duration<double> duration;
 
   // compute similarity scores between query and database
-  cout << "\tComputing similarity scores... " << flush;
-  start = chrono::steady_clock::now();
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
-  end = chrono::steady_clock::now();
-  duration = end - start;
-  cout << "done (" << duration.count() << "s)" << endl;
-  expStream << duration.count() << '\t' << flush;
-
-  cout << "\tComparing with match threshold... " << flush;
-  start = chrono::steady_clock::now();
+  
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
     scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, CHEBYSHEV_DEGREE);
   }
-  end = chrono::steady_clock::now();
-  duration = end - start;
-  cout << "done (" << duration.count() << "s)" << endl;
-  expStream << duration.count() << '\t' << flush;
   
   // sum up all values into single result value at first slot of first cipher
-  cout << "\tCombining boolean match values... " << flush;
-  start = chrono::steady_clock::now();
   Ciphertext<DCRTPoly> membershipCipher = cc->EvalAddManyInPlace(scoreCipher);
   membershipCipher = cc->EvalSum(membershipCipher, cc->GetEncodingParams()->GetBatchSize());
-  end = chrono::steady_clock::now();
-  duration = end - start;
-  cout << "done (" << duration.count() << "s)" << endl;
-  expStream << duration.count() << '\t' << flush;
 
   return membershipCipher;
 }
@@ -106,42 +71,19 @@ Ciphertext<DCRTPoly> Sender::membershipScenarioNaive(vector<Ciphertext<DCRTPoly>
 
 Ciphertext<DCRTPoly> Sender::membershipScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength) {
 
-  chrono::steady_clock::time_point start, end;
-  chrono::duration<double> duration;
-
   // compute similarity scores between query and database
-  cout << "\tComputing similarity scores... " << flush;
-  start = chrono::steady_clock::now();
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
-  end = chrono::steady_clock::now();
-  duration = end - start;
-  cout << "done (" << duration.count() << "s)" << endl;
 
-  cout << "\tComputing alpha norm columns... " << flush;
-  start = chrono::steady_clock::now();
   vector<Ciphertext<DCRTPoly>> colCipher = alphaNormColumns(scoreCipher, ALPHA, rowLength);
-  end = chrono::steady_clock::now();
-  duration = end - start;
-  cout << "done (" << duration.count() << "s)" << endl;
 
-  cout << "\tComparing with match threshold... " << flush;
-  start = chrono::steady_clock::now();
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
     scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, CHEBYSHEV_DEGREE);
   }
-  end = chrono::steady_clock::now();
-  duration = end - start;
-  cout << "done (" << duration.count() << "s)" << endl;
   
   // sum up all values into single result value at first slot of first cipher
-  cout << "\tCombining boolean match values... " << flush;
-  start = chrono::steady_clock::now();
   Ciphertext<DCRTPoly> membershipCipher = cc->EvalAddManyInPlace(scoreCipher);
   membershipCipher = cc->EvalSum(membershipCipher, cc->GetEncodingParams()->GetBatchSize());
-  end = chrono::steady_clock::now();
-  duration = end - start;
-  cout << "done (" << duration.count() << "s)" << endl;
 
   // return ciphertext containing boolean (0/1) result value
   return membershipCipher;
@@ -150,35 +92,15 @@ Ciphertext<DCRTPoly> Sender::membershipScenario(vector<Ciphertext<DCRTPoly>> que
 
 tuple<vector<Ciphertext<DCRTPoly>>, vector<Ciphertext<DCRTPoly>>> 
 Sender::indexScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength) {
-
-  chrono::steady_clock::time_point start, end;
-  chrono::duration<double> duration;
   
   // compute similarity scores between query and database
-  cout << "\tComputing similarity scores... " << flush;
-  start = chrono::steady_clock::now();
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
-  end = chrono::steady_clock::now();
-  duration = end - start;
-  cout << "done (" << duration.count() << "s)" << endl;
 
   // compute row and column maxes for group testing
-  cout << "\tComputing alpha norm rows... " << flush;
-  start = chrono::steady_clock::now();
   vector<Ciphertext<DCRTPoly>> rowCipher = alphaNormRows(scoreCipher, ALPHA, rowLength);
-  end = chrono::steady_clock::now();
-  duration = end - start;
-  cout << "done (" << duration.count() << "s)" << endl;
 
-  cout << "\tComputing alpha norm columns... " << flush;
-  start = chrono::steady_clock::now();
   vector<Ciphertext<DCRTPoly>> colCipher = alphaNormColumns(scoreCipher, ALPHA, rowLength);
-  end = chrono::steady_clock::now();
-  duration = end - start;
-  cout << "done (" << duration.count() << "s)" << endl;
 
-  cout << "\tComparing with match threshold... " << flush;
-  start = chrono::steady_clock::now();
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < rowCipher.size(); i++) {
     rowCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, CHEBYSHEV_DEGREE);
@@ -188,9 +110,6 @@ Sender::indexScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength
   for(size_t i = 0; i < colCipher.size(); i++) {
     colCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, CHEBYSHEV_DEGREE);
   }
-  end = chrono::steady_clock::now();
-  duration = end - start;
-  cout << "done (" << duration.count() << "s)" << endl;
 
   // return boolean (0/1) values dictating which rows and columns contain matches
   return make_tuple(rowCipher, colCipher);

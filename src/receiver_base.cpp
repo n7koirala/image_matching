@@ -5,8 +5,8 @@
 // -------------------- CONSTRUCTOR --------------------
 
 BaseReceiver::BaseReceiver(CryptoContext<DCRTPoly> ccParam,
-                         PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, size_t vectorParam, ofstream& expStreamParam)
-    : Receiver(ccParam, pkParam, skParam, vectorParam, expStreamParam) {}
+                         PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, size_t vectorParam)
+    : Receiver(ccParam, pkParam, skParam, vectorParam) {}
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 

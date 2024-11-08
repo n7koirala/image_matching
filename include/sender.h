@@ -19,7 +19,7 @@ using namespace std;
 class Sender {
 public:
   // constructor
-  Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam, ofstream& expStreamParam);
+  Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam);
 
   // public methods
   void setDatabaseCipher(vector<vector<Ciphertext<DCRTPoly>>> databaseCipherParam);
@@ -47,7 +47,6 @@ protected:
   PublicKey<DCRTPoly> pk;
   size_t numVectors;
   vector<vector<Ciphertext<DCRTPoly>>> databaseCipher;
-  ofstream& expStream;
 
   // private functions
   Ciphertext<DCRTPoly> 

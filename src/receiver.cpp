@@ -1,12 +1,12 @@
 #include "../include/receiver.h"
 
-// implementation of functions declared in receiver_plain.h
+// implementation of functions declared in receiver.h
 
 // -------------------- CONSTRUCTOR --------------------
 
 Receiver::Receiver(CryptoContext<DCRTPoly> ccParam,
-                         PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, size_t vectorParam, ofstream& expStreamParam)
-    : cc(ccParam), pk(pkParam), sk(skParam), numVectors(vectorParam), expStream(expStreamParam) {}
+                         PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, size_t vectorParam)
+    : cc(ccParam), pk(pkParam), sk(skParam), numVectors(vectorParam) {}
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 
@@ -61,38 +61,19 @@ vector<double> Receiver::decryptRawScores(vector<Ciphertext<DCRTPoly>> scoreCiph
 
 bool Receiver::decryptMembership(Ciphertext<DCRTPoly> membershipCipher) {
 
-  chrono::steady_clock::time_point start, end;
-  chrono::duration<double> duration;
-  
-  cout << "\tDecrypting membership query... " << flush;
-  start = chrono::steady_clock::now();
-
   Plaintext membershipPtxt;
   cc->Decrypt(sk, membershipCipher, &membershipPtxt);
   vector<double> membershipValues = membershipPtxt->GetRealPackedValue();
-  bool matchExists = false;
 
-  // TODO: remove / justify hardcoded value
-  if(membershipValues[0] >= 0.5) {
-    matchExists = true;
+  if(membershipValues[0] >= 1.0) {
+    return true;
   }
 
-  end = chrono::steady_clock::now();
-  duration = end - start;
-  cout << "done (" << duration.count() << "s)" << endl;
-  expStream << duration.count() << '\t' << flush;
-
-  return matchExists;
+  return false;
 }
 
 
 vector<size_t> Receiver::decryptIndexNaive(vector<Ciphertext<DCRTPoly>> indexCipher) {
-
-  chrono::steady_clock::time_point start, end;
-  chrono::duration<double> duration;
-
-  cout << "\tDecrypting naive index query... " << flush;
-  start = chrono::steady_clock::now();
 
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   vector<size_t> outputValues;
@@ -104,28 +85,17 @@ vector<size_t> Receiver::decryptIndexNaive(vector<Ciphertext<DCRTPoly>> indexCip
     indexValues = indexPtxt->GetRealPackedValue();
 
     for(size_t j = 0; j < batchSize; j++) {
-      // TODO: remove / justify hardcoded value
-      if(indexValues[j] >= 0.5) {
+      if(indexValues[j] >= 1.0) {
         outputValues.push_back(j + (i * batchSize));
       }
     }
   }
-
-  end = chrono::steady_clock::now();
-  duration = end - start;
-  cout << "done (" << duration.count() << "s)" << endl;
   
   return outputValues;
 }
 
 
 vector<size_t> Receiver::decryptIndex(vector<Ciphertext<DCRTPoly>> rowCipher, vector<Ciphertext<DCRTPoly>> colCipher, size_t rowLength) {
-  
-  chrono::steady_clock::time_point start, end;
-  chrono::duration<double> duration;
-
-  cout << "\tDecrypting index query... " << flush;
-  start = chrono::steady_clock::now();
   
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t colLength = batchSize / rowLength;
@@ -164,10 +134,6 @@ vector<size_t> Receiver::decryptIndex(vector<Ciphertext<DCRTPoly>> rowCipher, ve
 
     }
   }
-
-  end = chrono::steady_clock::now();
-  duration = end - start;
-  cout << "done (" << duration.count() << "s)" << endl;
 
   return matchIndices;
 }

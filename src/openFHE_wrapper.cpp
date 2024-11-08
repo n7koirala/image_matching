@@ -160,18 +160,22 @@ OpenFHEWrapper::chebyshevCompare(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly
 // packs every i-th slot of each cipher into a consecutive sequence at the front of the outputted cipher(s)
 // can handle cases where the number of slots is larger than the batch size of a single ciphertext
 // requires dimension param to be a power of two
-vector<Ciphertext<DCRTPoly>> OpenFHEWrapper::mergeCiphers(CryptoContext<DCRTPoly> cc, vector<Ciphertext<DCRTPoly>> ctxts, size_t dimension) {
+vector<Ciphertext<DCRTPoly>> OpenFHEWrapper::mergeCiphers(CryptoContext<DCRTPoly> cc, vector<Ciphertext<DCRTPoly>> &ctxts, size_t dimension) {
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t elementsPerCipher = batchSize / dimension;
   size_t outputSize = elementsPerCipher * ctxts.size();
   size_t neededCiphers = ceil(double(outputSize) / double(batchSize));
   size_t outputCipher;
   size_t outputSlot;
+
+  cout << "\tBeginning merge" << endl;
   
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < ctxts.size(); i++) {
     ctxts[i] = OpenFHEWrapper::mergeSingleCipher(cc, ctxts[i], dimension);
   }
+
+  cout << "\tIndividual ciphers merged" << endl;
 
   vector<Ciphertext<DCRTPoly>> mergedCipher(neededCiphers);
 
@@ -186,13 +190,15 @@ vector<Ciphertext<DCRTPoly>> OpenFHEWrapper::mergeCiphers(CryptoContext<DCRTPoly
     }
   }
 
+  cout << "\tMerge completed" << endl;
+
   return mergedCipher;
 }
 
 
 // packs every i-th slot of the cipher into a consecutive sequence at the front of the outputted cipher
 // requires dimension param to be a power of two
-Ciphertext<DCRTPoly> OpenFHEWrapper::mergeSingleCipher(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, size_t dimension) {
+Ciphertext<DCRTPoly> OpenFHEWrapper::mergeSingleCipher(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> &ctxt, size_t dimension) {
 
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t outputSize = batchSize / dimension;

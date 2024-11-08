@@ -9,7 +9,7 @@ class BaseReceiver : public Receiver {
 public:
   // constructor
   BaseReceiver(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
-              PrivateKey<DCRTPoly> skParam, size_t vectorParam, ofstream& expStreamParam);
+              PrivateKey<DCRTPoly> skParam, size_t vectorParam);
 
   // public methods
   Ciphertext<DCRTPoly> encryptQuery(vector<double> query);

@@ -38,10 +38,10 @@ Ciphertext<DCRTPoly>
 chebyshevCompare(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, double delta, size_t polyDegree);
 
 vector<Ciphertext<DCRTPoly>> 
-mergeCiphers(CryptoContext<DCRTPoly> cc, vector<Ciphertext<DCRTPoly>> ctxts, size_t dimension);
+mergeCiphers(CryptoContext<DCRTPoly> cc, vector<Ciphertext<DCRTPoly>> &ctxts, size_t dimension);
 
 Ciphertext<DCRTPoly> 
-mergeSingleCipher(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, size_t dimension);
+mergeSingleCipher(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> &ctxt, size_t dimension);
 
 Plaintext 
 generateMergeMask(CryptoContext<DCRTPoly> cc, size_t dimension, size_t segmentLength);

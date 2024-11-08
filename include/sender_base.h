@@ -5,7 +5,7 @@
 class BaseSender : public Sender {
 public:
   // constructor
-  BaseSender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam, ofstream& expStreamParam);
+  BaseSender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam);
 
   // public methods
   vector<Ciphertext<DCRTPoly>>
@@ -18,5 +18,8 @@ public:
   indexScenario(Ciphertext<DCRTPoly> queryCipher);
 
 protected:
+
+  void
+  computeSimilarityThread(Ciphertext<DCRTPoly> &queryCipher, Ciphertext<DCRTPoly> &similarityCipher, size_t databaseIndex);
 
 };
