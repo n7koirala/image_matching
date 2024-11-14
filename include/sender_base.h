@@ -11,6 +11,9 @@ public:
   vector<Ciphertext<DCRTPoly>>
   computeSimilarity(Ciphertext<DCRTPoly> queryCipher);
 
+  vector<Ciphertext<DCRTPoly>>
+  computeSimilarityAndMerge(Ciphertext<DCRTPoly> queryCipher);
+
   Ciphertext<DCRTPoly>
   membershipScenario(Ciphertext<DCRTPoly> queryCipher);
 
@@ -21,5 +24,8 @@ protected:
 
   void
   computeSimilarityThread(Ciphertext<DCRTPoly> &queryCipher, Ciphertext<DCRTPoly> &similarityCipher, size_t databaseIndex);
+
+  void
+  computeSimilarityAndMergeThread(Ciphertext<DCRTPoly> &queryCipher, Ciphertext<DCRTPoly> &mergedCipher, size_t startingIndex);
 
 };

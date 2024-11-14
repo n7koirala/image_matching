@@ -7,7 +7,7 @@
 
 // TODO: convert this into a command-line flag
 // TOOD: introdue error checking
-const bool READ_FROM_SERIAL = true;
+const bool READ_FROM_SERIAL = false;
 
 // similarity threshold value used to determine a match between vectors
 const double MATCH_THRESHOLD = 0.85;
