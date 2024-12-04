@@ -1,6 +1,7 @@
 FILEPATH="output/experiment.csv"
 
 # print .csv header for experiment file
+printf "Experimental Approach," >> $FILEPATH
 printf "Database Size," >> $FILEPATH
 printf "Query Encryption," >> $FILEPATH
 printf "Membership Computation," >> $FILEPATH
