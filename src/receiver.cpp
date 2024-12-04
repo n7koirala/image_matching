@@ -73,7 +73,7 @@ bool Receiver::decryptMembership(Ciphertext<DCRTPoly> membershipCipher) {
 }
 
 
-vector<size_t> Receiver::decryptIndexNaive(vector<Ciphertext<DCRTPoly>> indexCipher) {
+vector<size_t> Receiver::decryptIndex(vector<Ciphertext<DCRTPoly>> indexCipher) {
 
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   vector<size_t> outputValues;
@@ -94,7 +94,7 @@ vector<size_t> Receiver::decryptIndexNaive(vector<Ciphertext<DCRTPoly>> indexCip
   return outputValues;
 }
 
-
+/*
 vector<size_t> Receiver::decryptIndex(vector<Ciphertext<DCRTPoly>> rowCipher, vector<Ciphertext<DCRTPoly>> colCipher, size_t rowLength) {
   
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
@@ -137,6 +137,7 @@ vector<size_t> Receiver::decryptIndex(vector<Ciphertext<DCRTPoly>> rowCipher, ve
 
   return matchIndices;
 }
+ */
 
 // -------------------- PRIVATE FUNCTIONS --------------------
 

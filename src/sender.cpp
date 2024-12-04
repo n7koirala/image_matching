@@ -37,7 +37,7 @@ vector<Ciphertext<DCRTPoly>> Sender::computeSimilarity(vector<Ciphertext<DCRTPol
 }
 
 
-vector<Ciphertext<DCRTPoly>> Sender::indexScenarioNaive(vector<Ciphertext<DCRTPoly>> queryCipher) {
+vector<Ciphertext<DCRTPoly>> Sender::indexScenario(vector<Ciphertext<DCRTPoly>> queryCipher) {
 
   // compute similarity scores between query and database
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
@@ -51,7 +51,7 @@ vector<Ciphertext<DCRTPoly>> Sender::indexScenarioNaive(vector<Ciphertext<DCRTPo
 }
 
 
-Ciphertext<DCRTPoly> Sender::membershipScenarioNaive(vector<Ciphertext<DCRTPoly>> queryCipher) {
+Ciphertext<DCRTPoly> Sender::membershipScenario(vector<Ciphertext<DCRTPoly>> queryCipher) {
 
   // compute similarity scores between query and database
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
@@ -68,7 +68,7 @@ Ciphertext<DCRTPoly> Sender::membershipScenarioNaive(vector<Ciphertext<DCRTPoly>
   return membershipCipher;
 }
 
-
+/*
 Ciphertext<DCRTPoly> Sender::membershipScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength) {
 
   // compute similarity scores between query and database
@@ -114,6 +114,7 @@ Sender::indexScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength
   // return boolean (0/1) values dictating which rows and columns contain matches
   return make_tuple(rowCipher, colCipher);
 }
+ */
 
 // -------------------- PRIVATE FUNCTIONS --------------------
 
@@ -170,6 +171,7 @@ Ciphertext<DCRTPoly> Sender::generateQueryHelper(Ciphertext<DCRTPoly> queryCiphe
 
 
 vector<Ciphertext<DCRTPoly>> Sender::alphaNormRows(vector<Ciphertext<DCRTPoly>> scoreCipher, size_t alpha, size_t rowLength) {
+
   vector<Ciphertext<DCRTPoly>> alphaCipher(scoreCipher);
 
   for(size_t i = 0; i < alphaCipher.size(); i++) {
@@ -187,6 +189,7 @@ vector<Ciphertext<DCRTPoly>> Sender::alphaNormRows(vector<Ciphertext<DCRTPoly>> 
 
 // in current implementation, colLength is taken to be (batchSize / rowLength)
 vector<Ciphertext<DCRTPoly>> Sender::alphaNormColumns(vector<Ciphertext<DCRTPoly>> scoreCipher, size_t alpha, size_t rowLength) {
+
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t ciphersNeeded = ceil(double(scoreCipher.size() * rowLength) / double(batchSize));
   vector<Ciphertext<DCRTPoly>> colCipher(ciphersNeeded);

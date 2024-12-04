@@ -63,8 +63,10 @@ add_executable(ImageMatching
     src/vector_utils.cpp
     src/receiver.cpp
     src/receiver_base.cpp
+    src/receiver_grote.cpp
     src/enroller.cpp
     src/enroller_base.cpp
     src/sender.cpp
     src/sender_base.cpp
+    src/sender_grote.cpp
 )

@@ -5,9 +5,11 @@
 
 #include <string>
 
-// TODO: convert this into a command-line flag
-// TOOD: introdue error checking
+// TODO: make serialization into separate executable
 const bool READ_FROM_SERIAL = false;
+
+// TODO: convert this into a command-line arg
+const size_t APPROACH = 3;
 
 // similarity threshold value used to determine a match between vectors
 const double MATCH_THRESHOLD = 0.85;

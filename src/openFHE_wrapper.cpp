@@ -167,15 +167,11 @@ vector<Ciphertext<DCRTPoly>> OpenFHEWrapper::mergeCiphers(CryptoContext<DCRTPoly
   size_t neededCiphers = ceil(double(outputSize) / double(batchSize));
   size_t outputCipher;
   size_t outputSlot;
-
-  cout << "\tBeginning merge" << endl;
   
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < ctxts.size(); i++) {
     ctxts[i] = OpenFHEWrapper::mergeSingleCipher(cc, ctxts[i], dimension);
   }
-
-  cout << "\tIndividual ciphers merged" << endl;
 
   vector<Ciphertext<DCRTPoly>> mergedCipher(neededCiphers);
 
@@ -189,8 +185,6 @@ vector<Ciphertext<DCRTPoly>> OpenFHEWrapper::mergeCiphers(CryptoContext<DCRTPoly
       cc->EvalAddInPlace(mergedCipher[outputCipher], OpenFHEWrapper::binaryRotate(cc, ctxts[i], -outputSlot));
     }
   }
-
-  cout << "\tMerge completed" << endl;
 
   return mergedCipher;
 }

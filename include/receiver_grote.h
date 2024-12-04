@@ -3,17 +3,15 @@
 
 #pragma once
 
-#include "receiver.h"
+#include "receiver_base.h"
 
-class BaseReceiver : public Receiver {
+class GroteReceiver : public BaseReceiver {
 public:
   // constructor
-  BaseReceiver(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
+  GroteReceiver(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
               PrivateKey<DCRTPoly> skParam, size_t vectorParam);
 
   // public methods
-  Ciphertext<DCRTPoly> encryptQuery(vector<double> query);
-
-protected:
+  vector<size_t> decryptIndex(tuple<vector<Ciphertext<DCRTPoly>>, vector<Ciphertext<DCRTPoly>>> indexCipher);
 
 };

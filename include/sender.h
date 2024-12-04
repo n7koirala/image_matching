@@ -29,17 +29,17 @@ public:
   vector<Ciphertext<DCRTPoly>>
   computeSimilarity(vector<Ciphertext<DCRTPoly>> queryCipher);
 
+  Ciphertext<DCRTPoly>
+  membershipScenario(vector<Ciphertext<DCRTPoly>> queryCipher);
+
   vector<Ciphertext<DCRTPoly>>
-  indexScenarioNaive(vector<Ciphertext<DCRTPoly>> queryCipher);
+  indexScenario(vector<Ciphertext<DCRTPoly>> queryCipher);
 
-  Ciphertext<DCRTPoly>
-  membershipScenarioNaive(vector<Ciphertext<DCRTPoly>> queryCipher);
+  // Ciphertext<DCRTPoly>
+  // membershipScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength);
 
-  Ciphertext<DCRTPoly>
-  membershipScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength);
-
-  tuple<vector<Ciphertext<DCRTPoly>>, vector<Ciphertext<DCRTPoly>>>
-  indexScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength);
+  // tuple<vector<Ciphertext<DCRTPoly>>, vector<Ciphertext<DCRTPoly>>>
+  // indexScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength);
 
 protected:
   // private members

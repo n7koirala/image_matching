@@ -50,7 +50,8 @@ vector<Ciphertext<DCRTPoly>> BaseSender::computeSimilarityAndMerge(Ciphertext<DC
 Ciphertext<DCRTPoly> BaseSender::membershipScenario(Ciphertext<DCRTPoly> queryCipher) {
 
   // compute similarity scores between query and database
-  vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarityAndMerge(queryCipher);
+  vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
+  // vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarityAndMerge(queryCipher);
 
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
@@ -68,7 +69,8 @@ Ciphertext<DCRTPoly> BaseSender::membershipScenario(Ciphertext<DCRTPoly> queryCi
 vector<Ciphertext<DCRTPoly>> BaseSender::indexScenario(Ciphertext<DCRTPoly> queryCipher) {
 
   // compute similarity scores between query and database
-  vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarityAndMerge(queryCipher);
+  vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
+  // vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarityAndMerge(queryCipher);
   
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
