@@ -44,7 +44,7 @@ vector<Ciphertext<DCRTPoly>> Sender::indexScenario(vector<Ciphertext<DCRTPoly>> 
   
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
-    scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, CHEBYSHEV_DEGREE);
+    scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, SIGN_DEPTH);
   }
   
   return scoreCipher;
@@ -58,7 +58,7 @@ Ciphertext<DCRTPoly> Sender::membershipScenario(vector<Ciphertext<DCRTPoly>> que
   
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
-    scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, CHEBYSHEV_DEGREE);
+    scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, SIGN_DEPTH);
   }
   
   // sum up all values into single result value at first slot of first cipher
@@ -78,7 +78,7 @@ Ciphertext<DCRTPoly> Sender::membershipScenario(vector<Ciphertext<DCRTPoly>> que
 
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
-    scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, CHEBYSHEV_DEGREE);
+    scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, SIGN_DEPTH);
   }
   
   // sum up all values into single result value at first slot of first cipher
@@ -103,12 +103,12 @@ Sender::indexScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength
 
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < rowCipher.size(); i++) {
-    rowCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, CHEBYSHEV_DEGREE);
+    rowCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, SIGN_DEPTH);
   }
 
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < colCipher.size(); i++) {
-    colCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, CHEBYSHEV_DEGREE);
+    colCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, SIGN_DEPTH);
   }
 
   // return boolean (0/1) values dictating which rows and columns contain matches

@@ -26,7 +26,7 @@ Ciphertext<DCRTPoly> GroteSender::membershipScenario(Ciphertext<DCRTPoly> queryC
 
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
-    scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, CHEBYSHEV_DEGREE);
+    scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, SIGN_DEPTH);
   }
   
   // sum up all values into single result value at first slot of first cipher
@@ -61,12 +61,12 @@ GroteSender::indexScenario(Ciphertext<DCRTPoly> queryCipher) {
 
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < rowCipher.size(); i++) {
-    rowCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, rowCipher[i], adjustedThreshold, CHEBYSHEV_DEGREE);
+    rowCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, rowCipher[i], adjustedThreshold, SIGN_DEPTH);
   }
 
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < colCipher.size(); i++) {
-    colCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, colCipher[i], adjustedThreshold, CHEBYSHEV_DEGREE);
+    colCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, colCipher[i], adjustedThreshold, SIGN_DEPTH);
   }
 
   // return boolean (0/1) values dictating which rows and columns contain matches

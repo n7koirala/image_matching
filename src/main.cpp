@@ -165,7 +165,6 @@ int main(int argc, char *argv[]) {
   // OpenFHEWrapper::printSchemeDetails(parameters, cc);
   cout << "CKKS scheme set up (batch size = " << batchSize << ")" << endl;
 
-
   // Log number of vectors to experiment file
   expStream << numVectors << "," << flush;
 

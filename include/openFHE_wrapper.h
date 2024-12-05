@@ -10,6 +10,9 @@ using namespace lbcrypto;
 
 namespace OpenFHEWrapper {
 
+size_t 
+computeRequiredDepth(size_t approach);
+
 void 
 printSchemeDetails(CCParams<CryptoContextCKKSRNS> parameters, CryptoContext<DCRTPoly> cc);
 
@@ -35,7 +38,7 @@ Ciphertext<DCRTPoly>
 sumAllSlots(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt);
 
 Ciphertext<DCRTPoly>
-chebyshevCompare(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, double delta, size_t polyDegree);
+chebyshevCompare(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, double delta, size_t signDepth);
 
 vector<Ciphertext<DCRTPoly>> 
 mergeCiphers(CryptoContext<DCRTPoly> cc, vector<Ciphertext<DCRTPoly>> &ctxts, size_t dimension);

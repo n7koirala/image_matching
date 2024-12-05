@@ -1,5 +1,25 @@
 #include "../include/openFHE_wrapper.h"
 
+size_t OpenFHEWrapper::computeRequiredDepth(size_t approach) {
+
+  // size_t depth = 0;
+
+  switch(approach) {
+
+    case 1: // novel stacked MVM
+      break;
+
+    case 2: // literature baseline
+      break;
+
+    case 3: // GROTE group testing
+      break;
+
+  }
+
+  return 0;
+}
+
 // output relevant metadata of a given CKKS scheme
 void OpenFHEWrapper::printSchemeDetails(CCParams<CryptoContextCKKSRNS> parameters, CryptoContext<DCRTPoly> cc) {
   cout << "batch size: " << cc->GetEncodingParams()->GetBatchSize() << endl;
@@ -132,12 +152,22 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::sumAllSlots(CryptoContext<DCRTPoly> cc, Cip
   return ctxt;
 }
 
-// implements the compare function comp(x, d) = { 1 if x>=d, else 0 if x<d }
-// Relationship with multiplicative depth described at the below link
-// https://github.com/openfheorg/openfhe-development/blob/main/src/pke/examples/FUNCTION_EVALUATION.md
+// Approximates the piecewise comparison function x = { 2 if x >= delta ; 0 if x < delta }
 Ciphertext<DCRTPoly>
-OpenFHEWrapper::chebyshevCompare(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, double delta, size_t polyDegree) {
+OpenFHEWrapper::chebyshevCompare(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, double delta, size_t signDepth) {
 
+  if (signDepth < 7 || signDepth > 15) {
+    cerr << "Error: chebshevCompare requires a depth parameter between 7 and 15" << endl;
+    return ctxt;
+  }
+
+  // Relationship between depth and polynomial degree described at the below link
+  // https://github.com/openfheorg/openfhe-development/blob/main/src/pke/examples/FUNCTION_EVALUATION.md
+  const vector<int> DEPTH_TO_DEGREE({
+    -1, -1, -1, -1, 5, 13, 27, 59, 119, 247, 495, 1007, 2031
+  });
+
+  // Coefficients for sign-approximating polynomial f_3 given in Cheon, 2019
   const vector<double> SIGN_COEFS({
     0.0, 
     35.0 / 16.0,  
@@ -149,8 +179,17 @@ OpenFHEWrapper::chebyshevCompare(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly
     -5.0 / 16.0
   });
 
+  // compute Chebyshev approximation of sign function first for steeper slope near x=0
+  // set to use a multiplicative depth of (signDepth - 3) 
+  size_t polyDegree = DEPTH_TO_DEGREE[signDepth - 3];
   ctxt = cc->EvalChebyshevFunction([&delta](double x) -> double { return (x >= delta) ? 1 : -1; }, ctxt, -1, 1, polyDegree);
+
+  // compute Cheon's polynomial approximation for smoother zeroing near x=-1 and x=1
+  // requires multiplicative depth of 3
+  // TODO: consider using a polynomial of depth 2 from same paper
   ctxt = cc->EvalPoly(ctxt, SIGN_COEFS);
+
+  // shift range from [-1,1] to [0,2] fulfilling requirements for additive VAF
   cc->EvalAddInPlace(ctxt, 1.0);
 
   return ctxt;

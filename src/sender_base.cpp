@@ -55,7 +55,7 @@ Ciphertext<DCRTPoly> BaseSender::membershipScenario(Ciphertext<DCRTPoly> queryCi
 
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
-    scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, CHEBYSHEV_DEGREE);
+    scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, SIGN_DEPTH);
   }
   
   // sum up all values into single result value at first slot of first cipher
@@ -74,7 +74,7 @@ vector<Ciphertext<DCRTPoly>> BaseSender::indexScenario(Ciphertext<DCRTPoly> quer
   
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
-    scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, CHEBYSHEV_DEGREE);
+    scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, SIGN_DEPTH);
   }
   
   return scoreCipher;
