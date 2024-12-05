@@ -36,8 +36,10 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  // Compute required multiplicative depth based on approach used
+  // Write approach used to stdout and experiment .csv file
+  size_t multDepth = OpenFHEWrapper::computeRequiredDepth(APPROACH);
   switch(APPROACH) {
-
     case 1:
       cout << "Experimental approach: novel (stacked MVM)" << endl;
       expStream << "Novel," << flush;
@@ -130,7 +132,7 @@ int main(int argc, char *argv[]) {
 
     CCParams<CryptoContextCKKSRNS> parameters;
     parameters.SetSecurityLevel(HEStd_128_classic);
-    parameters.SetMultiplicativeDepth(20);
+    parameters.SetMultiplicativeDepth(multDepth);
     parameters.SetScalingModSize(45);
     parameters.SetScalingTechnique(FIXEDMANUAL);
 
@@ -163,7 +165,7 @@ int main(int argc, char *argv[]) {
   }
 
   // OpenFHEWrapper::printSchemeDetails(parameters, cc);
-  cout << "CKKS scheme set up (batch size = " << batchSize << ")" << endl;
+  cout << "CKKS scheme set up (depth = " << multDepth << ", batch size = " << batchSize << ")" << endl;
 
   // Log number of vectors to experiment file
   expStream << numVectors << "," << flush;
@@ -367,6 +369,8 @@ int main(int argc, char *argv[]) {
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl;
     expStream << duration.count() << "," << flush;
+
+    OpenFHEWrapper::printCipherDetails(membershipCipher);
 
     cout << "[Receiver]\tDecrypting membership results... " << flush;
     start = chrono::steady_clock::now();

@@ -1,23 +1,35 @@
 #include "../include/openFHE_wrapper.h"
 
+// Function to compute required multiplicative depth of system
+// Based on algorithmic approach, precision parameters for comparison and group testing functions
+// Excessively commented as a reference to explain specifically where multiplications are being used in each approach
 size_t OpenFHEWrapper::computeRequiredDepth(size_t approach) {
 
-  // size_t depth = 0;
+  size_t depth = 0;
 
   switch(approach) {
 
-    case 1: // novel stacked MVM
+    case 1: // novel stacked MVM approach
+      depth += 1;           // one mult required for score computation
+      depth += SIGN_DEPTH;  // mults required for threshold comparison
       break;
 
     case 2: // literature baseline
+      depth += 1;           // one mult required for score computation
+      depth += 2;           // two mults required for merge operation
+      depth += SIGN_DEPTH;  // mults required for threshold comparison
       break;
 
     case 3: // GROTE group testing
+      depth += 1;           // one mult required for score computation
+      depth += 2;           // two mults required for merge operation
+      depth += ALPHA;       // mults required for alpha norm operation
+      depth += 3;           // TODO: figure out where these are consumed
+      depth += SIGN_DEPTH;  // mults required for threshold comparison
       break;
-
   }
 
-  return 0;
+  return depth;
 }
 
 // output relevant metadata of a given CKKS scheme
