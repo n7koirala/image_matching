@@ -19,9 +19,6 @@ vector<size_t> GroteReceiver::decryptIndex(tuple<vector<Ciphertext<DCRTPoly>>, v
   // decrypt results
   auto [rowCipher, colCipher] = indexCipher;
 
-  OpenFHEWrapper::printCipherDetails(rowCipher[0]);
-  OpenFHEWrapper::printCipherDetails(colCipher[0]);
-
   vector<double> rowVals = OpenFHEWrapper::decryptVectorToVector(cc, sk, rowCipher);
   vector<double> colVals = OpenFHEWrapper::decryptVectorToVector(cc, sk, colCipher);
 

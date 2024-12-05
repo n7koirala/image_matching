@@ -12,11 +12,13 @@ if [[ -e "serial/" && -d "serial/" ]]; then
     rm -r serial/
 fi
 
-for dataset in ../test/2_*.dat; do 
-    if [ -e "$dataset" ]; then
-        # ./ImageMatching "$dataset" > /dev/null
-        ./ImageMatching "$dataset" > output/out.txt
-        rm -r serial/
+for dataset in ../test/2^*.dat; do
+    if [[ -e "$dataset" && "$dataset" != "../test/2^20.dat" ]]; then
+        for alg in 1 2 3; do
+            # echo "./ImageMatching $dataset $alg > output/out.txt"
+            ./ImageMatching "$dataset" "$alg" > output/out.txt
+            rm -r serial/
+        done
     fi
 done
 

@@ -27,7 +27,34 @@ using namespace std;
 int main(int argc, char *argv[]) {
 
   cout << "\tRunning Setup Operations:" << endl;
-  
+
+  // Parse command line arg for experimental vector dataset
+  ifstream fileStream;
+  if (argc > 1) {
+    fileStream.open(argv[1], ios::in);
+  } else {
+    fileStream.open(DEFAULT_VECTORS_FILE, ios::in);
+  }
+  if (!fileStream.is_open()) {
+    cerr << "Error: input file not found" << endl;
+    return 1;
+  }
+  size_t numVectors;
+  fileStream >> numVectors;
+
+  // Parse command line arg for experimental approach
+  size_t expApproach;
+  if (argc > 2) {
+    expApproach = atoi(argv[2]);
+  } else {
+    cerr << "Error: approach argument not given" << endl;
+    return 1;
+  }
+  if (expApproach < 1 || expApproach > 3) {
+    cerr << "Error: approach must be 1, 2, or 3" << endl;
+    return 1;
+  }
+
   // Open global experiment-tracking file
   ofstream expStream;
   expStream.open("output/experiment.csv", ios::app);
@@ -38,11 +65,11 @@ int main(int argc, char *argv[]) {
 
   // Compute required multiplicative depth based on approach used
   // Write approach used to stdout and experiment .csv file
-  size_t multDepth = OpenFHEWrapper::computeRequiredDepth(APPROACH);
-  switch(APPROACH) {
+  size_t multDepth = OpenFHEWrapper::computeRequiredDepth(expApproach);
+  switch(expApproach) {
     case 1:
-      cout << "Experimental approach: novel (stacked MVM)" << endl;
-      expStream << "Novel," << flush;
+      cout << "Experimental approach: stacked MVM (novel)" << endl;
+      expStream << "Stacked MVM," << flush;
       break;
 
     case 2:
@@ -55,22 +82,6 @@ int main(int argc, char *argv[]) {
       expStream << "GROTE," << flush;
       break;
   }
-
-  // Open input file
-  ifstream fileStream;
-  if (argc > 1) {
-    fileStream.open(argv[1], ios::in);
-  } else {
-    fileStream.open(DEFAULT_VECTORS_FILE, ios::in);
-  }
-
-  if (!fileStream.is_open()) {
-    cerr << "Error: input file not found" << endl;
-    return 1;
-  }
-  size_t numVectors;
-  fileStream >> numVectors;
-
 
   // Declare CKKS scheme elements
   CryptoContext<DCRTPoly> cc;
@@ -191,10 +202,10 @@ int main(int argc, char *argv[]) {
     cout << "Encrypting database vectors... " << endl;
     // Classes stored on heap to allow for cleaner polymorphism
     Enroller *enroller;
-    if (APPROACH == 1) {
+    if (expApproach == 1) {
       enroller = new Enroller(cc, pk, numVectors);
       static_cast<Enroller*>(enroller)->serializeDB(plaintextVectors);
-    } else if (APPROACH == 2 || APPROACH == 3) {
+    } else if (expApproach == 2 || expApproach == 3) {
       enroller = new BaseEnroller(cc, pk, numVectors);
       static_cast<BaseEnroller*>(enroller)->serializeDB(plaintextVectors);
     }
@@ -248,7 +259,7 @@ int main(int argc, char *argv[]) {
   bool membershipResult;
   vector<size_t> indexResults;
 
-  if (APPROACH == 1) {
+  if (expApproach == 1) {
     
     // Allocate receiver and sender objects
     receiver = new Receiver(cc, pk, sk, numVectors);
@@ -297,7 +308,7 @@ int main(int argc, char *argv[]) {
     cout << "done (" << duration.count() << "s)" << endl;
     expStream << duration.count() << "," << flush;
 
-  } else if (APPROACH == 2) {
+  } else if (expApproach == 2) {
     
     // Allocate receiver and sender objects
     receiver = new BaseReceiver(cc, pk, sk, numVectors);
@@ -346,7 +357,7 @@ int main(int argc, char *argv[]) {
     cout << "done (" << duration.count() << "s)" << endl;
     expStream << duration.count() << "," << flush;
 
-  } else if (APPROACH == 3) {
+  } else if (expApproach == 3) {
     
     // Allocate receiver and sender objects
     receiver = new GroteReceiver(cc, pk, sk, numVectors);
@@ -369,8 +380,6 @@ int main(int argc, char *argv[]) {
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl;
     expStream << duration.count() << "," << flush;
-
-    OpenFHEWrapper::printCipherDetails(membershipCipher);
 
     cout << "[Receiver]\tDecrypting membership results... " << flush;
     start = chrono::steady_clock::now();

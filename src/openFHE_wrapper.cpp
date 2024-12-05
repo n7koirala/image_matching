@@ -173,7 +173,7 @@ OpenFHEWrapper::chebyshevCompare(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly
     return ctxt;
   }
 
-  // Relationship between depth and polynomial degree described at the below link
+  // Relationship between required depth and Chebyshev polynomial degree described at the below link
   // https://github.com/openfheorg/openfhe-development/blob/main/src/pke/examples/FUNCTION_EVALUATION.md
   const vector<int> DEPTH_TO_DEGREE({
     -1, -1, -1, -1, 5, 13, 27, 59, 119, 247, 495, 1007, 2031
@@ -201,7 +201,7 @@ OpenFHEWrapper::chebyshevCompare(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly
   // TODO: consider using a polynomial of depth 2 from same paper
   ctxt = cc->EvalPoly(ctxt, SIGN_COEFS);
 
-  // shift range from [-1,1] to [0,2] fulfilling requirements for additive VAF
+  // shift range from [-1,1] to [0,2] so we can use this as additive VAF
   cc->EvalAddInPlace(ctxt, 1.0);
 
   return ctxt;
