@@ -5,17 +5,16 @@
 
 #include <string>
 
-// TODO: convert this into a command-line flag
-// TOOD: introdue error checking
+// TODO: make serialization into separate executable
 const bool READ_FROM_SERIAL = false;
 
 // similarity threshold value used to determine a match between vectors
 const double MATCH_THRESHOLD = 0.85;
 
-// Degree reached by the sign-approximating Chebyshev polynomial
+// Degree required by the sign-approximating Chebyshev polynomial
 // Relationship with multiplicative depth described at the below link
 // https://github.com/openfheorg/openfhe-development/blob/main/src/pke/examples/FUNCTION_EVALUATION.md
-const size_t CHEBYSHEV_DEGREE = 119;
+const size_t SIGN_DEPTH = 10;
 
 // dimension (length) of inputted query / database vectors
 const size_t VECTOR_DIM = 512;

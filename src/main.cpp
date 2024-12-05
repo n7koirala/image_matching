@@ -1,7 +1,12 @@
 #include "../include/config.h"
 #include "../include/receiver.h"
+#include "../include/receiver_base.h"
+#include "../include/receiver_grote.h"
 #include "../include/enroller.h"
+#include "../include/enroller_base.h"
 #include "../include/sender.h"
+#include "../include/sender_base.h"
+#include "../include/sender_grote.h"
 #include "../include/vector_utils.h"
 #include "../include/openFHE_wrapper.h"
 #include "openfhe.h"
@@ -21,35 +26,62 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-  cout << "[main.cpp]\t\tMain execution entered..." << endl;
+  cout << "\tRunning Setup Operations:" << endl;
 
-  chrono::steady_clock::time_point start, end, queryStart, queryEnd;
-  chrono::duration<double> duration;
-  
-  // Open global experiment-tracking file
-  ofstream expStream;
-  expStream.open("output/experiment.tsv", ios::app);
-  if (!expStream.is_open()) {
-    cerr << "[main.cpp]\t\tError: experiment file not found" << endl;
-    return 1;
-  }
-
-  // Open input file
+  // Parse command line arg for experimental vector dataset
   ifstream fileStream;
   if (argc > 1) {
     fileStream.open(argv[1], ios::in);
   } else {
     fileStream.open(DEFAULT_VECTORS_FILE, ios::in);
   }
-
   if (!fileStream.is_open()) {
-    cerr << "[main.cpp]\t\tError: input file not found" << endl;
+    cerr << "Error: input file not found" << endl;
     return 1;
   }
-
   size_t numVectors;
   fileStream >> numVectors;
 
+  // Parse command line arg for experimental approach
+  size_t expApproach;
+  if (argc > 2) {
+    expApproach = atoi(argv[2]);
+  } else {
+    cerr << "Error: approach argument not given" << endl;
+    return 1;
+  }
+  if (expApproach < 1 || expApproach > 3) {
+    cerr << "Error: approach must be 1, 2, or 3" << endl;
+    return 1;
+  }
+
+  // Open global experiment-tracking file
+  ofstream expStream;
+  expStream.open("output/experiment.csv", ios::app);
+  if (!expStream.is_open()) {
+    cerr << "Error: experiment file not found" << endl;
+    return 1;
+  }
+
+  // Compute required multiplicative depth based on approach used
+  // Write approach used to stdout and experiment .csv file
+  size_t multDepth = OpenFHEWrapper::computeRequiredDepth(expApproach);
+  switch(expApproach) {
+    case 1:
+      cout << "Experimental approach: stacked MVM (novel)" << endl;
+      expStream << "Stacked MVM," << flush;
+      break;
+
+    case 2:
+      cout << "Experimental approach: literature baseline" << endl;
+      expStream << "Baseline," << flush;
+      break;
+
+    case 3:
+      cout << "Experimental approach: GROTE (CODASPY paper)" << endl;
+      expStream << "GROTE," << flush;
+      break;
+  }
 
   // Declare CKKS scheme elements
   CryptoContext<DCRTPoly> cc;
@@ -60,7 +92,9 @@ int main(int argc, char *argv[]) {
   PrivateKey<DCRTPoly> sk;
   size_t batchSize;
 
-  if (READ_FROM_SERIAL) { // Deserialize scheme context and keys if already serialized
+
+  // Deserialize scheme context and keys if already serialized
+  if (READ_FROM_SERIAL) {
   
     if(!Serial::DeserializeFromFile("serial/cryptocontext.bin", cc, SerType::BINARY)) {
       cerr << "Error deserializing CryptoContext" << endl;
@@ -70,7 +104,6 @@ int main(int argc, char *argv[]) {
     if (!Serial::DeserializeFromFile("serial/publickey.bin", pk, SerType::BINARY)) {
       cerr << "Error deserializing public key" << endl;
     }
-
     
     if (!Serial::DeserializeFromFile("serial/privatekey.bin", sk, SerType::BINARY)) {
       cerr << "Error deserializing private key" << endl;
@@ -110,7 +143,7 @@ int main(int argc, char *argv[]) {
 
     CCParams<CryptoContextCKKSRNS> parameters;
     parameters.SetSecurityLevel(HEStd_128_classic);
-    parameters.SetMultiplicativeDepth(12);
+    parameters.SetMultiplicativeDepth(multDepth);
     parameters.SetScalingModSize(45);
     parameters.SetScalingTechnique(FIXEDMANUAL);
 
@@ -122,69 +155,61 @@ int main(int argc, char *argv[]) {
 
     batchSize = cc->GetEncodingParams()->GetBatchSize();
 
-    start = chrono::steady_clock::now();
-    cout << "[main.cpp]\t\tGenerating key pair... " << flush;
+    cout << "Generating key pair... " << endl;
     auto keyPair = cc->KeyGen();
     pk = keyPair.publicKey;
     sk = keyPair.secretKey;
-    cout << "done" << endl;
 
-    cout << "[main.cpp]\t\tGenerating mult keys... " << flush;
+    cout << "Generating mult keys... " << endl;
     cc->EvalMultKeyGen(sk);
-    cout << "done" << endl;
 
-    cout << "[main.cpp]\t\tGenerating sum keys... " << flush;
+    cout << "Generating sum keys... " << endl;
     cc->EvalSumKeyGen(sk);
-    cout << "done" << endl;
 
-    cout << "[main.cpp]\t\tGenerating rotation keys... " << flush;
+    cout << "Generating rotation keys... " << endl;
     vector<int> binaryRotationFactors;
     for(int i = 1; i < int(batchSize); i *= 2) {
       binaryRotationFactors.push_back(i);
       binaryRotationFactors.push_back(-i);
     }
     cc->EvalRotateKeyGen(sk, binaryRotationFactors);
-    end = chrono::steady_clock::now();
-    duration = end - start;
-    cout << "done (Total keygen time:  " << duration.count() << "s)" << endl;
   }
 
   // OpenFHEWrapper::printSchemeDetails(parameters, cc);
-  cout << "[main.cpp]\t\tCKKS scheme set up (batch size = " << batchSize << ")" << endl;
+  cout << "CKKS scheme set up (depth = " << multDepth << ", batch size = " << batchSize << ")" << endl;
 
-  // Experiment logging
-  expStream << numVectors << '\t' << flush;
-  expStream << duration.count() << '\t' << flush;
+  // Log number of vectors to experiment file
+  expStream << numVectors << "," << flush;
+
 
   // Read in query vector from file
   vector<double> queryVector(VECTOR_DIM);
   for (size_t i = 0; i < VECTOR_DIM; i++) {
     fileStream >> queryVector[i];
   }
-
-  // Read in database vectors from file
-  vector<vector<double>> plaintextVectors(numVectors, vector<double>(VECTOR_DIM));
-  for (size_t i = 0; i < numVectors; i++) {
-    for (size_t j = 0; j < VECTOR_DIM; j++) {
-      fileStream >> plaintextVectors[i][j];
-    }
-  }
-  fileStream.close();
-
-  // Initialize receiver, enroller, and sender objects -- only the receiver possesses the secret key
-  Receiver receiver(cc, pk, sk, numVectors, expStream);
-  Enroller enroller(cc, pk, numVectors);
-  Sender sender(cc, pk, numVectors, expStream);
-
+  
   // Serialize the context, keys and database vectors if not already
   if (!READ_FROM_SERIAL) {
-    cout << "[main.cpp]\t\tEncrypting database vectors... " << flush;
-    start = chrono::steady_clock::now();
-    enroller.serializeDB(plaintextVectors);
-    end = chrono::steady_clock::now();
-    duration = end - start;
-    cout << "done (" << duration.count() << "s)" << endl;
-    expStream << duration.count() << '\t' << flush;
+    
+    cout << "Reading database vectors from file... " << endl;
+    vector<vector<double>> plaintextVectors(numVectors, vector<double>(VECTOR_DIM));
+    for (size_t i = 0; i < numVectors; i++) {
+      for (size_t j = 0; j < VECTOR_DIM; j++) {
+        fileStream >> plaintextVectors[i][j];
+      }
+    }
+
+    cout << "Encrypting database vectors... " << endl;
+    // Classes stored on heap to allow for cleaner polymorphism
+    Enroller *enroller;
+    if (expApproach == 1) {
+      enroller = new Enroller(cc, pk, numVectors);
+      static_cast<Enroller*>(enroller)->serializeDB(plaintextVectors);
+    } else if (expApproach == 2 || expApproach == 3) {
+      enroller = new BaseEnroller(cc, pk, numVectors);
+      static_cast<BaseEnroller*>(enroller)->serializeDB(plaintextVectors);
+    }
+    delete enroller;
 
     Serial::SerializeToFile("serial/cryptocontext.bin", cc, SerType::BINARY);
     Serial::SerializeToFile("serial/publickey.bin", pk, SerType::BINARY);
@@ -222,45 +247,189 @@ int main(int argc, char *argv[]) {
       cerr << "Error serializing sum keys" << endl;
     }
   }
+  fileStream.close();
   
-  // PER-QUERY OPERATIONS BEGIN HERE
-  queryStart = chrono::steady_clock::now();
+  // Individual-query experiments begin here
+  cout << endl << "\tRunning Experiments:" << endl;
+  chrono::steady_clock::time_point start, end;
+  chrono::duration<double> duration;
 
-  // Normalize, batch, and encrypt the query vector
-  cout << "[main.cpp]\t\tEncrypting query vector... " << flush;
-  start = chrono::steady_clock::now();
-  vector<Ciphertext<DCRTPoly>> queryCipher = receiver.encryptQuery(queryVector);
-  end = chrono::steady_clock::now();
-  duration = end - start;
-  cout << "done (" << duration.count() << "s)" << endl;
-  expStream << duration.count() << '\t' << flush;
+  Receiver *receiver;
+  Sender *sender;
+  bool membershipResult;
+  vector<size_t> indexResults;
 
-  // Perform membership scenario
-  cout << "[main.cpp]\t\tRunning membership scenario... " << endl;
-  start = chrono::steady_clock::now();
-  Ciphertext<DCRTPoly> membershipCipher = sender.membershipScenarioNaive(queryCipher);
-  end = chrono::steady_clock::now();
-  duration = end - start;
-  cout << "done (" << duration.count() << "s)" << endl;
-  bool membershipResult = receiver.decryptMembership(membershipCipher);
-  cout << "Results: " << membershipResult << endl << endl;
+  if (expApproach == 1) {
+    
+    // Allocate receiver and sender objects
+    receiver = new Receiver(cc, pk, sk, numVectors);
+    sender = new Sender(cc, pk, numVectors);
 
-  // Perform index scenario
-  cout << "[main.cpp]\t\tRunning index scenario... " << endl;
-  start = chrono::steady_clock::now();
-  vector<Ciphertext<DCRTPoly>> indexCipher = sender.indexScenarioNaive(queryCipher);
-  end = chrono::steady_clock::now();
-  duration = end - start;
-  cout << "done (" << duration.count() << "s)" << endl;
-  vector<size_t> indexResults = receiver.decryptIndexNaive(indexCipher);
-  cout << "Results: " << indexResults << endl << endl;
+    // Normalize, batch, and encrypt the query vector
+    cout << "[Receiver]\tEncrypting query vector... " << flush;
+    start = chrono::steady_clock::now();
+    auto queryCipher = static_cast<Receiver*>(receiver)->encryptQuery(queryVector);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
 
-  queryEnd = chrono::steady_clock::now();
-  duration = queryEnd - queryStart;
-  // cout << duration.count() << endl;
+    // Perform membership scenario
+    cout << "[Sender]\tComputing membership scenario... " << flush;
+    start = chrono::steady_clock::now();
+    Ciphertext<DCRTPoly> membershipCipher = static_cast<Sender*>(sender)->membershipScenario(queryCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
 
-  // Experiment logging
+    cout << "[Receiver]\tDecrypting membership results... " << flush;
+    start = chrono::steady_clock::now();
+    membershipResult = static_cast<Receiver*>(receiver)->decryptMembership(membershipCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+    // Perform index scenario
+    cout << "[Sender]\tComputing index scenario... " << flush;
+    start = chrono::steady_clock::now();
+    auto indexCipher = static_cast<Sender*>(sender)->indexScenario(queryCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    expStream << duration.count() << "," << flush;
+    cout << "done (" << duration.count() << "s)" << endl;
+
+    cout << "[Receiver]\tDecrypting index results... " << flush;
+    start = chrono::steady_clock::now();
+    indexResults = static_cast<Receiver*>(receiver)->decryptIndex(indexCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+  } else if (expApproach == 2) {
+    
+    // Allocate receiver and sender objects
+    receiver = new BaseReceiver(cc, pk, sk, numVectors);
+    sender = new BaseSender(cc, pk, numVectors);
+
+    // Normalize, batch, and encrypt the query vector
+    cout << "[Receiver]\tEncrypting query vector... " << flush;
+    start = chrono::steady_clock::now();
+    auto queryCipher = static_cast<BaseReceiver*>(receiver)->encryptQuery(queryVector);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+    // Perform membership scenario
+    cout << "[Sender]\tComputing membership scenario... " << flush;
+    start = chrono::steady_clock::now();
+    Ciphertext<DCRTPoly> membershipCipher = static_cast<BaseSender*>(sender)->membershipScenario(queryCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+    cout << "[Receiver]\tDecrypting membership results... " << flush;
+    start = chrono::steady_clock::now();
+    membershipResult = static_cast<BaseReceiver*>(receiver)->decryptMembership(membershipCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+    // Perform index scenario
+    cout << "[Sender]\tComputing index scenario... " << flush;
+    start = chrono::steady_clock::now();
+    auto indexCipher = static_cast<BaseSender*>(sender)->indexScenario(queryCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    expStream << duration.count() << "," << flush;
+    cout << "done (" << duration.count() << "s)" << endl;
+
+    cout << "[Receiver]\tDecrypting index results... " << flush;
+    start = chrono::steady_clock::now();
+    indexResults = static_cast<BaseReceiver*>(receiver)->decryptIndex(indexCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+  } else if (expApproach == 3) {
+    
+    // Allocate receiver and sender objects
+    receiver = new GroteReceiver(cc, pk, sk, numVectors);
+    sender = new GroteSender(cc, pk, numVectors);
+
+    // Normalize, batch, and encrypt the query vector
+    cout << "[Receiver]\tEncrypting query vector... " << flush;
+    start = chrono::steady_clock::now();
+    auto queryCipher = static_cast<GroteReceiver*>(receiver)->encryptQuery(queryVector);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+    // Perform membership scenario
+    cout << "[Sender]\tComputing membership scenario... " << flush;
+    start = chrono::steady_clock::now();
+    Ciphertext<DCRTPoly> membershipCipher = static_cast<GroteSender*>(sender)->membershipScenario(queryCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+    cout << "[Receiver]\tDecrypting membership results... " << flush;
+    start = chrono::steady_clock::now();
+    membershipResult = static_cast<GroteReceiver*>(receiver)->decryptMembership(membershipCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+    // Perform index scenario
+    cout << "[Sender]\tComputing index scenario... " << flush;
+    start = chrono::steady_clock::now();
+    auto indexCipher = static_cast<GroteSender*>(sender)->indexScenario(queryCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    expStream << duration.count() << "," << flush;
+    cout << "done (" << duration.count() << "s)" << endl;
+
+    cout << "[Receiver]\tDecrypting index results... " << flush;
+    start = chrono::steady_clock::now();
+    indexResults = static_cast<GroteReceiver*>(receiver)->decryptIndex(indexCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+  }
+
+  // Displaying query results
+  // The dataset-generation script creates datasets of size N with matches at indices 2 and N-1
+  cout << endl << "\tDisplaying Query Results:" << endl;
+  cout << "Membership scenario: " << flush;
+  if (membershipResult) {
+    cout << "true" << endl;
+    expStream << "true" << "," << flush;
+  } else {
+    cout << "false" << endl;
+    expStream << "false" << "," << flush;
+  }
+  cout << "Index scenario: " << flush;
+  cout << indexResults << endl;
+  expStream << indexResults << "," << flush;
+
+  // Program cleanup
   expStream << endl;
   expStream.close();
+
+  delete receiver;
+  delete sender;
+
+  cout << endl << "\tProgram successfully terminated" << endl;
   return 0;
 }

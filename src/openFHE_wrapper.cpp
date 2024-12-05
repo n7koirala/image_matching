@@ -1,5 +1,37 @@
 #include "../include/openFHE_wrapper.h"
 
+// Function to compute required multiplicative depth of system
+// Based on algorithmic approach, precision parameters for comparison and group testing functions
+// Excessively commented as a reference to explain specifically where multiplications are being used in each approach
+size_t OpenFHEWrapper::computeRequiredDepth(size_t approach) {
+
+  size_t depth = 0;
+
+  switch(approach) {
+
+    case 1: // novel stacked MVM approach
+      depth += 1;           // one mult required for score computation
+      depth += SIGN_DEPTH;  // mults required for threshold comparison
+      break;
+
+    case 2: // literature baseline
+      depth += 1;           // one mult required for score computation
+      depth += 2;           // two mults required for merge operation
+      depth += SIGN_DEPTH;  // mults required for threshold comparison
+      break;
+
+    case 3: // GROTE group testing
+      depth += 1;           // one mult required for score computation
+      depth += 2;           // two mults required for merge operation
+      depth += ALPHA;       // mults required for alpha norm operation
+      depth += 3;           // TODO: figure out where these are consumed
+      depth += SIGN_DEPTH;  // mults required for threshold comparison
+      break;
+  }
+
+  return depth;
+}
+
 // output relevant metadata of a given CKKS scheme
 void OpenFHEWrapper::printSchemeDetails(CCParams<CryptoContextCKKSRNS> parameters, CryptoContext<DCRTPoly> cc) {
   cout << "batch size: " << cc->GetEncodingParams()->GetBatchSize() << endl;
@@ -132,12 +164,22 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::sumAllSlots(CryptoContext<DCRTPoly> cc, Cip
   return ctxt;
 }
 
-// implements the compare function comp(x, d) = { 1 if x>=d, else 0 if x<d }
-// Relationship with multiplicative depth described at the below link
-// https://github.com/openfheorg/openfhe-development/blob/main/src/pke/examples/FUNCTION_EVALUATION.md
+// Approximates the piecewise comparison function x = { 2 if x >= delta ; 0 if x < delta }
 Ciphertext<DCRTPoly>
-OpenFHEWrapper::chebyshevCompare(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, double delta, size_t polyDegree) {
+OpenFHEWrapper::chebyshevCompare(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, double delta, size_t signDepth) {
 
+  if (signDepth < 7 || signDepth > 15) {
+    cerr << "Error: chebshevCompare requires a depth parameter between 7 and 15" << endl;
+    return ctxt;
+  }
+
+  // Relationship between required depth and Chebyshev polynomial degree described at the below link
+  // https://github.com/openfheorg/openfhe-development/blob/main/src/pke/examples/FUNCTION_EVALUATION.md
+  const vector<int> DEPTH_TO_DEGREE({
+    -1, -1, -1, -1, 5, 13, 27, 59, 119, 247, 495, 1007, 2031
+  });
+
+  // Coefficients for sign-approximating polynomial f_3 given in Cheon, 2019
   const vector<double> SIGN_COEFS({
     0.0, 
     35.0 / 16.0,  
@@ -149,8 +191,17 @@ OpenFHEWrapper::chebyshevCompare(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly
     -5.0 / 16.0
   });
 
+  // compute Chebyshev approximation of sign function first for steeper slope near x=0
+  // set to use a multiplicative depth of (signDepth - 3) 
+  size_t polyDegree = DEPTH_TO_DEGREE[signDepth - 3];
   ctxt = cc->EvalChebyshevFunction([&delta](double x) -> double { return (x >= delta) ? 1 : -1; }, ctxt, -1, 1, polyDegree);
+
+  // compute Cheon's polynomial approximation for smoother zeroing near x=-1 and x=1
+  // requires multiplicative depth of 3
+  // TODO: consider using a polynomial of depth 2 from same paper
   ctxt = cc->EvalPoly(ctxt, SIGN_COEFS);
+
+  // shift range from [-1,1] to [0,2] so we can use this as additive VAF
   cc->EvalAddInPlace(ctxt, 1.0);
 
   return ctxt;
@@ -160,7 +211,7 @@ OpenFHEWrapper::chebyshevCompare(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly
 // packs every i-th slot of each cipher into a consecutive sequence at the front of the outputted cipher(s)
 // can handle cases where the number of slots is larger than the batch size of a single ciphertext
 // requires dimension param to be a power of two
-vector<Ciphertext<DCRTPoly>> OpenFHEWrapper::mergeCiphers(CryptoContext<DCRTPoly> cc, vector<Ciphertext<DCRTPoly>> ctxts, size_t dimension) {
+vector<Ciphertext<DCRTPoly>> OpenFHEWrapper::mergeCiphers(CryptoContext<DCRTPoly> cc, vector<Ciphertext<DCRTPoly>> &ctxts, size_t dimension) {
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t elementsPerCipher = batchSize / dimension;
   size_t outputSize = elementsPerCipher * ctxts.size();
@@ -168,6 +219,11 @@ vector<Ciphertext<DCRTPoly>> OpenFHEWrapper::mergeCiphers(CryptoContext<DCRTPoly
   size_t outputCipher;
   size_t outputSlot;
   
+  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  for(size_t i = 0; i < ctxts.size(); i++) {
+    ctxts[i] = OpenFHEWrapper::mergeSingleCipher(cc, ctxts[i], dimension);
+  }
+
   vector<Ciphertext<DCRTPoly>> mergedCipher(neededCiphers);
 
   for(size_t i = 0; i < ctxts.size(); i++) {
@@ -175,9 +231,9 @@ vector<Ciphertext<DCRTPoly>> OpenFHEWrapper::mergeCiphers(CryptoContext<DCRTPoly
     outputSlot = (elementsPerCipher * i) % batchSize;
 
     if(outputSlot == 0) {
-      mergedCipher[outputCipher] = OpenFHEWrapper::mergeSingleCipher(cc, ctxts[i], dimension);
+      mergedCipher[outputCipher] = ctxts[i];
     } else {
-      cc->EvalAddInPlace(mergedCipher[outputCipher], OpenFHEWrapper::binaryRotate(cc, OpenFHEWrapper::mergeSingleCipher(cc, ctxts[i], dimension), -outputSlot));
+      cc->EvalAddInPlace(mergedCipher[outputCipher], OpenFHEWrapper::binaryRotate(cc, ctxts[i], -outputSlot));
     }
   }
 
@@ -187,7 +243,7 @@ vector<Ciphertext<DCRTPoly>> OpenFHEWrapper::mergeCiphers(CryptoContext<DCRTPoly
 
 // packs every i-th slot of the cipher into a consecutive sequence at the front of the outputted cipher
 // requires dimension param to be a power of two
-Ciphertext<DCRTPoly> OpenFHEWrapper::mergeSingleCipher(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, size_t dimension) {
+Ciphertext<DCRTPoly> OpenFHEWrapper::mergeSingleCipher(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> &ctxt, size_t dimension) {
 
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t outputSize = batchSize / dimension;
@@ -200,6 +256,7 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::mergeSingleCipher(CryptoContext<DCRTPoly> c
     // apply multiplicative mask if rotations + additions have consumed all the padded zeros
     if(i >= paddingSize) {
       ctxt = cc->EvalMult(ctxt, OpenFHEWrapper::generateMergeMask(cc, dimension, i));
+      cc->RelinearizeInPlace(ctxt);
       cc->RescaleInPlace(ctxt);
       paddingSize = i * dimension;
     }
@@ -208,6 +265,7 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::mergeSingleCipher(CryptoContext<DCRTPoly> c
   }
 
   ctxt = cc->EvalMult(ctxt, generateMergeMask(cc, dimension, outputSize));
+  cc->RelinearizeInPlace(ctxt);
   cc->RescaleInPlace(ctxt);
 
   return ctxt;

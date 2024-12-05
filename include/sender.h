@@ -19,7 +19,7 @@ using namespace std;
 class Sender {
 public:
   // constructor
-  Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam, ofstream& expStreamParam);
+  Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam);
 
   // public methods
   void setDatabaseCipher(vector<vector<Ciphertext<DCRTPoly>>> databaseCipherParam);
@@ -29,25 +29,24 @@ public:
   vector<Ciphertext<DCRTPoly>>
   computeSimilarity(vector<Ciphertext<DCRTPoly>> queryCipher);
 
+  Ciphertext<DCRTPoly>
+  membershipScenario(vector<Ciphertext<DCRTPoly>> queryCipher);
+
   vector<Ciphertext<DCRTPoly>>
-  indexScenarioNaive(vector<Ciphertext<DCRTPoly>> queryCipher);
+  indexScenario(vector<Ciphertext<DCRTPoly>> queryCipher);
 
-  Ciphertext<DCRTPoly>
-  membershipScenarioNaive(vector<Ciphertext<DCRTPoly>> queryCipher);
+  // Ciphertext<DCRTPoly>
+  // membershipScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength);
 
-  Ciphertext<DCRTPoly>
-  membershipScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength);
+  // tuple<vector<Ciphertext<DCRTPoly>>, vector<Ciphertext<DCRTPoly>>>
+  // indexScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength);
 
-  tuple<vector<Ciphertext<DCRTPoly>>, vector<Ciphertext<DCRTPoly>>>
-  indexScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength);
-
-private:
+protected:
   // private members
   CryptoContext<DCRTPoly> cc;
   PublicKey<DCRTPoly> pk;
   size_t numVectors;
   vector<vector<Ciphertext<DCRTPoly>>> databaseCipher;
-  ofstream& expStream;
 
   // private functions
   Ciphertext<DCRTPoly> 
