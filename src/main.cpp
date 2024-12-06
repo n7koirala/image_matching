@@ -33,10 +33,11 @@ int main(int argc, char *argv[]) {
   if (argc > 1) {
     fileStream.open(argv[1], ios::in);
   } else {
-    fileStream.open(DEFAULT_VECTORS_FILE, ios::in);
+    cerr << "Error: input file not included" << endl;
+    return 1;
   }
   if (!fileStream.is_open()) {
-    cerr << "Error: input file not found" << endl;
+    cerr << "Error: unable to open input file" << endl;
     return 1;
   }
   size_t numVectors;
@@ -47,7 +48,7 @@ int main(int argc, char *argv[]) {
   if (argc > 2) {
     expApproach = atoi(argv[2]);
   } else {
-    cerr << "Error: approach argument not given" << endl;
+    cerr << "Error: approach argument not included" << endl;
     return 1;
   }
   if (expApproach < 1 || expApproach > 3) {

@@ -11,21 +11,21 @@ size_t OpenFHEWrapper::computeRequiredDepth(size_t approach) {
 
     case 1: // novel stacked MVM approach
       depth += 1;           // one mult required for score computation
-      depth += SIGN_DEPTH;  // mults required for threshold comparison
+      depth += COMP_DEPTH;  // mults required for threshold comparison
       break;
 
     case 2: // literature baseline
       depth += 1;           // one mult required for score computation
       depth += 2;           // two mults required for merge operation
-      depth += SIGN_DEPTH;  // mults required for threshold comparison
+      depth += COMP_DEPTH;  // mults required for threshold comparison
       break;
 
     case 3: // GROTE group testing
       depth += 1;           // one mult required for score computation
       depth += 2;           // two mults required for merge operation
-      depth += ALPHA;       // mults required for alpha norm operation
+      depth += ALPHA_DEPTH; // mults required for alpha norm operation
       depth += 3;           // TODO: figure out where these are consumed
-      depth += SIGN_DEPTH;  // mults required for threshold comparison
+      depth += COMP_DEPTH;  // mults required for threshold comparison
       break;
   }
 

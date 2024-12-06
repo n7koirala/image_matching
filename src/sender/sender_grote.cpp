@@ -22,11 +22,11 @@ Ciphertext<DCRTPoly> GroteSender::membershipScenario(Ciphertext<DCRTPoly> queryC
     // compute similarity scores between query and database
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
   
-  vector<Ciphertext<DCRTPoly>> colCipher = alphaNormColumns(scoreCipher, ALPHA, rowLength);
+  vector<Ciphertext<DCRTPoly>> colCipher = alphaNormColumns(scoreCipher, ALPHA_DEPTH, rowLength);
 
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
-    scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, SIGN_DEPTH);
+    scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, COMP_DEPTH);
   }
   
   // sum up all values into single result value at first slot of first cipher
@@ -49,24 +49,24 @@ GroteSender::indexScenario(Ciphertext<DCRTPoly> queryCipher) {
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
 
   // compute row and column maxes for group testing
-  vector<Ciphertext<DCRTPoly>> rowCipher = alphaNormRows(scoreCipher, ALPHA, rowLength);
+  vector<Ciphertext<DCRTPoly>> rowCipher = alphaNormRows(scoreCipher, ALPHA_DEPTH, rowLength);
 
-  vector<Ciphertext<DCRTPoly>> colCipher = alphaNormColumns(scoreCipher, ALPHA, rowLength);
+  vector<Ciphertext<DCRTPoly>> colCipher = alphaNormColumns(scoreCipher, ALPHA_DEPTH, rowLength);
 
-  // since we are squaring score values ALPHA times, we must do the same for the comparison threshold
+  // since we are squaring score values ALPHA_DEPTH times, we must do the same for the comparison threshold
   double adjustedThreshold = MATCH_THRESHOLD;
-  for(size_t a = 0; a < ALPHA; a++) {
+  for(size_t a = 0; a < ALPHA_DEPTH; a++) {
     adjustedThreshold = adjustedThreshold * adjustedThreshold;
   }
 
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < rowCipher.size(); i++) {
-    rowCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, rowCipher[i], adjustedThreshold, SIGN_DEPTH);
+    rowCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, rowCipher[i], adjustedThreshold, COMP_DEPTH);
   }
 
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < colCipher.size(); i++) {
-    colCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, colCipher[i], adjustedThreshold, SIGN_DEPTH);
+    colCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, colCipher[i], adjustedThreshold, COMP_DEPTH);
   }
 
   // return boolean (0/1) values dictating which rows and columns contain matches
