@@ -8,7 +8,7 @@ DIM=512
 
 # ---------- shell functions ----------
 usage() {
-    printf "generate_data.sh [FILENAME][SIZE]\n\n"
+    printf "generate_data.sh [FILENAME] [SIZE]\n\n"
     printf "Parameters:\n"
     printf "\tFILENAME\tFilename create dataset within\n"
     printf "\tSIZE    \tInteger number of backend vectors\n"
@@ -43,7 +43,7 @@ write_matching_vec () {
 
 # check for necessary cmd-line args
 if [[ $# -gt 1 ]]; then
-    FILEPATH="$1"
+    FILEPATH="../test/$1"
     SIZE="$2"
 else
     usage
