@@ -4,6 +4,7 @@
 #include "../include/receiver_grote.h"
 #include "../include/enroller.h"
 #include "../include/enroller_base.h"
+#include "../include/enroller_blind.h"
 #include "../include/sender.h"
 #include "../include/sender_base.h"
 #include "../include/sender_grote.h"
@@ -203,6 +204,13 @@ int main(int argc, char *argv[]) {
     cout << "Encrypting database vectors... " << endl;
     // Classes stored on heap to allow for cleaner polymorphism
     Enroller *enroller;
+
+    // TESTING BLIND ENROLLER
+    enroller = new BlindEnroller(cc, pk, numVectors);
+    static_cast<BlindEnroller*>(enroller)->serializeDB(plaintextVectors, 4);
+    return 0;
+    // TESTING BLIND ENROLLER
+
     if (expApproach == 1) {
       enroller = new Enroller(cc, pk, numVectors);
       static_cast<Enroller*>(enroller)->serializeDB(plaintextVectors);

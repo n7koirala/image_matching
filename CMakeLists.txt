@@ -60,6 +60,7 @@ endif()
 add_executable(ImageMatching
     src/enroller/enroller.cpp
     src/enroller/enroller_base.cpp
+    src/enroller/enroller_blind.cpp
     src/receiver/receiver.cpp
     src/receiver/receiver_base.cpp
     src/receiver/receiver_grote.cpp
