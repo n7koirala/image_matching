@@ -38,27 +38,6 @@ Ciphertext<DCRTPoly> Receiver::encryptQueryAlt(vector<double> query) {
   return OpenFHEWrapper::encryptFromVector(cc, pk, batchedQuery);
 }
 
-
-// Decrypts a vector of ciphertexts and packs their values into a single output vector
-vector<double> Receiver::decryptRawScores(vector<Ciphertext<DCRTPoly>> scoreCipher) {
-  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
-  vector<double> scoreVector(numVectors);
-  vector<double> currentVector(batchSize);
-  Plaintext ptxt;
-
-  size_t startIndex;
-  size_t copyLength;
-  for(size_t i = 0; i < scoreCipher.size(); i++) {
-    cc->Decrypt(sk, scoreCipher[i], &ptxt);
-    currentVector = ptxt->GetRealPackedValue();
-    startIndex = i * batchSize;
-    copyLength = min(numVectors - startIndex, batchSize);
-    copy(currentVector.begin(), currentVector.begin()+copyLength, scoreVector.begin()+startIndex);
-  }
-  return scoreVector;
-}
-
-
 bool Receiver::decryptMembership(Ciphertext<DCRTPoly> membershipCipher) {
 
   Plaintext membershipPtxt;
@@ -93,51 +72,6 @@ vector<size_t> Receiver::decryptIndex(vector<Ciphertext<DCRTPoly>> indexCipher) 
   
   return outputValues;
 }
-
-/*
-vector<size_t> Receiver::decryptIndex(vector<Ciphertext<DCRTPoly>> rowCipher, vector<Ciphertext<DCRTPoly>> colCipher, size_t rowLength) {
-  
-  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
-  size_t colLength = batchSize / rowLength;
-
-  // decrypt results
-  vector<double> rowVals = OpenFHEWrapper::decryptVectorToVector(cc, sk, rowCipher);
-  vector<double> colVals = OpenFHEWrapper::decryptVectorToVector(cc, sk, colCipher);
-
-  vector<size_t> rowMatches;
-  vector<size_t> colMatches;
-  vector<size_t> matchIndices;
-
-  for(size_t i = 0; i < rowVals.size(); i++) {
-    if(rowVals[i] >= 0.5) {
-      rowMatches.push_back(i);
-    }
-  }
-
-  for(size_t i = 0; i < colVals.size(); i++) {
-    if(colVals[i] >= 0.5) {
-      colMatches.push_back(i);
-    }
-  }
-
-  size_t rowMatrixNum;
-  size_t colMatrixNum;
-  for(size_t i = 0; i < rowMatches.size(); i++) {
-    rowMatrixNum = rowMatches[i] / colLength;
-
-    for(size_t j = 0; j < colMatches.size(); j++) {
-      colMatrixNum = colMatches[j] / rowLength;
-      
-      if(rowMatrixNum == colMatrixNum) {
-        matchIndices.push_back((rowMatches[i] * rowLength) + (colMatches[j] % rowLength));
-      }
-
-    }
-  }
-
-  return matchIndices;
-}
- */
 
 // -------------------- PRIVATE FUNCTIONS --------------------
 

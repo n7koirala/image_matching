@@ -110,7 +110,7 @@ void BaseSender::computeSimilarityAndMergeThread(Ciphertext<DCRTPoly> &queryCiph
   mergedCipher = OpenFHEWrapper::encryptFromVector(cc, pk, {0});
 
   // for each database ciphertext in this thread's batch, do the following
-  // deserialize db ciphert
+  // deserialize db ciphertext
   // compute inner product of db cipher and query cipher
   // merge cosine similarity scores within that individual product cipher
   // rotate and add those merged similarity scores into the fully-packed singular output cipher
