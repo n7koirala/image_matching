@@ -44,10 +44,10 @@ void BlindEnroller::serializeDB(vector<vector<double>> &database, size_t chunkLe
   }
 
   // normalize all plaintext database vectors
-  // #pragma omp parallel for num_threads(SENDER_NUM_CORES)
-  // for (size_t i = 0; i < numVectors; i++) {
-  //   database[i] = VectorUtils::plaintextNormalize(database[i], VECTOR_DIM);
-  // }
+  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  for (size_t i = 0; i < numVectors; i++) {
+    database[i] = VectorUtils::plaintextNormalize(database[i], VECTOR_DIM);
+  }
 
   for(size_t i = 0; i < numMatrices; i++) {
 

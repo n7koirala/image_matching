@@ -8,6 +8,7 @@
 #include "../include/enroller_blind.h"
 #include "../include/sender.h"
 #include "../include/sender_base.h"
+#include "../include/sender_blind.h"
 #include "../include/sender_grote.h"
 #include "../include/vector_utils.h"
 #include "../include/openFHE_wrapper.h"
@@ -197,10 +198,10 @@ int main(int argc, char *argv[]) {
   }
   
   // Serialize the context, keys and database vectors if not already
+  vector<vector<double>> plaintextVectors(numVectors, vector<double>(VECTOR_DIM));
   if (!READ_FROM_SERIAL) {
     
     cout << "Reading database vectors from file... " << endl;
-    vector<vector<double>> plaintextVectors(numVectors, vector<double>(VECTOR_DIM));
     for (size_t i = 0; i < numVectors; i++) {
       for (size_t j = 0; j < VECTOR_DIM; j++) {
         fileStream >> plaintextVectors[i][j];
@@ -421,7 +422,7 @@ int main(int argc, char *argv[]) {
   } else if (expApproach == 4) {
     // Allocate receiver and sender objects
     receiver = new BlindReceiver(cc, pk, sk, numVectors);
-    sender = new Sender(cc, pk, numVectors);
+    sender = new BlindSender(cc, pk, numVectors);
 
     // Normalize, batch, and encrypt the query vector
     cout << "[Receiver]\tEncrypting query vector... " << flush;
@@ -433,7 +434,8 @@ int main(int argc, char *argv[]) {
     expStream << duration.count() << "," << flush;
 
     // TODO: implement Blind-Match sender
-
+    auto scoreCipher = static_cast<BlindSender*>(sender)->computeSimilarity(queryCipher, CHUNK_LEN);
+    
   }
 
   return 0;
