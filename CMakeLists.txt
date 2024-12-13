@@ -63,6 +63,7 @@ add_executable(ImageMatching
     src/enroller/enroller_blind.cpp
     src/receiver/receiver.cpp
     src/receiver/receiver_base.cpp
+    src/receiver/receiver_blind.cpp
     src/receiver/receiver_grote.cpp
     src/sender/sender.cpp
     src/sender/sender_base.cpp

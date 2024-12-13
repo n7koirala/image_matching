@@ -81,13 +81,6 @@ void BlindEnroller::serializeDBThread(vector<vector<double>> &database, size_t c
     
   }
 
-  // TESTING CORRECTNESS
-  for(size_t i = 0; i < 10; i++) {
-    cout << currentVector[i] << " ";
-  }
-  cout << endl;
-  // TESTING CORRECTNESS
-
   Ciphertext<DCRTPoly> currentCtxt = OpenFHEWrapper::encryptFromVector(cc, pk, currentVector);
 
   string filepath = "serial/db_blind/matrix" + to_string(matrix) + "/batch" + to_string(index) + ".bin";

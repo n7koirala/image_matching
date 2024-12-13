@@ -1,6 +1,7 @@
 #include "../include/config.h"
 #include "../include/receiver.h"
 #include "../include/receiver_base.h"
+#include "../include/receiver_blind.h"
 #include "../include/receiver_grote.h"
 #include "../include/enroller.h"
 #include "../include/enroller_base.h"
@@ -52,8 +53,8 @@ int main(int argc, char *argv[]) {
     cerr << "Error: approach argument not included" << endl;
     return 1;
   }
-  if (expApproach < 1 || expApproach > 3) {
-    cerr << "Error: approach must be 1, 2, or 3" << endl;
+  if (expApproach < 1 || expApproach > 4) {
+    cerr << "Error: approach must be 1, 2, 3, or 4" << endl;
     return 1;
   }
 
@@ -82,6 +83,11 @@ int main(int argc, char *argv[]) {
     case 3:
       cout << "Experimental approach: GROTE (CODASPY paper)" << endl;
       expStream << "GROTE," << flush;
+      break;
+
+    case 4:
+      cout << "Experimental approach: Blind-Match" << endl;
+      expStream << "Blind," << flush;
       break;
   }
 
@@ -205,18 +211,15 @@ int main(int argc, char *argv[]) {
     // Classes stored on heap to allow for cleaner polymorphism
     Enroller *enroller;
 
-    // TESTING BLIND ENROLLER
-    enroller = new BlindEnroller(cc, pk, numVectors);
-    static_cast<BlindEnroller*>(enroller)->serializeDB(plaintextVectors, 4);
-    return 0;
-    // TESTING BLIND ENROLLER
-
     if (expApproach == 1) {
       enroller = new Enroller(cc, pk, numVectors);
       static_cast<Enroller*>(enroller)->serializeDB(plaintextVectors);
     } else if (expApproach == 2 || expApproach == 3) {
       enroller = new BaseEnroller(cc, pk, numVectors);
       static_cast<BaseEnroller*>(enroller)->serializeDB(plaintextVectors);
+    } else if (expApproach == 4) {
+      enroller = new BlindEnroller(cc, pk, numVectors);
+      static_cast<BlindEnroller*>(enroller)->serializeDB(plaintextVectors, CHUNK_LEN);
     }
     delete enroller;
 
@@ -415,7 +418,25 @@ int main(int argc, char *argv[]) {
     cout << "done (" << duration.count() << "s)" << endl;
     expStream << duration.count() << "," << flush;
 
+  } else if (expApproach == 4) {
+    // Allocate receiver and sender objects
+    receiver = new BlindReceiver(cc, pk, sk, numVectors);
+    sender = new Sender(cc, pk, numVectors);
+
+    // Normalize, batch, and encrypt the query vector
+    cout << "[Receiver]\tEncrypting query vector... " << flush;
+    start = chrono::steady_clock::now();
+    auto queryCipher = static_cast<BlindReceiver*>(receiver)->encryptQuery(queryVector, CHUNK_LEN);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+    // TODO: implement Blind-Match sender
+
   }
+
+  return 0;
 
   // Displaying query results
   // The dataset-generation script creates datasets of size N with matches at indices 2 and N-1

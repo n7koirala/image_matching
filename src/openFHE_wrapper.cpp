@@ -24,7 +24,13 @@ size_t OpenFHEWrapper::computeRequiredDepth(size_t approach) {
       depth += 1;           // one mult required for score computation
       depth += 2;           // two mults required for merge operation
       depth += ALPHA_DEPTH; // mults required for alpha norm operation
-      depth += 3;           // TODO: figure out where these are consumed
+      depth += 3;           // TODO: these are needed, figure out where these are consumed
+      depth += COMP_DEPTH;  // mults required for threshold comparison
+      break;
+
+    case 4: // blind-match
+      depth += 1;           // one mult required for score computation
+      // depth += 2;           // two mults required for merge operation
       depth += COMP_DEPTH;  // mults required for threshold comparison
       break;
   }
