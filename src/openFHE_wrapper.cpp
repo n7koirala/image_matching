@@ -24,7 +24,13 @@ size_t OpenFHEWrapper::computeRequiredDepth(size_t approach) {
       depth += 1;           // one mult required for score computation
       depth += 2;           // two mults required for merge operation
       depth += ALPHA_DEPTH; // mults required for alpha norm operation
-      depth += 3;           // TODO: figure out where these are consumed
+      depth += 3;           // TODO: these are needed, figure out where these are consumed
+      depth += COMP_DEPTH;  // mults required for threshold comparison
+      break;
+
+    case 4: // blind-match
+      depth += 1;           // one mult required for score computation
+      depth += 1;           // one mult required for compression operation
       depth += COMP_DEPTH;  // mults required for threshold comparison
       break;
   }
@@ -288,4 +294,48 @@ Plaintext OpenFHEWrapper::generateMergeMask(CryptoContext<DCRTPoly> cc, size_t d
     i += dimension * segmentLength;
   }
   return cc->MakeCKKSPackedPlaintext(mask);
+}
+
+// compresses a vector of ciphertexts into as few ciphers as possible, keeping only the values at the dimension-th slots
+// does NOT keep values in order, unlike mergeCiphers
+// described as "Compression Method" in https://arxiv.org/pdf/2312.11575
+vector<Ciphertext<DCRTPoly>> OpenFHEWrapper::compressCiphers(CryptoContext<DCRTPoly> cc, vector<Ciphertext<DCRTPoly>> &ctxts, size_t dimension) {
+  
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
+  size_t ciphersNeeded = ceil(double(ctxts.size()) / double(dimension));
+
+  // define one-hot compression mask with ones at i-th intervals
+  vector<double> maskVec(batchSize, 0.0);
+  for(size_t i = 0; i < batchSize; i += dimension) {
+    maskVec[i] = 1.0;
+  }
+  Plaintext maskPtxt = cc->MakeCKKSPackedPlaintext(maskVec);
+
+  // multiply each ciphertext by one-hot compression mask
+  // preserves only the values at the i-th slots
+  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  for(size_t i = 0; i < ctxts.size(); i++) {
+    ctxts[i] = cc->EvalMult(ctxts[i], maskPtxt);
+    cc->RelinearizeInPlace(ctxts[i]);
+    cc->RescaleInPlace(ctxts[i]);
+  }
+
+  size_t outputSlot;
+  size_t rotFactor;
+  vector<Ciphertext<DCRTPoly>> compressedCtxts(ciphersNeeded);
+
+  // combine the masked ciphertexts into a smaller vector of compressed ciphertexts
+  for(size_t i = 0; i < ctxts.size(); i++) {
+    rotFactor = -(i % dimension);
+    outputSlot = i / dimension;
+
+    if(rotFactor == 0) {
+      compressedCtxts[outputSlot] = ctxts[i];
+    } else {
+      ctxts[i] = OpenFHEWrapper::binaryRotate(cc, ctxts[i], rotFactor);
+      cc->EvalAddInPlace(compressedCtxts[outputSlot], ctxts[i]);
+    }
+  }
+
+  return compressedCtxts;
 }

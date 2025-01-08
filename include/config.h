@@ -24,8 +24,12 @@ const size_t SENDER_NUM_CORES = 32;
 
 // ---------- Variables below should not be changed ----------
 
-// TODO: make serialization into separate executable
+// TODO: make serialization into separate executable or remove entirely
 const bool READ_FROM_SERIAL = false;
 
-// dimension (length) of inputted query / database vectors
+// Dimension (length) of inputted query / database vectors
 const size_t VECTOR_DIM = 512;
+
+// Dimension (length) of subvector partitions used in Blind-Match approach
+// Must equal a power of 2
+const size_t CHUNK_LEN = 128;

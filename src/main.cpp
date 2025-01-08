@@ -1,11 +1,14 @@
 #include "../include/config.h"
 #include "../include/receiver.h"
 #include "../include/receiver_base.h"
+#include "../include/receiver_blind.h"
 #include "../include/receiver_grote.h"
 #include "../include/enroller.h"
 #include "../include/enroller_base.h"
+#include "../include/enroller_blind.h"
 #include "../include/sender.h"
 #include "../include/sender_base.h"
+#include "../include/sender_blind.h"
 #include "../include/sender_grote.h"
 #include "../include/vector_utils.h"
 #include "../include/openFHE_wrapper.h"
@@ -51,8 +54,8 @@ int main(int argc, char *argv[]) {
     cerr << "Error: approach argument not included" << endl;
     return 1;
   }
-  if (expApproach < 1 || expApproach > 3) {
-    cerr << "Error: approach must be 1, 2, or 3" << endl;
+  if (expApproach < 1 || expApproach > 4) {
+    cerr << "Error: approach must be 1, 2, 3, or 4" << endl;
     return 1;
   }
 
@@ -81,6 +84,11 @@ int main(int argc, char *argv[]) {
     case 3:
       cout << "Experimental approach: GROTE (CODASPY paper)" << endl;
       expStream << "GROTE," << flush;
+      break;
+
+    case 4:
+      cout << "Experimental approach: Blind-Match" << endl;
+      expStream << "Blind," << flush;
       break;
   }
 
@@ -182,7 +190,6 @@ int main(int argc, char *argv[]) {
   // Log number of vectors to experiment file
   expStream << numVectors << "," << flush;
 
-
   // Read in query vector from file
   vector<double> queryVector(VECTOR_DIM);
   for (size_t i = 0; i < VECTOR_DIM; i++) {
@@ -190,10 +197,10 @@ int main(int argc, char *argv[]) {
   }
   
   // Serialize the context, keys and database vectors if not already
+  vector<vector<double>> plaintextVectors(numVectors, vector<double>(VECTOR_DIM));
   if (!READ_FROM_SERIAL) {
     
     cout << "Reading database vectors from file... " << endl;
-    vector<vector<double>> plaintextVectors(numVectors, vector<double>(VECTOR_DIM));
     for (size_t i = 0; i < numVectors; i++) {
       for (size_t j = 0; j < VECTOR_DIM; j++) {
         fileStream >> plaintextVectors[i][j];
@@ -203,12 +210,16 @@ int main(int argc, char *argv[]) {
     cout << "Encrypting database vectors... " << endl;
     // Classes stored on heap to allow for cleaner polymorphism
     Enroller *enroller;
+
     if (expApproach == 1) {
       enroller = new Enroller(cc, pk, numVectors);
       static_cast<Enroller*>(enroller)->serializeDB(plaintextVectors);
     } else if (expApproach == 2 || expApproach == 3) {
       enroller = new BaseEnroller(cc, pk, numVectors);
       static_cast<BaseEnroller*>(enroller)->serializeDB(plaintextVectors);
+    } else if (expApproach == 4) {
+      enroller = new BlindEnroller(cc, pk, numVectors);
+      static_cast<BlindEnroller*>(enroller)->serializeDB(plaintextVectors, CHUNK_LEN);
     }
     delete enroller;
 
@@ -407,6 +418,53 @@ int main(int argc, char *argv[]) {
     cout << "done (" << duration.count() << "s)" << endl;
     expStream << duration.count() << "," << flush;
 
+  } else if (expApproach == 4) {
+    // Allocate receiver and sender objects
+    receiver = new BlindReceiver(cc, pk, sk, numVectors);
+    sender = new BlindSender(cc, pk, numVectors);
+
+    // Normalize, batch, and encrypt the query vector
+    cout << "[Receiver]\tEncrypting query vector... " << flush;
+    start = chrono::steady_clock::now();
+    auto queryCipher = static_cast<BlindReceiver*>(receiver)->encryptQuery(queryVector, CHUNK_LEN);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+    // Perform membership scenario
+    cout << "[Sender]\tComputing membership scenario... " << flush;
+    start = chrono::steady_clock::now();
+    auto membershipCipher = static_cast<BlindSender*>(sender)->membershipScenario(queryCipher, CHUNK_LEN);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+    cout << "[Receiver]\tDecrypting membership results... " << flush;
+    start = chrono::steady_clock::now();
+    membershipResult = static_cast<GroteReceiver*>(receiver)->decryptMembership(membershipCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+    // Perform index scenario
+    cout << "[Sender]\tComputing index scenario... " << flush;
+    start = chrono::steady_clock::now();
+    auto indexCipher = static_cast<BlindSender*>(sender)->indexScenario(queryCipher, CHUNK_LEN);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+    cout << "[Receiver]\tDecrypting index results... " << flush;
+    start = chrono::steady_clock::now();
+    indexResults = static_cast<BlindReceiver*>(receiver)->decryptIndex(indexCipher, CHUNK_LEN);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
   }
 
   // Displaying query results

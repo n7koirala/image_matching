@@ -48,4 +48,7 @@ mergeSingleCipher(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> &ctxt, size_t
 
 Plaintext 
 generateMergeMask(CryptoContext<DCRTPoly> cc, size_t dimension, size_t segmentLength);
+
+vector<Ciphertext<DCRTPoly>>
+compressCiphers(CryptoContext<DCRTPoly> cc, vector<Ciphertext<DCRTPoly>> &ctxts, size_t dimension);
 }
