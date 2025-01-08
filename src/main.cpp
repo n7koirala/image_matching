@@ -1,20 +1,28 @@
 #include "../include/config.h"
-#include "../include/receiver.h"
-#include "../include/receiver_base.h"
-#include "../include/receiver_blind.h"
-#include "../include/receiver_grote.h"
-#include "../include/enroller.h"
-#include "../include/enroller_base.h"
-#include "../include/enroller_blind.h"
-#include "../include/sender.h"
-#include "../include/sender_base.h"
-#include "../include/sender_blind.h"
-#include "../include/sender_grote.h"
 #include "../include/vector_utils.h"
 #include "../include/openFHE_wrapper.h"
 #include "openfhe.h"
 #include <iostream>
 #include <ctime>
+
+// Receiver class header files
+#include "../include/receiver.h"
+#include "../include/receiver_base.h"
+#include "../include/receiver_blind.h"
+#include "../include/receiver_grote.h"
+#include "../include/receiver_diag.h"
+
+// Enroller class header files
+#include "../include/enroller.h"
+#include "../include/enroller_base.h"
+#include "../include/enroller_blind.h"
+#include "../include/enroller_diag.h"
+
+// Sender class header files
+#include "../include/sender.h"
+#include "../include/sender_base.h"
+#include "../include/sender_blind.h"
+#include "../include/sender_grote.h"
 
 // Header files needed for serialization
 #include "ciphertext-ser.h"
@@ -54,8 +62,8 @@ int main(int argc, char *argv[]) {
     cerr << "Error: approach argument not included" << endl;
     return 1;
   }
-  if (expApproach < 1 || expApproach > 4) {
-    cerr << "Error: approach must be 1, 2, 3, or 4" << endl;
+  if (expApproach < 1 || expApproach > 5) {
+    cerr << "Error: approach must be from 1 to 5" << endl;
     return 1;
   }
 
@@ -72,8 +80,8 @@ int main(int argc, char *argv[]) {
   size_t multDepth = OpenFHEWrapper::computeRequiredDepth(expApproach);
   switch(expApproach) {
     case 1:
-      cout << "Experimental approach: stacked MVM (novel)" << endl;
-      expStream << "Stacked MVM," << flush;
+      cout << "Experimental approach: Stacked Transform (novel)" << endl;
+      expStream << "Stacked," << flush;
       break;
 
     case 2:
@@ -82,13 +90,18 @@ int main(int argc, char *argv[]) {
       break;
 
     case 3:
-      cout << "Experimental approach: GROTE (CODASPY paper)" << endl;
+      cout << "Experimental approach: GROTE" << endl;
       expStream << "GROTE," << flush;
       break;
 
     case 4:
       cout << "Experimental approach: Blind-Match" << endl;
       expStream << "Blind," << flush;
+      break;
+    
+    case 5:
+      cout << "Experimental approach: Diagonal Transform (novel)" << endl;
+      expStream << "Diagonal," << flush;
       break;
   }
 
@@ -220,6 +233,9 @@ int main(int argc, char *argv[]) {
     } else if (expApproach == 4) {
       enroller = new BlindEnroller(cc, pk, numVectors);
       static_cast<BlindEnroller*>(enroller)->serializeDB(plaintextVectors, CHUNK_LEN);
+    } else if (expApproach == 5) {
+      enroller = new DiagonalEnroller(cc, pk, numVectors);
+      static_cast<DiagonalEnroller*>(enroller)->serializeDB(plaintextVectors);
     }
     delete enroller;
 
@@ -260,7 +276,11 @@ int main(int argc, char *argv[]) {
     }
   }
   fileStream.close();
-  
+
+  // TESTING DIAGONAL ENROLLER
+  return 0;
+  // TESTING DIAGONAL ENROLLER
+
   // Individual-query experiments begin here
   cout << endl << "\tRunning Experiments:" << endl;
   chrono::steady_clock::time_point start, end;
