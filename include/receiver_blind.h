@@ -14,6 +14,8 @@ public:
   // public methods
   vector<Ciphertext<DCRTPoly>> encryptQuery(vector<double> &query, size_t chunkLength);
 
+  vector<size_t> decryptIndex(vector<Ciphertext<DCRTPoly>> &indexCipher, size_t chunkLength);
+
 protected:
   // protected methods
   Ciphertext<DCRTPoly> encryptQueryThread(vector<double> &query, size_t chunkLength, size_t index);

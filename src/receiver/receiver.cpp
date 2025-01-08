@@ -38,11 +38,9 @@ Ciphertext<DCRTPoly> Receiver::encryptQueryAlt(vector<double> query) {
   return OpenFHEWrapper::encryptFromVector(cc, pk, batchedQuery);
 }
 
-bool Receiver::decryptMembership(Ciphertext<DCRTPoly> membershipCipher) {
+bool Receiver::decryptMembership(Ciphertext<DCRTPoly> &membershipCipher) {
 
-  Plaintext membershipPtxt;
-  cc->Decrypt(sk, membershipCipher, &membershipPtxt);
-  vector<double> membershipValues = membershipPtxt->GetRealPackedValue();
+  vector<double> membershipValues = OpenFHEWrapper::decryptToVector(cc, sk, membershipCipher);
 
   if(membershipValues[0] >= 1.0) {
     return true;
@@ -52,16 +50,14 @@ bool Receiver::decryptMembership(Ciphertext<DCRTPoly> membershipCipher) {
 }
 
 
-vector<size_t> Receiver::decryptIndex(vector<Ciphertext<DCRTPoly>> indexCipher) {
+vector<size_t> Receiver::decryptIndex(vector<Ciphertext<DCRTPoly>> &indexCipher) {
 
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   vector<size_t> outputValues;
   vector<double> indexValues;
-  Plaintext indexPtxt;
 
   for(size_t i = 0; i < indexCipher.size(); i++) {
-    cc->Decrypt(sk, indexCipher[i], &indexPtxt);
-    indexValues = indexPtxt->GetRealPackedValue();
+    indexValues = OpenFHEWrapper::decryptToVector(cc, sk, indexCipher[i]);
 
     for(size_t j = 0; j < batchSize; j++) {
       if(indexValues[j] >= 1.0) {

@@ -28,9 +28,9 @@ public:
   
   vector<double> decryptRawScores(vector<Ciphertext<DCRTPoly>> scoreCipher);
 
-  bool decryptMembership(Ciphertext<DCRTPoly> membershipCipher);
+  bool decryptMembership(Ciphertext<DCRTPoly> &membershipCipher);
 
-  vector<size_t> decryptIndex(vector<Ciphertext<DCRTPoly>> indexCipher);
+  vector<size_t> decryptIndex(vector<Ciphertext<DCRTPoly>> &indexCipher);
 
   // vector<size_t> decryptIndex(vector<Ciphertext<DCRTPoly>> rowCipher, vector<Ciphertext<DCRTPoly>> colCipher, size_t rowLength);
 

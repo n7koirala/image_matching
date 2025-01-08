@@ -441,6 +441,14 @@ int main(int argc, char *argv[]) {
     cout << "done (" << duration.count() << "s)" << endl;
     expStream << duration.count() << "," << flush;
 
+    cout << "[Receiver]\tDecrypting membership results... " << flush;
+    start = chrono::steady_clock::now();
+    membershipResult = static_cast<GroteReceiver*>(receiver)->decryptMembership(membershipCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
     // Perform index scenario
     cout << "[Sender]\tComputing index scenario... " << flush;
     start = chrono::steady_clock::now();
@@ -449,9 +457,15 @@ int main(int argc, char *argv[]) {
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl;
     expStream << duration.count() << "," << flush;
-  }
 
-  return 0;
+    cout << "[Receiver]\tDecrypting index results... " << flush;
+    start = chrono::steady_clock::now();
+    indexResults = static_cast<BlindReceiver*>(receiver)->decryptIndex(indexCipher, CHUNK_LEN);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+  }
 
   // Displaying query results
   // The dataset-generation script creates datasets of size N with matches at indices 2 and N-1

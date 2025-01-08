@@ -26,6 +26,36 @@ vector<Ciphertext<DCRTPoly>> BlindReceiver::encryptQuery(vector<double> &query, 
   return queryVector;
 }
 
+vector<size_t> BlindReceiver::decryptIndex(vector<Ciphertext<DCRTPoly>> &indexCipher, size_t chunkLength) {
+
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
+  size_t scoresPerBatch = batchSize / chunkLength;
+
+  vector<size_t> outputValues;
+  vector<double> indexValues;
+  size_t batchStartingIndex, chunkStartingIndex, mergedChunkIndex;
+
+  // Determine match indices according to pattern created by compression operation
+  for(size_t i = 0; i < indexCipher.size(); i++) {
+    indexValues = OpenFHEWrapper::decryptToVector(cc, sk, indexCipher[i]);
+
+    for(size_t j = 0; j < batchSize; j++) {
+      // If match is found during iterataion, append to returned list
+      if(indexValues[j] >= 1.0) {
+        batchStartingIndex = i * batchSize;
+        chunkStartingIndex = j / chunkLength;
+        mergedChunkIndex = (j % chunkLength) * scoresPerBatch;
+
+        outputValues.push_back(batchStartingIndex + chunkStartingIndex + mergedChunkIndex);
+      }
+    }
+  }
+  
+  return outputValues;
+}
+
+// -------------------- PROTECTED FUNCTIONS --------------------
+
 Ciphertext<DCRTPoly> BlindReceiver::encryptQueryThread(vector<double> &query, size_t chunkLength, size_t index) {
 
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
