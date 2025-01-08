@@ -11,12 +11,18 @@ public:
   vector<Ciphertext<DCRTPoly>>
   computeSimilarity(vector<Ciphertext<DCRTPoly>> &queryCipher, size_t chunkLength);
 
+  Ciphertext<DCRTPoly>
+  membershipScenario(vector<Ciphertext<DCRTPoly>> &queryCipher, size_t chunkLength);
+
+  vector<Ciphertext<DCRTPoly>>
+  indexScenario(vector<Ciphertext<DCRTPoly>> &queryCipher, size_t chunkLength);
+
 protected:
   // protected methods
   Ciphertext<DCRTPoly>
   computeSimilarityMatrix(vector<Ciphertext<DCRTPoly>> &queryCipher, size_t chunkLength, size_t matrix);
 
   Ciphertext<DCRTPoly>
-  computeSimilaritySerial(Ciphertext<DCRTPoly> queryCipher, size_t matrix, size_t index);
+  computeSimilaritySerial(Ciphertext<DCRTPoly> &queryCipher, size_t matrix, size_t index);
 
 };

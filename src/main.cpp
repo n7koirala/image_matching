@@ -190,7 +190,6 @@ int main(int argc, char *argv[]) {
   // Log number of vectors to experiment file
   expStream << numVectors << "," << flush;
 
-
   // Read in query vector from file
   vector<double> queryVector(VECTOR_DIM);
   for (size_t i = 0; i < VECTOR_DIM; i++) {
@@ -433,9 +432,23 @@ int main(int argc, char *argv[]) {
     cout << "done (" << duration.count() << "s)" << endl;
     expStream << duration.count() << "," << flush;
 
-    // TODO: implement Blind-Match sender
-    auto scoreCipher = static_cast<BlindSender*>(sender)->computeSimilarity(queryCipher, CHUNK_LEN);
-    
+    // Perform membership scenario
+    cout << "[Sender]\tComputing membership scenario... " << flush;
+    start = chrono::steady_clock::now();
+    auto membershipCipher = static_cast<BlindSender*>(sender)->membershipScenario(queryCipher, CHUNK_LEN);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+    // Perform index scenario
+    cout << "[Sender]\tComputing index scenario... " << flush;
+    start = chrono::steady_clock::now();
+    auto indexCipher = static_cast<BlindSender*>(sender)->indexScenario(queryCipher, CHUNK_LEN);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
   }
 
   return 0;

@@ -10,6 +10,36 @@ BlindSender::BlindSender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pk
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 
+Ciphertext<DCRTPoly> BlindSender::membershipScenario(vector<Ciphertext<DCRTPoly>> &queryCipher, size_t chunkLength) {
+
+  // compute similarity scores between query and database
+  vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher, chunkLength);
+
+  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  for(size_t i = 0; i < scoreCipher.size(); i++) {
+    scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, COMP_DEPTH);
+  }
+  
+  // sum up all values into single result value at first slot of first cipher
+  Ciphertext<DCRTPoly> membershipCipher = cc->EvalAddManyInPlace(scoreCipher);
+  membershipCipher = cc->EvalSum(membershipCipher, cc->GetEncodingParams()->GetBatchSize());
+
+  return membershipCipher;
+}
+
+vector<Ciphertext<DCRTPoly>> BlindSender::indexScenario(vector<Ciphertext<DCRTPoly>> &queryCipher, size_t chunkLength) {
+
+  // compute similarity scores between query and database
+  vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher, chunkLength);
+
+  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  for(size_t i = 0; i < scoreCipher.size(); i++) {
+    scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, COMP_DEPTH);
+  }
+
+  return scoreCipher;
+}
+
 vector<Ciphertext<DCRTPoly>> BlindSender::computeSimilarity(vector<Ciphertext<DCRTPoly>> &queryCipher, size_t chunkLength) {
 
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
@@ -22,7 +52,7 @@ vector<Ciphertext<DCRTPoly>> BlindSender::computeSimilarity(vector<Ciphertext<DC
     scoreCipher[i] = computeSimilarityMatrix(queryCipher, chunkLength, i);
   }
 
-  return OpenFHEWrapper::mergeCiphers(cc, scoreCipher, chunkLength);
+  return OpenFHEWrapper::compressCiphers(cc, scoreCipher, chunkLength);
 }
 
 // -------------------- PROTECTED FUNCTIONS --------------------
@@ -33,7 +63,7 @@ Ciphertext<DCRTPoly> BlindSender::computeSimilarityMatrix(vector<Ciphertext<DCRT
 
   #pragma omp parallel for num_threads(SENDER_NUM_CORES)
   for(size_t i = 0; i < chunksPerVector; i++) {
-    matrixCipher[i] = computeSimilaritySerial(queryCipher[i], matrix, (i*4));
+    matrixCipher[i] = computeSimilaritySerial(queryCipher[i], matrix, (i*chunkLength));
   }
 
   for(size_t i = 1; i < chunksPerVector; i++) {
@@ -52,7 +82,7 @@ Ciphertext<DCRTPoly> BlindSender::computeSimilarityMatrix(vector<Ciphertext<DCRT
   return matrixCipher[0];
 }
 
-Ciphertext<DCRTPoly> BlindSender::computeSimilaritySerial(Ciphertext<DCRTPoly> queryCipher, size_t matrix, size_t index) {
+Ciphertext<DCRTPoly> BlindSender::computeSimilaritySerial(Ciphertext<DCRTPoly> &queryCipher, size_t matrix, size_t index) {
 
   string filepath = "serial/db_blind/matrix" + to_string(matrix) + "/batch" + to_string(index) + ".bin";
   Ciphertext<DCRTPoly> databaseCipher;
