@@ -121,38 +121,8 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::binaryRotate(CryptoContext<DCRTPoly> cc, Ci
     factor -= binaryCounter * factorSign;
   }
 
-  for(long unsigned int i = 0; i < neededRotations.size(); i++) {
-    ctxt = cc->EvalRotate(ctxt, neededRotations[i]);
-  }
-
-  return ctxt;
-}
-
-
-// performs any rotation on a ciphertext using 2log_2(batchsize) rotation keys and (1/2)log_2(batchsize) rotations
-Ciphertext<DCRTPoly> OpenFHEWrapper::binaryRotateHoisted(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, shared_ptr<vector<DCRTPoly>> precompute, int factor) {
-  int batchSize = cc->GetEncodingParams()->GetBatchSize();
-
-  vector<int> neededRotations;
-  int factorSign;
-  int binaryCounter;
-  int currentRotation;
-
-  while(factor != 0) {
-    factorSign = factor / abs(factor);
-
-    binaryCounter = pow(2, round(log2(abs(factor))));
-    currentRotation = (binaryCounter * factorSign) % batchSize;
-    if(currentRotation != 0) {
-      neededRotations.push_back(binaryCounter * factorSign);
-    }
-
-    factor -= binaryCounter * factorSign;
-  }
-
-  size_t cyclotomicOrder = 2 * cc->GetRingDimension();
   for(size_t i = 0; i < neededRotations.size(); i++) {
-    ctxt = cc->EvalFastRotation(ctxt, neededRotations[i], cyclotomicOrder, precompute);
+    ctxt = cc->EvalRotate(ctxt, neededRotations[i]);
   }
 
   return ctxt;
