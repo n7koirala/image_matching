@@ -31,6 +31,9 @@ decryptVectorToVector(CryptoContext<DCRTPoly> cc, PrivateKey<DCRTPoly> sk, vecto
 Ciphertext<DCRTPoly> 
 binaryRotate(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, int factor);
 
+Ciphertext<DCRTPoly>
+binaryRotateHoisted(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, shared_ptr<vector<DCRTPoly>> precompute, int factor);
+
 Ciphertext<DCRTPoly> 
 sign(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, size_t maxDepth);
 

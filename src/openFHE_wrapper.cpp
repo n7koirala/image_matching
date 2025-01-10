@@ -129,6 +129,36 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::binaryRotate(CryptoContext<DCRTPoly> cc, Ci
 }
 
 
+// performs any rotation on a ciphertext using 2log_2(batchsize) rotation keys and (1/2)log_2(batchsize) rotations
+Ciphertext<DCRTPoly> OpenFHEWrapper::binaryRotateHoisted(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt, shared_ptr<vector<DCRTPoly>> precompute, int factor) {
+  int batchSize = cc->GetEncodingParams()->GetBatchSize();
+
+  vector<int> neededRotations;
+  int factorSign;
+  int binaryCounter;
+  int currentRotation;
+
+  while(factor != 0) {
+    factorSign = factor / abs(factor);
+
+    binaryCounter = pow(2, round(log2(abs(factor))));
+    currentRotation = (binaryCounter * factorSign) % batchSize;
+    if(currentRotation != 0) {
+      neededRotations.push_back(binaryCounter * factorSign);
+    }
+
+    factor -= binaryCounter * factorSign;
+  }
+
+  size_t cyclotomicOrder = 2 * cc->GetRingDimension();
+  for(size_t i = 0; i < neededRotations.size(); i++) {
+    ctxt = cc->EvalFastRotation(ctxt, neededRotations[i], cyclotomicOrder, precompute);
+  }
+
+  return ctxt;
+}
+
+
 // implements the sign function sgn(x) = { 1 if x>0, 0.5 if x=0, 0 if x<0 }
 // sign-approximating polynomial f_4(x) and composition method determined from JH Cheon, 2019/1234 (https://ia.cr/2019/1234)
 // performs i compositions, where 4i+1 <= maxDepth, ideally choose maxDepth to equal some 4i+1
