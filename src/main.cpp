@@ -23,6 +23,7 @@
 #include "../include/sender_base.h"
 #include "../include/sender_blind.h"
 #include "../include/sender_grote.h"
+#include "../include/sender_diag.h"
 
 // Header files needed for serialization
 #include "ciphertext-ser.h"
@@ -189,12 +190,18 @@ int main(int argc, char *argv[]) {
     cc->EvalSumKeyGen(sk);
 
     cout << "Generating rotation keys... " << endl;
-    vector<int> binaryRotationFactors;
-    for(int i = 1; i < int(batchSize); i *= 2) {
-      binaryRotationFactors.push_back(i);
-      binaryRotationFactors.push_back(-i);
+    vector<int> rotationFactors(VECTOR_DIM-1);
+    // generate keys from 1 to VECTOR_DIM
+    iota(rotationFactors.begin(), rotationFactors.end(), 1);
+    // generate positive binary rotation keys greater than VECTOR_DIM
+    for(int i = VECTOR_DIM; i < int(batchSize); i *= 2) {
+      rotationFactors.push_back(i);
     }
-    cc->EvalRotateKeyGen(sk, binaryRotationFactors);
+    // generate negative binary rotation keys 
+    for(int i = 1; i < int(batchSize); i *= 2) {
+      rotationFactors.push_back(-i);
+    }
+    cc->EvalRotateKeyGen(sk, rotationFactors);
   }
 
   // OpenFHEWrapper::printSchemeDetails(parameters, cc);
@@ -276,10 +283,6 @@ int main(int argc, char *argv[]) {
     }
   }
   fileStream.close();
-
-  // TESTING DIAGONAL ENROLLER
-  return 0;
-  // TESTING DIAGONAL ENROLLER
 
   // Individual-query experiments begin here
   cout << endl << "\tRunning Experiments:" << endl;
@@ -439,6 +442,7 @@ int main(int argc, char *argv[]) {
     expStream << duration.count() << "," << flush;
 
   } else if (expApproach == 4) {
+
     // Allocate receiver and sender objects
     receiver = new BlindReceiver(cc, pk, sk, numVectors);
     sender = new BlindSender(cc, pk, numVectors);
@@ -485,7 +489,43 @@ int main(int argc, char *argv[]) {
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl;
     expStream << duration.count() << "," << flush;
+  
+  } else if (expApproach == 5) {
+
+    // Allocate receiver and sender objects
+    receiver = new DiagonalReceiver(cc, pk, sk, numVectors);
+    sender = new DiagonalSender(cc, pk, numVectors);
+
+    // Normalize, batch, and encrypt the query vector
+    cout << "[Receiver]\tEncrypting query vector... " << flush;
+    start = chrono::steady_clock::now();
+    auto queryCipher = static_cast<DiagonalReceiver*>(receiver)->encryptQuery(queryVector);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+    // Perform membership scenario
+    cout << "[Sender]\tComputing membership scenario... " << flush;
+    start = chrono::steady_clock::now();
+    Ciphertext<DCRTPoly> membershipCipher = static_cast<DiagonalSender*>(sender)->membershipScenario(queryCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+    // Perform index scenario
+    cout << "[Sender]\tComputing index scenario... " << flush;
+    start = chrono::steady_clock::now();
+    auto indexCipher = static_cast<DiagonalSender*>(sender)->indexScenario(queryCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
   }
+
+  return 0;
 
   // Displaying query results
   // The dataset-generation script creates datasets of size N with matches at indices 2 and N-1

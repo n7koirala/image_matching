@@ -28,6 +28,12 @@ void DiagonalEnroller::serializeDB(vector<vector<double>> database) {
     }
   }
 
+  // normalize all database vectors
+  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  for (size_t i = 0; i < numVectors; i++) {
+    database[i] = VectorUtils::plaintextNormalize(database[i], VECTOR_DIM);
+  }
+
   vector<vector<vector<double>>> squareMatrices = splitIntoSquareMatrices(database, VECTOR_DIM);
   
   vector<vector<vector<double>>> allDiagonalMatrices;

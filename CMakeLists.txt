@@ -71,6 +71,7 @@ add_executable(ImageMatching
     src/sender/sender_base.cpp
     src/sender/sender_blind.cpp
     src/sender/sender_grote.cpp
+    src/sender/sender_diag.cpp
     src/main.cpp
     src/openFHE_wrapper.cpp
     src/vector_utils.cpp
