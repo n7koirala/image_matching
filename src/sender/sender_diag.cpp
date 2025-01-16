@@ -11,9 +11,6 @@ DiagonalSender::DiagonalSender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPo
 // -------------------- PUBLIC FUNCTIONS --------------------
 vector<Ciphertext<DCRTPoly>> DiagonalSender::computeSimilarity(Ciphertext<DCRTPoly> &queryCipher) {
 
-  // TODO: remove test print statement
-  cout << "(diagonal similarity)" << flush;
-
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t cyclotomicOrder = 2 * cc->GetRingDimension(); // needed for fast hoisted rotations
   size_t numMatrices = ceil(double(numVectors) / double(batchSize));

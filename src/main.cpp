@@ -514,10 +514,26 @@ int main(int argc, char *argv[]) {
     cout << "done (" << duration.count() << "s)" << endl;
     expStream << duration.count() << "," << flush;
 
+    cout << "[Receiver]\tDecrypting membership results... " << flush;
+    start = chrono::steady_clock::now();
+    membershipResult = static_cast<DiagonalReceiver*>(receiver)->decryptMembership(membershipCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
     // Perform index scenario
     cout << "[Sender]\tComputing index scenario... " << flush;
     start = chrono::steady_clock::now();
     auto indexCipher = static_cast<DiagonalSender*>(sender)->indexScenario(queryCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+    cout << "[Receiver]\tDecrypting index results... " << flush;
+    start = chrono::steady_clock::now();
+    indexResults = static_cast<DiagonalReceiver*>(receiver)->decryptIndex(indexCipher);
     end = chrono::steady_clock::now();
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl;
