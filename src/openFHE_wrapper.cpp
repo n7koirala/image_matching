@@ -33,6 +33,12 @@ size_t OpenFHEWrapper::computeRequiredDepth(size_t approach) {
       depth += 1;           // one mult required for compression operation
       depth += COMP_DEPTH;  // mults required for threshold comparison
       break;
+
+    case 5: // diagonal (TODO: update this correctly)
+      depth += 1;           // one mult required for score computation
+      depth += 1;           // one mult required for compression operation
+      depth += COMP_DEPTH;  // mults required for threshold comparison
+      break;
   }
 
   return depth;
@@ -115,7 +121,7 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::binaryRotate(CryptoContext<DCRTPoly> cc, Ci
     factor -= binaryCounter * factorSign;
   }
 
-  for(long unsigned int i = 0; i < neededRotations.size(); i++) {
+  for(size_t i = 0; i < neededRotations.size(); i++) {
     ctxt = cc->EvalRotate(ctxt, neededRotations[i]);
   }
 

@@ -1,20 +1,29 @@
 #include "../include/config.h"
-#include "../include/receiver.h"
-#include "../include/receiver_base.h"
-#include "../include/receiver_blind.h"
-#include "../include/receiver_grote.h"
-#include "../include/enroller.h"
-#include "../include/enroller_base.h"
-#include "../include/enroller_blind.h"
-#include "../include/sender.h"
-#include "../include/sender_base.h"
-#include "../include/sender_blind.h"
-#include "../include/sender_grote.h"
 #include "../include/vector_utils.h"
 #include "../include/openFHE_wrapper.h"
 #include "openfhe.h"
 #include <iostream>
 #include <ctime>
+
+// Receiver class header files
+#include "../include/receiver.h"
+#include "../include/receiver_base.h"
+#include "../include/receiver_blind.h"
+#include "../include/receiver_grote.h"
+#include "../include/receiver_diag.h"
+
+// Enroller class header files
+#include "../include/enroller.h"
+#include "../include/enroller_base.h"
+#include "../include/enroller_blind.h"
+#include "../include/enroller_diag.h"
+
+// Sender class header files
+#include "../include/sender.h"
+#include "../include/sender_base.h"
+#include "../include/sender_blind.h"
+#include "../include/sender_grote.h"
+#include "../include/sender_diag.h"
 
 // Header files needed for serialization
 #include "ciphertext-ser.h"
@@ -54,8 +63,8 @@ int main(int argc, char *argv[]) {
     cerr << "Error: approach argument not included" << endl;
     return 1;
   }
-  if (expApproach < 1 || expApproach > 4) {
-    cerr << "Error: approach must be 1, 2, 3, or 4" << endl;
+  if (expApproach < 1 || expApproach > 5) {
+    cerr << "Error: approach must be from 1 to 5" << endl;
     return 1;
   }
 
@@ -72,8 +81,8 @@ int main(int argc, char *argv[]) {
   size_t multDepth = OpenFHEWrapper::computeRequiredDepth(expApproach);
   switch(expApproach) {
     case 1:
-      cout << "Experimental approach: stacked MVM (novel)" << endl;
-      expStream << "Stacked MVM," << flush;
+      cout << "Experimental approach: Stacked Transform (novel)" << endl;
+      expStream << "Stacked," << flush;
       break;
 
     case 2:
@@ -82,13 +91,18 @@ int main(int argc, char *argv[]) {
       break;
 
     case 3:
-      cout << "Experimental approach: GROTE (CODASPY paper)" << endl;
+      cout << "Experimental approach: GROTE" << endl;
       expStream << "GROTE," << flush;
       break;
 
     case 4:
       cout << "Experimental approach: Blind-Match" << endl;
       expStream << "Blind," << flush;
+      break;
+    
+    case 5:
+      cout << "Experimental approach: Diagonal Transform (novel)" << endl;
+      expStream << "Diagonal," << flush;
       break;
   }
 
@@ -176,12 +190,18 @@ int main(int argc, char *argv[]) {
     cc->EvalSumKeyGen(sk);
 
     cout << "Generating rotation keys... " << endl;
-    vector<int> binaryRotationFactors;
-    for(int i = 1; i < int(batchSize); i *= 2) {
-      binaryRotationFactors.push_back(i);
-      binaryRotationFactors.push_back(-i);
+    vector<int> rotationFactors(VECTOR_DIM-1);
+    // generate keys from 1 to VECTOR_DIM
+    iota(rotationFactors.begin(), rotationFactors.end(), 1);
+    // generate positive binary rotation keys greater than VECTOR_DIM
+    for(int i = VECTOR_DIM; i < int(batchSize); i *= 2) {
+      rotationFactors.push_back(i);
     }
-    cc->EvalRotateKeyGen(sk, binaryRotationFactors);
+    // generate negative binary rotation keys 
+    for(int i = 1; i < int(batchSize); i *= 2) {
+      rotationFactors.push_back(-i);
+    }
+    cc->EvalRotateKeyGen(sk, rotationFactors);
   }
 
   // OpenFHEWrapper::printSchemeDetails(parameters, cc);
@@ -220,6 +240,9 @@ int main(int argc, char *argv[]) {
     } else if (expApproach == 4) {
       enroller = new BlindEnroller(cc, pk, numVectors);
       static_cast<BlindEnroller*>(enroller)->serializeDB(plaintextVectors, CHUNK_LEN);
+    } else if (expApproach == 5) {
+      enroller = new DiagonalEnroller(cc, pk, numVectors);
+      static_cast<DiagonalEnroller*>(enroller)->serializeDB(plaintextVectors);
     }
     delete enroller;
 
@@ -260,7 +283,7 @@ int main(int argc, char *argv[]) {
     }
   }
   fileStream.close();
-  
+
   // Individual-query experiments begin here
   cout << endl << "\tRunning Experiments:" << endl;
   chrono::steady_clock::time_point start, end;
@@ -419,6 +442,7 @@ int main(int argc, char *argv[]) {
     expStream << duration.count() << "," << flush;
 
   } else if (expApproach == 4) {
+
     // Allocate receiver and sender objects
     receiver = new BlindReceiver(cc, pk, sk, numVectors);
     sender = new BlindSender(cc, pk, numVectors);
@@ -465,6 +489,56 @@ int main(int argc, char *argv[]) {
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl;
     expStream << duration.count() << "," << flush;
+  
+  } else if (expApproach == 5) {
+
+    // Allocate receiver and sender objects
+    receiver = new DiagonalReceiver(cc, pk, sk, numVectors);
+    sender = new DiagonalSender(cc, pk, numVectors);
+
+    // Normalize, batch, and encrypt the query vector
+    cout << "[Receiver]\tEncrypting query vector... " << flush;
+    start = chrono::steady_clock::now();
+    auto queryCipher = static_cast<DiagonalReceiver*>(receiver)->encryptQuery(queryVector);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+    // Perform membership scenario
+    cout << "[Sender]\tComputing membership scenario... " << flush;
+    start = chrono::steady_clock::now();
+    Ciphertext<DCRTPoly> membershipCipher = static_cast<DiagonalSender*>(sender)->membershipScenario(queryCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+    cout << "[Receiver]\tDecrypting membership results... " << flush;
+    start = chrono::steady_clock::now();
+    membershipResult = static_cast<DiagonalReceiver*>(receiver)->decryptMembership(membershipCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+    // Perform index scenario
+    cout << "[Sender]\tComputing index scenario... " << flush;
+    start = chrono::steady_clock::now();
+    auto indexCipher = static_cast<DiagonalSender*>(sender)->indexScenario(queryCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+    cout << "[Receiver]\tDecrypting index results... " << flush;
+    start = chrono::steady_clock::now();
+    indexResults = static_cast<DiagonalReceiver*>(receiver)->decryptIndex(indexCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
   }
 
   // Displaying query results

@@ -1,6 +1,6 @@
 #include "../../include/sender_base.h"
 
-// implementation of functions declared in base_sender.h
+// implementation of functions declared in sender_base.h
 
 // -------------------- CONSTRUCTOR --------------------
 
