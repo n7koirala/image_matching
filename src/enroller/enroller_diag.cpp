@@ -44,20 +44,10 @@ void DiagonalEnroller::serializeDB(vector<vector<double>> database) {
 
   vector<vector<double>> concatenatedRows = concatenateRows(allDiagonalMatrices);
 
-  /*
-  cout << "\nConcatenated Rows:" << endl;
-  for (const auto& row : concatenatedRows) {
-    for (double value : row) {
-      cout << value << " ";
-    }
-    cout << endl;
-    cout << endl;
-  }
-   */
-
   // encrypt each row 
   #pragma omp parallel for num_threads(RECEIVER_NUM_CORES)
   for (size_t i = 0; i < concatenatedRows.size(); i++) {
+    // cout << i << "\t" << concatenatedRows[i].size() << endl;
     serializeDBThread(concatenatedRows[i], i);
   }
 }
@@ -118,27 +108,43 @@ vector<vector<double>> DiagonalEnroller::preprocessToDiagonalForm(vector<vector<
 
 // Function to concatenate rows from multiple matrices
 vector<vector<double>> DiagonalEnroller::concatenateRows(const vector<vector<vector<double>>> &matrices) {
-  vector<vector<double>> concatenatedRows;
+  
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
+  size_t matricesPerBatch = batchSize / VECTOR_DIM; // should be 64 with our current params
+  size_t numOutputBatches = ceil(double(matrices.size()) / double(matricesPerBatch)) * VECTOR_DIM;
 
-  if (matrices.empty()) return concatenatedRows;
+  vector<vector<double>> outputBatches(numOutputBatches);
+  vector<double> copyRow;
 
-  // Assume all matrices have the same number of rows
-  int numRows = matrices[0].size();
+  size_t matrixNum, rowNum, rowIndex;
 
-  // For each row in the matrices
-  for (int rowIndex = 0; rowIndex < numRows; ++rowIndex) {
-	vector<double> concatenatedRow;
+  // iterate over all output batches to be filled
+  for (size_t i = 0; i < numOutputBatches; i++) {
+    vector<double> currentBatch(batchSize, 0.0);
 
-    // Concatenate the rowIndex-th row of each matrix
-    for (const auto& matrix : matrices) {
-      const auto& row = matrix[rowIndex];
-      concatenatedRow.insert(concatenatedRow.end(), row.begin(), row.end());
+    // iterate over the matrices to be concatenated into current batch
+    for (size_t j = 0; j < matricesPerBatch; j++) {
+
+      matrixNum = ((i / VECTOR_DIM) * matricesPerBatch) + j;
+      rowNum = i % VECTOR_DIM;
+      rowIndex = j * VECTOR_DIM;
+
+      // check if we still have matrices remaining to concatenate into batch
+      // if so, copy i-th row from each matrix into current batch
+      if (matrixNum < matrices.size()) {
+        copy(
+          matrices[matrixNum][rowNum].begin(),
+          matrices[matrixNum][rowNum].end(),
+          currentBatch.begin() + rowIndex
+        );
+      }
+      
     }
 
-    concatenatedRows.push_back(concatenatedRow);
+    outputBatches[i] = currentBatch;
   }
 
-  return concatenatedRows;
+  return outputBatches;
 }
 
 void DiagonalEnroller::serializeDBThread(vector<double> &currentRow, size_t index) {

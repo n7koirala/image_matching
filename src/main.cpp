@@ -541,8 +541,6 @@ int main(int argc, char *argv[]) {
 
   }
 
-  return 0;
-
   // Displaying query results
   // The dataset-generation script creates datasets of size N with matches at indices 2 and N-1
   cout << endl << "\tDisplaying Query Results:" << endl;
