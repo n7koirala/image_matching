@@ -89,7 +89,7 @@ void BaseSender::computeSimilarityThread(Ciphertext<DCRTPoly> &queryCipher, Ciph
       cerr << "Cannot read serialization from " << filepath << endl;
   }
 
-  // TODO: rewrite this using own sum function
+  // todo: rewrite this using own sum function
   similarityCipher = cc->EvalInnerProduct(queryCipher, databaseCipher, VECTOR_DIM);
   cc->RelinearizeInPlace(similarityCipher);
   cc->RescaleInPlace(similarityCipher);

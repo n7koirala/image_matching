@@ -25,7 +25,7 @@ Enroller::encryptDB(vector<vector<double>> database) {
   vector<vector<Ciphertext<DCRTPoly>>> databaseCipher( numMatrices, vector<Ciphertext<DCRTPoly>>(VECTOR_DIM) );
 
   // encrypt normalized vectors in index-batched format
-  // TODO -- parallelize outer loop?
+  // todo -- parallelize outer loop?
   for(size_t i = 0; i < numMatrices; i++) {
 
     #pragma omp parallel for num_threads(MAX_NUM_CORES)
