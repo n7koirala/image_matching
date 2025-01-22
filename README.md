@@ -104,7 +104,7 @@ The application can be configured using various parameters defined in the source
 - **Similarity Match Threshold**: Set the cosine similarity value above which vectors are considered to be matching.
 - **Comparison Depth**: Set the multiplicative depth to be used by the comparison-approximating function.
 - **Alpha-Norm Depth**: Set the multiplicative depth to be used by the alpha-norm maximum approximation in the group-testing approach.
-- **CPU Cores**: Set the maximum number of CPU cores to be used by the receiver or sender in multi-threaded operations.
+- **CPU Cores**: Set the maximum number of CPU cores to be allotted to the enroller, receiver, and sender in multi-threaded operations.
 - **Security Level**: Configure the security level of the CKKS scheme.
 - **Scaling Mod Size**: Configure the size for the scaling modulus of the CKKS scheme.
 
@@ -115,8 +115,7 @@ The application can be configured using various parameters defined in the source
 const double MATCH_THRESHOLD = 0.85;
 const size_t COMP_DEPTH = 10;
 const size_t ALPHA_DEPTH = 2;
-const size_t RECEIVER_NUM_CORES = 32;
-const size_t SENDER_NUM_CORES = 32;
+const size_t MAX_NUM_CORES = 32;
 ```
 
 ```cpp

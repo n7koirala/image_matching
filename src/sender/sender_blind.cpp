@@ -15,7 +15,7 @@ Ciphertext<DCRTPoly> BlindSender::membershipScenario(vector<Ciphertext<DCRTPoly>
   // compute similarity scores between query and database
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher, chunkLength);
 
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
     scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, COMP_DEPTH);
   }
@@ -32,7 +32,7 @@ vector<Ciphertext<DCRTPoly>> BlindSender::indexScenario(vector<Ciphertext<DCRTPo
   // compute similarity scores between query and database
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher, chunkLength);
 
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
     scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, COMP_DEPTH);
   }
@@ -61,7 +61,7 @@ Ciphertext<DCRTPoly> BlindSender::computeSimilarityMatrix(vector<Ciphertext<DCRT
   size_t chunksPerVector = VECTOR_DIM / chunkLength;
   vector<Ciphertext<DCRTPoly>> matrixCipher(chunksPerVector);
 
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for(size_t i = 0; i < chunksPerVector; i++) {
     matrixCipher[i] = computeSimilaritySerial(queryCipher[i], matrix, (i*chunkLength));
   }

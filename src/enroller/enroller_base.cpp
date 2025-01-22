@@ -34,13 +34,13 @@ void BaseEnroller::serializeDB(vector<vector<double>> database) {
   }
 
   // normalize all plaintext database vectors
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for (size_t i = 0; i < numVectors; i++) {
     database[i] = VectorUtils::plaintextNormalize(database[i], VECTOR_DIM);
   }
 
   // serialize all database vectors in sequential-batched format
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for(size_t i = 0; i < numBatches; i++) {
     vector<double> currentVector(batchSize);
     for(size_t j = 0; j < min(vectorsPerBatch, numVectors - i*vectorsPerBatch); j++) {

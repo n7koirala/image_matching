@@ -29,7 +29,7 @@ void DiagonalEnroller::serializeDB(vector<vector<double>> database) {
   }
 
   // normalize all database vectors
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for (size_t i = 0; i < numVectors; i++) {
     database[i] = VectorUtils::plaintextNormalize(database[i], VECTOR_DIM);
   }
@@ -45,7 +45,7 @@ void DiagonalEnroller::serializeDB(vector<vector<double>> database) {
   vector<vector<double>> concatenatedRows = concatenateRows(allDiagonalMatrices);
 
   // encrypt each row 
-  #pragma omp parallel for num_threads(RECEIVER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for (size_t i = 0; i < concatenatedRows.size(); i++) {
     // cout << i << "\t" << concatenatedRows[i].size() << endl;
     serializeDBThread(concatenatedRows[i], i);

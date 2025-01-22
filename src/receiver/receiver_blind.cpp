@@ -17,7 +17,7 @@ vector<Ciphertext<DCRTPoly>> BlindReceiver::encryptQuery(vector<double> &query, 
   query = VectorUtils::plaintextNormalize(query, VECTOR_DIM);
 
   // TODO: include multithreading
-  // #pragma omp parallel for num_threads(RECEIVER_NUM_CORES)
+  // #pragma omp parallel for num_threads(MAX_NUM_CORES)
   vector<Ciphertext<DCRTPoly>> queryVector(chunksPerVector);
   for (size_t i = 0; i < chunksPerVector; i++) {
     queryVector[i] = encryptQueryThread(query, chunkLength, (i*chunkLength));

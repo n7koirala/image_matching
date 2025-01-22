@@ -15,7 +15,7 @@ vector<Ciphertext<DCRTPoly>> Receiver::encryptQuery(vector<double> query) {
   vector<Ciphertext<DCRTPoly>> queryCipher(VECTOR_DIM);
   query = VectorUtils::plaintextNormalize(query, VECTOR_DIM);
 
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for(size_t i = 0; i < VECTOR_DIM; i++) {
     queryCipher[i] = encryptQueryThread(query[i]);
   }

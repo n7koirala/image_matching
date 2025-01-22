@@ -18,7 +18,7 @@ vector<Ciphertext<DCRTPoly>> BaseSender::computeSimilarity(Ciphertext<DCRTPoly> 
   vector<Ciphertext<DCRTPoly>> similarityCipher(numBatches);
 
   // embarrassingly parallel
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for (size_t i = 0; i < numBatches; i++) {
     computeSimilarityThread(queryCipher, similarityCipher[i], i);
   }
@@ -37,7 +37,7 @@ vector<Ciphertext<DCRTPoly>> BaseSender::computeSimilarityAndMerge(Ciphertext<DC
   vector<Ciphertext<DCRTPoly>> mergedCipher(numMergedCiphers);
 
   // embarrassingly parallel
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for (size_t i = 0; i < numMergedCiphers; i++) {
     // populates mergedCipher with consecutively-packed similarity scores
     computeSimilarityAndMergeThread(queryCipher, mergedCipher[i], i);
@@ -53,7 +53,7 @@ Ciphertext<DCRTPoly> BaseSender::membershipScenario(Ciphertext<DCRTPoly> queryCi
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
   // vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarityAndMerge(queryCipher);
 
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
     scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, COMP_DEPTH);
   }
@@ -72,7 +72,7 @@ vector<Ciphertext<DCRTPoly>> BaseSender::indexScenario(Ciphertext<DCRTPoly> quer
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
   // vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarityAndMerge(queryCipher);
   
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
     scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, COMP_DEPTH);
   }

@@ -20,7 +20,7 @@ vector<Ciphertext<DCRTPoly>> DiagonalSender::computeSimilarity(Ciphertext<DCRTPo
   vector<Ciphertext<DCRTPoly>> rotatedQueryCipher(VECTOR_DIM);
   rotatedQueryCipher[0] = queryCipher;
   shared_ptr<vector<DCRTPoly>> queryPrecomp = cc->EvalFastRotationPrecompute(queryCipher); // needed for fast hoisted rotations
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for(size_t i = 1; i < VECTOR_DIM; i++) {
     rotatedQueryCipher[i] = cc->EvalFastRotation(queryCipher, i, cyclotomicOrder, queryPrecomp);
   }
@@ -37,7 +37,7 @@ Ciphertext<DCRTPoly> DiagonalSender::membershipScenario(Ciphertext<DCRTPoly> &qu
   // compute similarity scores between query and database
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
   
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
     scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, COMP_DEPTH);
   }
@@ -54,7 +54,7 @@ vector<Ciphertext<DCRTPoly>> DiagonalSender::indexScenario(Ciphertext<DCRTPoly> 
   // compute similarity scores between query and database
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
   
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
     scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, COMP_DEPTH);
   }
@@ -67,7 +67,7 @@ Ciphertext<DCRTPoly> DiagonalSender::computeSimilarityMatrix(vector<Ciphertext<D
 
   vector<Ciphertext<DCRTPoly>> scoreCipher(VECTOR_DIM);
 
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for(size_t i = 0; i < VECTOR_DIM; i++) {
     scoreCipher[i] = computeSimilarityThread(queryCipher[i], matrix, i);
   }

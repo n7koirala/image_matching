@@ -17,7 +17,7 @@ Enroller::encryptDB(vector<vector<double>> database) {
   size_t numMatrices = ceil(double(numVectors) / double(batchSize));
 
   // normalize all plaintext database vectors
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for (size_t i = 0; i < numVectors; i++) {
     database[i] = VectorUtils::plaintextNormalize(database[i], VECTOR_DIM);
   }
@@ -28,7 +28,7 @@ Enroller::encryptDB(vector<vector<double>> database) {
   // TODO -- parallelize outer loop?
   for(size_t i = 0; i < numMatrices; i++) {
 
-    #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+    #pragma omp parallel for num_threads(MAX_NUM_CORES)
     for(size_t j = 0; j < VECTOR_DIM; j++) {
       databaseCipher[i][j] = encryptDBThread(i, j, database);
     }
@@ -66,7 +66,7 @@ void Enroller::serializeDB(vector<vector<double>> database) {
   }
 
   // normalize all plaintext database vectors
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for (size_t i = 0; i < numVectors; i++) {
     database[i] = VectorUtils::plaintextNormalize(database[i], VECTOR_DIM);
   }
@@ -74,7 +74,7 @@ void Enroller::serializeDB(vector<vector<double>> database) {
   // encrypt normalized vectors in index-batched format
   for(size_t i = 0; i < numMatrices; i++) {
     
-    #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+    #pragma omp parallel for num_threads(MAX_NUM_CORES)
     for(size_t j = 0; j < VECTOR_DIM; j++) {
       serializeDBThread(i, j, database);
     }
