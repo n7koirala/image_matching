@@ -45,9 +45,8 @@ The primary goal of this project is to provide a robust framework for the compar
     make
     ```
 
-3. **Set up Experiment Tracking**:
+3. **Set up Experiment Tracking File**:
     ```bash
-    mkdir output
     ../tools/setup_experiment.sh
     ```
 

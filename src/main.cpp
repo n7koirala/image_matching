@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
 
   // Open global experiment-tracking file
   ofstream expStream;
-  expStream.open("output/experiment.csv", ios::app);
+  expStream.open(EXP_FILEPATH, ios::app);
   if (!expStream.is_open()) {
     cerr << "Error: experiment file not found" << endl;
     return 1;

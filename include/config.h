@@ -32,3 +32,5 @@ const size_t VECTOR_DIM = 512;
 // Dimension (length) of subvector partitions used in Blind-Match approach
 // Must equal a power of 2
 const size_t CHUNK_LEN = 128;
+
+const std::string EXP_FILEPATH = "experiment.csv";

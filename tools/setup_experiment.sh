@@ -1,4 +1,4 @@
-FILEPATH="output/experiment.csv"
+FILEPATH="experiment.csv"
 
 # print .csv header for experiment file
 printf "Experimental Approach," >> $FILEPATH
