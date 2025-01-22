@@ -36,7 +36,6 @@ size_t OpenFHEWrapper::computeRequiredDepth(size_t approach) {
 
     case 5: // diagonal (TODO: update this correctly)
       depth += 1;           // one mult required for score computation
-      depth += 1;           // one mult required for compression operation
       depth += COMP_DEPTH;  // mults required for threshold comparison
       break;
   }
