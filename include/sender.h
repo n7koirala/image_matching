@@ -22,10 +22,6 @@ public:
   Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam);
 
   // public methods
-  void setDatabaseCipher(vector<vector<Ciphertext<DCRTPoly>>> databaseCipherParam);
-
-  void serializeDatabaseCipher(string location);
-
   vector<Ciphertext<DCRTPoly>>
   computeSimilarity(vector<Ciphertext<DCRTPoly>> queryCipher);
 

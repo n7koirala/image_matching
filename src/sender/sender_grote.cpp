@@ -12,8 +12,6 @@ GroteSender::GroteSender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pk
 
 Ciphertext<DCRTPoly> GroteSender::membershipScenario(Ciphertext<DCRTPoly> queryCipher) {
 
-  cout << "GROTE membership scenario" << endl;
-
   // row length is the power of 2 closest to sqrt(batchSize)
   // dividing scores into square matrix as close as possible
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();

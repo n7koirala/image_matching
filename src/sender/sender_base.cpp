@@ -84,7 +84,7 @@ vector<Ciphertext<DCRTPoly>> BaseSender::indexScenario(Ciphertext<DCRTPoly> quer
 void BaseSender::computeSimilarityThread(Ciphertext<DCRTPoly> &queryCipher, Ciphertext<DCRTPoly> &similarityCipher, size_t databaseIndex) {
 
   Ciphertext<DCRTPoly> databaseCipher;
-  string filepath = "serial/database/batch" + to_string(databaseIndex) + ".bin";
+  string filepath = "serial/db_baseline/batch" + to_string(databaseIndex) + ".bin";
   if (!Serial::DeserializeFromFile(filepath, databaseCipher, SerType::BINARY)) {
       cerr << "Cannot read serialization from " << filepath << endl;
   }
@@ -122,7 +122,7 @@ void BaseSender::computeSimilarityAndMergeThread(Ciphertext<DCRTPoly> &queryCiph
       break;
     }
 
-    filepath = "serial/database/batch" + to_string(currentIndex) + ".bin";
+    filepath = "serial/db_baseline/batch" + to_string(currentIndex) + ".bin";
     if (!Serial::DeserializeFromFile(filepath, databaseCipher, SerType::BINARY)) {
         cerr << "Cannot read serialization from " << filepath << endl;
         break;

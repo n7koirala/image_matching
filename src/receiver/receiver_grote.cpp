@@ -38,9 +38,6 @@ vector<size_t> GroteReceiver::decryptIndex(tuple<vector<Ciphertext<DCRTPoly>>, v
     }
   }
 
-  cout << "Rows: " << rowMatches << endl;
-  cout << "Cols: " << colMatches << endl;
-
   size_t rowMatrixNum;
   size_t colMatrixNum;
   for(size_t i = 0; i < rowMatches.size(); i++) {

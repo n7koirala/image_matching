@@ -26,7 +26,7 @@ void BaseEnroller::serializeDB(vector<vector<double>> database) {
   }
 
   // create matrix-specific directories if they don't exist
-  string dirName = "serial/database/";
+  string dirName = "serial/db_baseline/";
   if(!filesystem::exists(dirName)) {
     if(!filesystem::create_directory(dirName)) {
       cerr << "Error: Failed to create directory \"" + dirName + "\"" << endl;
@@ -49,7 +49,7 @@ void BaseEnroller::serializeDB(vector<vector<double>> database) {
 
     Ciphertext<DCRTPoly> currentCtxt = OpenFHEWrapper::encryptFromVector(cc, pk, currentVector);
 
-    string filepath = "serial/database/batch" + to_string(i) + ".bin";
+    string filepath = "serial/db_baseline/batch" + to_string(i) + ".bin";
     if (!Serial::SerializeToFile(filepath, currentCtxt, SerType::BINARY)) {
       cerr << "Error: serialization failed (cannot write to " + filepath + ")" << endl;
     }

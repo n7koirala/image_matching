@@ -10,17 +10,7 @@ Sender::Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 
-void Sender::setDatabaseCipher(vector<vector<Ciphertext<DCRTPoly>>> databaseCipherParam) {
-  databaseCipher = databaseCipherParam;
-  return;
-}
 
-
-void Sender::serializeDatabaseCipher(string location) {
-  if (!Serial::SerializeToFile(location, databaseCipher[0], SerType::JSON)) {
-      cerr << "failed (cannot write to " << location << ")" << endl;
-  }
-}
 
 
 vector<Ciphertext<DCRTPoly>> Sender::computeSimilarity(vector<Ciphertext<DCRTPoly>> queryCipher) {
@@ -95,7 +85,7 @@ Sender::computeSimilarityHelper(size_t matrixIndex, vector<Ciphertext<DCRTPoly>>
 Ciphertext<DCRTPoly>
 Sender::computeSimilaritySerial(size_t matrix, size_t index, Ciphertext<DCRTPoly> queryCipher) {
 
-  string filepath = "serial/matrix" + to_string(matrix) + "/index" + to_string(index) + ".bin";
+  string filepath = "serial/db_hers/matrix" + to_string(matrix) + "/index" + to_string(index) + ".bin";
   Ciphertext<DCRTPoly> databaseCipher;
   if (Serial::DeserializeFromFile(filepath, databaseCipher, SerType::BINARY) == false) {
     cerr << "Error: cannot deserialize from \"" << filepath << "\"" << endl;
