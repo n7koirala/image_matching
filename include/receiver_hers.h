@@ -15,10 +15,10 @@
 using namespace lbcrypto;
 using namespace std;
 
-class Receiver {
+class HersReceiver {
 public:
   // constructor
-  Receiver(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
+  HersReceiver(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
               PrivateKey<DCRTPoly> skParam, size_t vectorParam);
 
   // public methods

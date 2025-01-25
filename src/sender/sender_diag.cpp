@@ -6,7 +6,7 @@
 
 DiagonalSender::DiagonalSender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
                size_t vectorParam)
-    : Sender(ccParam, pkParam, vectorParam) {}
+    : HersSender(ccParam, pkParam, vectorParam) {}
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 vector<Ciphertext<DCRTPoly>> DiagonalSender::computeSimilarity(Ciphertext<DCRTPoly> &queryCipher) {

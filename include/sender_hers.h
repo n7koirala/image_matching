@@ -16,10 +16,10 @@
 using namespace lbcrypto;
 using namespace std;
 
-class Sender {
+class HersSender {
 public:
   // constructor
-  Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam);
+  HersSender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam);
 
   // public methods
   vector<Ciphertext<DCRTPoly>>

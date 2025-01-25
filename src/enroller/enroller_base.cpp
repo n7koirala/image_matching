@@ -6,7 +6,7 @@
 
 BaseEnroller::BaseEnroller(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
                size_t vectorParam)
-    : Enroller(ccParam, pkParam, vectorParam) {}
+    : HersEnroller(ccParam, pkParam, vectorParam) {}
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 

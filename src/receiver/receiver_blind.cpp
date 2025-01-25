@@ -6,7 +6,7 @@
 
 BlindReceiver::BlindReceiver(CryptoContext<DCRTPoly> ccParam,
                          PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, size_t vectorParam)
-    : Receiver(ccParam, pkParam, skParam, vectorParam) {}
+    : HersReceiver(ccParam, pkParam, skParam, vectorParam) {}
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 

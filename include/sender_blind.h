@@ -1,8 +1,8 @@
 #pragma once
 
-#include "sender.h"
+#include "sender_hers.h"
 
-class BlindSender : public Sender {
+class BlindSender : public HersSender {
 public:
   // constructor
   BlindSender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam);

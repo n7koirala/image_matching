@@ -1,12 +1,12 @@
 #include "../../include/enroller_diag.h"
 
-// implementation of functions declared in enroller.h
+// implementation of functions declared in enroller_diag.h
 
 // -------------------- CONSTRUCTOR --------------------
 
 DiagonalEnroller::DiagonalEnroller(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
          size_t vectorParam)
-  : Enroller(ccParam, pkParam, vectorParam) {}
+  : HersEnroller(ccParam, pkParam, vectorParam) {}
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 void DiagonalEnroller::serializeDB(vector<vector<double>> database) {

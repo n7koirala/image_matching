@@ -1,16 +1,16 @@
-#include "../../include/receiver.h"
+#include "../../include/receiver_hers.h"
 
-// implementation of functions declared in receiver.h
+// implementation of functions declared in receiver_hers.h
 
 // -------------------- CONSTRUCTOR --------------------
 
-Receiver::Receiver(CryptoContext<DCRTPoly> ccParam,
+HersReceiver::HersReceiver(CryptoContext<DCRTPoly> ccParam,
                          PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, size_t vectorParam)
     : cc(ccParam), pk(pkParam), sk(skParam), numVectors(vectorParam) {}
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 
-vector<Ciphertext<DCRTPoly>> Receiver::encryptQuery(vector<double> query) {
+vector<Ciphertext<DCRTPoly>> HersReceiver::encryptQuery(vector<double> query) {
   
   vector<Ciphertext<DCRTPoly>> queryCipher(VECTOR_DIM);
   query = VectorUtils::plaintextNormalize(query, VECTOR_DIM);
@@ -25,7 +25,7 @@ vector<Ciphertext<DCRTPoly>> Receiver::encryptQuery(vector<double> query) {
 
 
 // encrypts the query vector into a single cipher, requires sender to generate 512 needed ciphers
-Ciphertext<DCRTPoly> Receiver::encryptQueryAlt(vector<double> query) {
+Ciphertext<DCRTPoly> HersReceiver::encryptQueryAlt(vector<double> query) {
   
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
 
@@ -38,7 +38,7 @@ Ciphertext<DCRTPoly> Receiver::encryptQueryAlt(vector<double> query) {
   return OpenFHEWrapper::encryptFromVector(cc, pk, batchedQuery);
 }
 
-bool Receiver::decryptMembership(Ciphertext<DCRTPoly> &membershipCipher) {
+bool HersReceiver::decryptMembership(Ciphertext<DCRTPoly> &membershipCipher) {
 
   vector<double> membershipValues = OpenFHEWrapper::decryptToVector(cc, sk, membershipCipher);
 
@@ -50,7 +50,7 @@ bool Receiver::decryptMembership(Ciphertext<DCRTPoly> &membershipCipher) {
 }
 
 
-vector<size_t> Receiver::decryptIndex(vector<Ciphertext<DCRTPoly>> &indexCipher) {
+vector<size_t> HersReceiver::decryptIndex(vector<Ciphertext<DCRTPoly>> &indexCipher) {
 
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   vector<size_t> outputValues;
@@ -71,7 +71,7 @@ vector<size_t> Receiver::decryptIndex(vector<Ciphertext<DCRTPoly>> &indexCipher)
 
 // -------------------- PRIVATE FUNCTIONS --------------------
 
-Ciphertext<DCRTPoly> Receiver::encryptQueryThread(double indexValue) {
+Ciphertext<DCRTPoly> HersReceiver::encryptQueryThread(double indexValue) {
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   vector<double> indexVector(batchSize, indexValue);
   Plaintext ptxt = cc->MakeCKKSPackedPlaintext(indexVector);

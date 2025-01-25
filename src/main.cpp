@@ -6,24 +6,24 @@
 #include <ctime>
 
 // Receiver class header files
-#include "../include/receiver.h"
 #include "../include/receiver_base.h"
 #include "../include/receiver_blind.h"
-#include "../include/receiver_grote.h"
 #include "../include/receiver_diag.h"
+#include "../include/receiver_grote.h"
+#include "../include/receiver_hers.h"
 
 // Enroller class header files
-#include "../include/enroller.h"
 #include "../include/enroller_base.h"
 #include "../include/enroller_blind.h"
 #include "../include/enroller_diag.h"
+#include "../include/enroller_hers.h"
 
 // Sender class header files
-#include "../include/sender.h"
 #include "../include/sender_base.h"
 #include "../include/sender_blind.h"
-#include "../include/sender_grote.h"
 #include "../include/sender_diag.h"
+#include "../include/sender_grote.h"
+#include "../include/sender_hers.h"
 
 // Header files needed for serialization
 #include "ciphertext-ser.h"
@@ -81,8 +81,8 @@ int main(int argc, char *argv[]) {
   size_t multDepth = OpenFHEWrapper::computeRequiredDepth(expApproach);
   switch(expApproach) {
     case 1:
-      cout << "Experimental approach: Stacked Transform (novel)" << endl;
-      expStream << "Stacked," << flush;
+      cout << "Experimental approach: HERS paper" << endl;
+      expStream << "HERS," << flush;
       break;
 
     case 2:
@@ -91,17 +91,17 @@ int main(int argc, char *argv[]) {
       break;
 
     case 3:
-      cout << "Experimental approach: GROTE" << endl;
+      cout << "Experimental approach: GROTE paper" << endl;
       expStream << "GROTE," << flush;
       break;
 
     case 4:
-      cout << "Experimental approach: Blind-Match" << endl;
+      cout << "Experimental approach: Blind-Match paper" << endl;
       expStream << "Blind," << flush;
       break;
     
     case 5:
-      cout << "Experimental approach: Diagonal Transform (novel)" << endl;
+      cout << "Experimental approach: Novel diagonal transform" << endl;
       expStream << "Diagonal," << flush;
       break;
   }
@@ -229,11 +229,11 @@ int main(int argc, char *argv[]) {
 
     cout << "Encrypting database vectors... " << endl;
     // Classes stored on heap to allow for cleaner polymorphism
-    Enroller *enroller;
+    HersEnroller *enroller;
 
     if (expApproach == 1) {
-      enroller = new Enroller(cc, pk, numVectors);
-      static_cast<Enroller*>(enroller)->serializeDB(plaintextVectors);
+      enroller = new HersEnroller(cc, pk, numVectors);
+      static_cast<HersEnroller*>(enroller)->serializeDB(plaintextVectors);
     } else if (expApproach == 2 || expApproach == 3) {
       enroller = new BaseEnroller(cc, pk, numVectors);
       static_cast<BaseEnroller*>(enroller)->serializeDB(plaintextVectors);
@@ -289,21 +289,21 @@ int main(int argc, char *argv[]) {
   chrono::steady_clock::time_point start, end;
   chrono::duration<double> duration;
 
-  Receiver *receiver;
-  Sender *sender;
+  HersReceiver *receiver;
+  HersSender *sender;
   bool membershipResult;
   vector<size_t> indexResults;
 
   if (expApproach == 1) {
     
     // Allocate receiver and sender objects
-    receiver = new Receiver(cc, pk, sk, numVectors);
-    sender = new Sender(cc, pk, numVectors);
+    receiver = new HersReceiver(cc, pk, sk, numVectors);
+    sender = new HersSender(cc, pk, numVectors);
 
     // Normalize, batch, and encrypt the query vector
     cout << "[Receiver]\tEncrypting query vector... " << flush;
     start = chrono::steady_clock::now();
-    auto queryCipher = static_cast<Receiver*>(receiver)->encryptQuery(queryVector);
+    auto queryCipher = static_cast<HersReceiver*>(receiver)->encryptQuery(queryVector);
     end = chrono::steady_clock::now();
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl;
@@ -313,7 +313,7 @@ int main(int argc, char *argv[]) {
     // Perform membership scenario
     cout << "[Sender]\tComputing membership scenario... " << flush;
     start = chrono::steady_clock::now();
-    Ciphertext<DCRTPoly> membershipCipher = static_cast<Sender*>(sender)->membershipScenario(queryCipher);
+    Ciphertext<DCRTPoly> membershipCipher = static_cast<HersSender*>(sender)->membershipScenario(queryCipher);
     end = chrono::steady_clock::now();
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl;
@@ -322,7 +322,7 @@ int main(int argc, char *argv[]) {
 
     cout << "[Receiver]\tDecrypting membership results... " << flush;
     start = chrono::steady_clock::now();
-    membershipResult = static_cast<Receiver*>(receiver)->decryptMembership(membershipCipher);
+    membershipResult = static_cast<HersReceiver*>(receiver)->decryptMembership(membershipCipher);
     end = chrono::steady_clock::now();
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl;
@@ -331,7 +331,7 @@ int main(int argc, char *argv[]) {
     // Perform index scenario
     cout << "[Sender]\tComputing index scenario... " << flush;
     start = chrono::steady_clock::now();
-    auto indexCipher = static_cast<Sender*>(sender)->indexScenario(queryCipher);
+    auto indexCipher = static_cast<HersSender*>(sender)->indexScenario(queryCipher);
     end = chrono::steady_clock::now();
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl; 
@@ -340,7 +340,7 @@ int main(int argc, char *argv[]) {
 
     cout << "[Receiver]\tDecrypting index results... " << flush;
     start = chrono::steady_clock::now();
-    indexResults = static_cast<Receiver*>(receiver)->decryptIndex(indexCipher);
+    indexResults = static_cast<HersReceiver*>(receiver)->decryptIndex(indexCipher);
     end = chrono::steady_clock::now();
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl;

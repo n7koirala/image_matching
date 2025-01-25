@@ -1,17 +1,17 @@
-#include "../../include/enroller.h"
+#include "../../include/enroller_hers.h"
 
 // implementation of functions declared in enroller.h
 
 // -------------------- CONSTRUCTOR --------------------
 
-Enroller::Enroller(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
+HersEnroller::HersEnroller(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
                size_t vectorParam)
     : cc(ccParam), pk(pkParam), numVectors(vectorParam) {}
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 
 vector<vector<Ciphertext<DCRTPoly>>>
-Enroller::encryptDB(vector<vector<double>> database) {
+HersEnroller::encryptDB(vector<vector<double>> database) {
 
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t numMatrices = ceil(double(numVectors) / double(batchSize));
@@ -38,7 +38,7 @@ Enroller::encryptDB(vector<vector<double>> database) {
 }
 
 
-void Enroller::serializeDB(vector<vector<double>> database) {
+void HersEnroller::serializeDB(vector<vector<double>> database) {
 
   // create necessary directories if they do not exist
   string dirpath = "serial/";
@@ -90,7 +90,7 @@ void Enroller::serializeDB(vector<vector<double>> database) {
 
 // -------------------- PRIVATE FUNCTIONS --------------------
 
-Ciphertext<DCRTPoly> Enroller::encryptDBThread(size_t matrix, size_t index, vector<vector<double>> database) {
+Ciphertext<DCRTPoly> HersEnroller::encryptDBThread(size_t matrix, size_t index, vector<vector<double>> database) {
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t startIndex = matrix * batchSize;
 
@@ -103,7 +103,7 @@ Ciphertext<DCRTPoly> Enroller::encryptDBThread(size_t matrix, size_t index, vect
 }
 
 
-void Enroller::serializeDBThread(size_t matrix, size_t index, vector<vector<double>> &database) {
+void HersEnroller::serializeDBThread(size_t matrix, size_t index, vector<vector<double>> &database) {
 
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t startIndex = matrix * batchSize;

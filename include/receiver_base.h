@@ -3,9 +3,9 @@
 
 #pragma once
 
-#include "receiver.h"
+#include "receiver_hers.h"
 
-class BaseReceiver : public Receiver {
+class BaseReceiver : public HersReceiver {
 public:
   // constructor
   BaseReceiver(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,

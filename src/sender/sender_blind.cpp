@@ -6,7 +6,7 @@
 
 BlindSender::BlindSender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
                size_t vectorParam)
-    : Sender(ccParam, pkParam, vectorParam) {}
+    : HersSender(ccParam, pkParam, vectorParam) {}
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 

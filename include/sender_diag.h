@@ -1,8 +1,8 @@
 #pragma once
 
-#include "sender.h"
+#include "sender_hers.h"
 
-class DiagonalSender : public Sender {
+class DiagonalSender : public HersSender {
 public:
   // constructor
   DiagonalSender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam);

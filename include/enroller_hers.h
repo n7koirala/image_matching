@@ -13,10 +13,10 @@
 using namespace lbcrypto;
 using namespace std;
 
-class Enroller {
+class HersEnroller {
 public:
   // constructor
-  Enroller(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam);
+  HersEnroller(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam);
 
   // public methods
   vector<vector<Ciphertext<DCRTPoly>>> encryptDB(vector<vector<double>> database);
