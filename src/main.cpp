@@ -80,24 +80,25 @@ int main(int argc, char *argv[]) {
   // Write approach used to stdout and experiment .csv file
   size_t multDepth = OpenFHEWrapper::computeRequiredDepth(expApproach);
   switch(expApproach) {
+    
     case 1:
-      cout << "Experimental approach: HERS paper" << endl;
-      expStream << "HERS," << flush;
-      break;
-
-    case 2:
-      cout << "Experimental approach: literature baseline" << endl;
+      cout << "Experimental approach: Literature baseline" << endl;
       expStream << "Baseline," << flush;
       break;
 
-    case 3:
-      cout << "Experimental approach: GROTE paper" << endl;
+    case 2:
+      cout << "Experimental approach: GROTE Paper" << endl;
       expStream << "GROTE," << flush;
       break;
 
-    case 4:
+    case 3:
       cout << "Experimental approach: Blind-Match paper" << endl;
       expStream << "Blind," << flush;
+      break;
+
+    case 4:
+      cout << "Experimental approach: HERS paper" << endl;
+      expStream << "HERS," << flush;
       break;
     
     case 5:
@@ -231,15 +232,15 @@ int main(int argc, char *argv[]) {
     // Classes stored on heap to allow for cleaner polymorphism
     HersEnroller *enroller;
 
-    if (expApproach == 1) {
-      enroller = new HersEnroller(cc, pk, numVectors);
-      static_cast<HersEnroller*>(enroller)->serializeDB(plaintextVectors);
-    } else if (expApproach == 2 || expApproach == 3) {
+    if (expApproach == 1 || expApproach == 2) {
       enroller = new BaseEnroller(cc, pk, numVectors);
       static_cast<BaseEnroller*>(enroller)->serializeDB(plaintextVectors);
-    } else if (expApproach == 4) {
+    } else if (expApproach == 3) {
       enroller = new BlindEnroller(cc, pk, numVectors);
       static_cast<BlindEnroller*>(enroller)->serializeDB(plaintextVectors, CHUNK_LEN);
+    } else if (expApproach == 4) {
+      enroller = new HersEnroller(cc, pk, numVectors);
+      static_cast<HersEnroller*>(enroller)->serializeDB(plaintextVectors);
     } else if (expApproach == 5) {
       enroller = new DiagonalEnroller(cc, pk, numVectors);
       static_cast<DiagonalEnroller*>(enroller)->serializeDB(plaintextVectors);
@@ -297,58 +298,6 @@ int main(int argc, char *argv[]) {
   if (expApproach == 1) {
     
     // Allocate receiver and sender objects
-    receiver = new HersReceiver(cc, pk, sk, numVectors);
-    sender = new HersSender(cc, pk, numVectors);
-
-    // Normalize, batch, and encrypt the query vector
-    cout << "[Receiver]\tEncrypting query vector... " << flush;
-    start = chrono::steady_clock::now();
-    auto queryCipher = static_cast<HersReceiver*>(receiver)->encryptQuery(queryVector);
-    end = chrono::steady_clock::now();
-    duration = end - start;
-    cout << "done (" << duration.count() << "s)" << endl;
-    expStream << duration.count() << "," << flush; // report query encryption time
-    expStream << queryCipher.size() << "," << flush; // report query communication overhead
-
-    // Perform membership scenario
-    cout << "[Sender]\tComputing membership scenario... " << flush;
-    start = chrono::steady_clock::now();
-    Ciphertext<DCRTPoly> membershipCipher = static_cast<HersSender*>(sender)->membershipScenario(queryCipher);
-    end = chrono::steady_clock::now();
-    duration = end - start;
-    cout << "done (" << duration.count() << "s)" << endl;
-    expStream << duration.count() << "," << flush; // report membership computation time
-    expStream << 1 << "," << flush; // report membership communication overhead
-
-    cout << "[Receiver]\tDecrypting membership results... " << flush;
-    start = chrono::steady_clock::now();
-    membershipResult = static_cast<HersReceiver*>(receiver)->decryptMembership(membershipCipher);
-    end = chrono::steady_clock::now();
-    duration = end - start;
-    cout << "done (" << duration.count() << "s)" << endl;
-    expStream << duration.count() << "," << flush;
-
-    // Perform index scenario
-    cout << "[Sender]\tComputing index scenario... " << flush;
-    start = chrono::steady_clock::now();
-    auto indexCipher = static_cast<HersSender*>(sender)->indexScenario(queryCipher);
-    end = chrono::steady_clock::now();
-    duration = end - start;
-    cout << "done (" << duration.count() << "s)" << endl; 
-    expStream << duration.count() << "," << flush; // report index computation time
-    expStream << indexCipher.size() << "," << flush; // report index communication overhead
-
-    cout << "[Receiver]\tDecrypting index results... " << flush;
-    start = chrono::steady_clock::now();
-    indexResults = static_cast<HersReceiver*>(receiver)->decryptIndex(indexCipher);
-    end = chrono::steady_clock::now();
-    duration = end - start;
-    cout << "done (" << duration.count() << "s)" << endl;
-    expStream << duration.count() << "," << flush;
-
-  } else if (expApproach == 2) {
-    
-    // Allocate receiver and sender objects
     receiver = new BaseReceiver(cc, pk, sk, numVectors);
     sender = new BaseSender(cc, pk, numVectors);
 
@@ -399,7 +348,7 @@ int main(int argc, char *argv[]) {
     cout << "done (" << duration.count() << "s)" << endl;
     expStream << duration.count() << "," << flush;
 
-  } else if (expApproach == 3) {
+  } else if (expApproach == 2) {
     
     // Allocate receiver and sender objects
     receiver = new GroteReceiver(cc, pk, sk, numVectors);
@@ -451,7 +400,7 @@ int main(int argc, char *argv[]) {
     cout << "done (" << duration.count() << "s)" << endl;
     expStream << duration.count() << "," << flush;
 
-  } else if (expApproach == 4) {
+  } else if (expApproach == 3) {
 
     // Allocate receiver and sender objects
     receiver = new BlindReceiver(cc, pk, sk, numVectors);
@@ -498,6 +447,58 @@ int main(int argc, char *argv[]) {
     cout << "[Receiver]\tDecrypting index results... " << flush;
     start = chrono::steady_clock::now();
     indexResults = static_cast<BlindReceiver*>(receiver)->decryptIndex(indexCipher, CHUNK_LEN);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+  
+  } else if (expApproach == 4) {
+    
+    // Allocate receiver and sender objects
+    receiver = new HersReceiver(cc, pk, sk, numVectors);
+    sender = new HersSender(cc, pk, numVectors);
+
+    // Normalize, batch, and encrypt the query vector
+    cout << "[Receiver]\tEncrypting query vector... " << flush;
+    start = chrono::steady_clock::now();
+    auto queryCipher = static_cast<HersReceiver*>(receiver)->encryptQuery(queryVector);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush; // report query encryption time
+    expStream << queryCipher.size() << "," << flush; // report query communication overhead
+
+    // Perform membership scenario
+    cout << "[Sender]\tComputing membership scenario... " << flush;
+    start = chrono::steady_clock::now();
+    Ciphertext<DCRTPoly> membershipCipher = static_cast<HersSender*>(sender)->membershipScenario(queryCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush; // report membership computation time
+    expStream << 1 << "," << flush; // report membership communication overhead
+
+    cout << "[Receiver]\tDecrypting membership results... " << flush;
+    start = chrono::steady_clock::now();
+    membershipResult = static_cast<HersReceiver*>(receiver)->decryptMembership(membershipCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush;
+
+    // Perform index scenario
+    cout << "[Sender]\tComputing index scenario... " << flush;
+    start = chrono::steady_clock::now();
+    auto indexCipher = static_cast<HersSender*>(sender)->indexScenario(queryCipher);
+    end = chrono::steady_clock::now();
+    duration = end - start;
+    cout << "done (" << duration.count() << "s)" << endl; 
+    expStream << duration.count() << "," << flush; // report index computation time
+    expStream << indexCipher.size() << "," << flush; // report index communication overhead
+
+    cout << "[Receiver]\tDecrypting index results... " << flush;
+    start = chrono::steady_clock::now();
+    indexResults = static_cast<HersReceiver*>(receiver)->decryptIndex(indexCipher);
     end = chrono::steady_clock::now();
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl;

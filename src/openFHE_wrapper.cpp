@@ -9,18 +9,13 @@ size_t OpenFHEWrapper::computeRequiredDepth(size_t approach) {
 
   switch(approach) {
 
-    case 1: // novel stacked linear transform
-      depth += 1;           // one mult required for score computation
-      depth += COMP_DEPTH;  // mults required for threshold comparison
-      break;
-
-    case 2: // literature baseline
+    case 1: // literature baseline
       depth += 1;           // one mult required for score computation
       depth += 2;           // two mults required for merge operation
       depth += COMP_DEPTH;  // mults required for threshold comparison
       break;
 
-    case 3: // GROTE
+    case 2: // GROTE
       depth += 1;           // one mult required for score computation
       depth += 2;           // two mults required for merge operation
       depth += ALPHA_DEPTH; // mults required for alpha norm operation
@@ -28,9 +23,14 @@ size_t OpenFHEWrapper::computeRequiredDepth(size_t approach) {
       depth += COMP_DEPTH;  // mults required for threshold comparison
       break;
 
-    case 4: // blind-match
+    case 3: // blind-match
       depth += 1;           // one mult required for score computation
       depth += 1;           // one mult required for compression operation
+      depth += COMP_DEPTH;  // mults required for threshold comparison
+      break;
+
+    case 4: // HERS
+      depth += 1;           // one mult required for score computation
       depth += COMP_DEPTH;  // mults required for threshold comparison
       break;
 
