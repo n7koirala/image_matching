@@ -307,7 +307,8 @@ int main(int argc, char *argv[]) {
     end = chrono::steady_clock::now();
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl;
-    expStream << duration.count() << "," << flush;
+    expStream << duration.count() << "," << flush; // report query encryption time
+    expStream << queryCipher.size() << "," << flush; // report query communication overhead
 
     // Perform membership scenario
     cout << "[Sender]\tComputing membership scenario... " << flush;
@@ -316,7 +317,8 @@ int main(int argc, char *argv[]) {
     end = chrono::steady_clock::now();
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl;
-    expStream << duration.count() << "," << flush;
+    expStream << duration.count() << "," << flush; // report membership computation time
+    expStream << 1 << "," << flush; // report membership communication overhead
 
     cout << "[Receiver]\tDecrypting membership results... " << flush;
     start = chrono::steady_clock::now();
@@ -332,8 +334,9 @@ int main(int argc, char *argv[]) {
     auto indexCipher = static_cast<Sender*>(sender)->indexScenario(queryCipher);
     end = chrono::steady_clock::now();
     duration = end - start;
-    expStream << duration.count() << "," << flush;
-    cout << "done (" << duration.count() << "s)" << endl;
+    cout << "done (" << duration.count() << "s)" << endl; 
+    expStream << duration.count() << "," << flush; // report index computation time
+    expStream << indexCipher.size() << "," << flush; // report index communication overhead
 
     cout << "[Receiver]\tDecrypting index results... " << flush;
     start = chrono::steady_clock::now();
@@ -356,7 +359,8 @@ int main(int argc, char *argv[]) {
     end = chrono::steady_clock::now();
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl;
-    expStream << duration.count() << "," << flush;
+    expStream << duration.count() << "," << flush; // report query encryption time
+    expStream << 1 << "," << flush; // report query communication overhead
 
     // Perform membership scenario
     cout << "[Sender]\tComputing membership scenario... " << flush;
@@ -365,7 +369,8 @@ int main(int argc, char *argv[]) {
     end = chrono::steady_clock::now();
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl;
-    expStream << duration.count() << "," << flush;
+    expStream << duration.count() << "," << flush; // report membership computation time
+    expStream << 1 << "," << flush; // report membership communication overhead
 
     cout << "[Receiver]\tDecrypting membership results... " << flush;
     start = chrono::steady_clock::now();
@@ -381,8 +386,10 @@ int main(int argc, char *argv[]) {
     auto indexCipher = static_cast<BaseSender*>(sender)->indexScenario(queryCipher);
     end = chrono::steady_clock::now();
     duration = end - start;
-    expStream << duration.count() << "," << flush;
     cout << "done (" << duration.count() << "s)" << endl;
+    expStream << duration.count() << "," << flush; // report index computation time
+    expStream << indexCipher.size() << "," << flush; // report index communication overhead
+
 
     cout << "[Receiver]\tDecrypting index results... " << flush;
     start = chrono::steady_clock::now();
@@ -405,7 +412,8 @@ int main(int argc, char *argv[]) {
     end = chrono::steady_clock::now();
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl;
-    expStream << duration.count() << "," << flush;
+    expStream << duration.count() << "," << flush; // report query encryption time
+    expStream << 1 << "," << flush; // report query communication overhead
 
     // Perform membership scenario
     cout << "[Sender]\tComputing membership scenario... " << flush;
@@ -414,7 +422,8 @@ int main(int argc, char *argv[]) {
     end = chrono::steady_clock::now();
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl;
-    expStream << duration.count() << "," << flush;
+    expStream << duration.count() << "," << flush; // report membership computation time
+    expStream << 1 << "," << flush; // report membership communication overhead
 
     cout << "[Receiver]\tDecrypting membership results... " << flush;
     start = chrono::steady_clock::now();
@@ -430,8 +439,9 @@ int main(int argc, char *argv[]) {
     auto indexCipher = static_cast<GroteSender*>(sender)->indexScenario(queryCipher);
     end = chrono::steady_clock::now();
     duration = end - start;
-    expStream << duration.count() << "," << flush;
-    cout << "done (" << duration.count() << "s)" << endl;
+    cout << "done (" << duration.count() << "s)" << endl; 
+    expStream << duration.count() << "," << flush; // report index computation time
+    expStream << get<0>(indexCipher).size() + get<0>(indexCipher).size() << "," << flush; // report index communication overhead
 
     cout << "[Receiver]\tDecrypting index results... " << flush;
     start = chrono::steady_clock::now();
@@ -454,16 +464,18 @@ int main(int argc, char *argv[]) {
     end = chrono::steady_clock::now();
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl;
-    expStream << duration.count() << "," << flush;
+    expStream << duration.count() << "," << flush;  // report query encryption time
+    expStream << queryCipher.size() << "," << flush; // report query communication overhead
 
     // Perform membership scenario
     cout << "[Sender]\tComputing membership scenario... " << flush;
     start = chrono::steady_clock::now();
-    auto membershipCipher = static_cast<BlindSender*>(sender)->membershipScenario(queryCipher, CHUNK_LEN);
+    Ciphertext<DCRTPoly> membershipCipher = static_cast<BlindSender*>(sender)->membershipScenario(queryCipher, CHUNK_LEN);
     end = chrono::steady_clock::now();
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl;
-    expStream << duration.count() << "," << flush;
+    expStream << duration.count() << "," << flush; // report membership computation time
+    expStream << 1 << "," << flush; // report membership communication overhead
 
     cout << "[Receiver]\tDecrypting membership results... " << flush;
     start = chrono::steady_clock::now();
@@ -480,7 +492,8 @@ int main(int argc, char *argv[]) {
     end = chrono::steady_clock::now();
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl;
-    expStream << duration.count() << "," << flush;
+    expStream << duration.count() << "," << flush; // report index computation time
+    expStream << indexCipher.size() << "," << flush; // report index communication overhead
 
     cout << "[Receiver]\tDecrypting index results... " << flush;
     start = chrono::steady_clock::now();
@@ -503,7 +516,8 @@ int main(int argc, char *argv[]) {
     end = chrono::steady_clock::now();
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl;
-    expStream << duration.count() << "," << flush;
+    expStream << duration.count() << "," << flush; // report query encryption time
+    expStream << 1 << "," << flush; // report query communication overhead
 
     // Perform membership scenario
     cout << "[Sender]\tComputing membership scenario... " << flush;
@@ -512,7 +526,8 @@ int main(int argc, char *argv[]) {
     end = chrono::steady_clock::now();
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl;
-    expStream << duration.count() << "," << flush;
+    expStream << duration.count() << "," << flush; // report membership computation time
+    expStream << 1 << "," << flush; // report membership communication overhead
 
     cout << "[Receiver]\tDecrypting membership results... " << flush;
     start = chrono::steady_clock::now();
@@ -529,7 +544,8 @@ int main(int argc, char *argv[]) {
     end = chrono::steady_clock::now();
     duration = end - start;
     cout << "done (" << duration.count() << "s)" << endl;
-    expStream << duration.count() << "," << flush;
+    expStream << duration.count() << "," << flush; // report index computation time
+    expStream << indexCipher.size() << "," << flush; // report index communication overhead
 
     cout << "[Receiver]\tDecrypting index results... " << flush;
     start = chrono::steady_clock::now();
