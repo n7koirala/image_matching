@@ -10,7 +10,7 @@ BaseEnroller::BaseEnroller(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> 
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 
-void BaseEnroller::serializeDB(vector<vector<double>> database) {
+void BaseEnroller::serializeDB(vector<vector<double>> &database) {
 
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t vectorsPerBatch = batchSize / VECTOR_DIM;

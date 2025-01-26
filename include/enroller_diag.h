@@ -11,7 +11,7 @@ public:
   DiagonalEnroller(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam);
 
   // public methods
-  void serializeDB(vector<vector<double>> database);
+  void serializeDB(vector<vector<double>> &database);
 
 protected:
   // protected methods

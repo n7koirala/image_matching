@@ -9,7 +9,7 @@ DiagonalEnroller::DiagonalEnroller(CryptoContext<DCRTPoly> ccParam, PublicKey<DC
   : HersEnroller(ccParam, pkParam, vectorParam) {}
 
 // -------------------- PUBLIC FUNCTIONS --------------------
-void DiagonalEnroller::serializeDB(vector<vector<double>> database) {
+void DiagonalEnroller::serializeDB(vector<vector<double>> &database) {
 
   // create necessary directory if does not exist
   string dirName = "serial/";

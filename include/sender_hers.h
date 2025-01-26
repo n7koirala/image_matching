@@ -23,13 +23,13 @@ public:
 
   // public methods
   vector<Ciphertext<DCRTPoly>>
-  computeSimilarity(vector<Ciphertext<DCRTPoly>> queryCipher);
+  computeSimilarity(vector<Ciphertext<DCRTPoly>> &queryCipher);
 
   Ciphertext<DCRTPoly>
-  membershipScenario(vector<Ciphertext<DCRTPoly>> queryCipher);
+  membershipScenario(vector<Ciphertext<DCRTPoly>> &queryCipher);
 
   vector<Ciphertext<DCRTPoly>>
-  indexScenario(vector<Ciphertext<DCRTPoly>> queryCipher);
+  indexScenario(vector<Ciphertext<DCRTPoly>> &queryCipher);
 
   // Ciphertext<DCRTPoly>
   // membershipScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength);
@@ -46,17 +46,17 @@ protected:
 
   // private functions
   Ciphertext<DCRTPoly> 
-  computeSimilarityHelper(size_t matrixIndex, vector<Ciphertext<DCRTPoly>> queryCipher);
+  computeSimilarityHelper(size_t matrixIndex, vector<Ciphertext<DCRTPoly>> &queryCipher);
 
   Ciphertext<DCRTPoly>
-  computeSimilaritySerial(size_t matrix, size_t index, Ciphertext<DCRTPoly> queryCipher);
+  computeSimilaritySerial(size_t matrix, size_t index, Ciphertext<DCRTPoly> &queryCipher);
 
   Ciphertext<DCRTPoly>
-  generateQueryHelper(Ciphertext<DCRTPoly> queryCipher, size_t index);
+  generateQueryHelper(Ciphertext<DCRTPoly> &queryCipher, size_t index);
 
   vector<Ciphertext<DCRTPoly>> 
-  alphaNormRows(vector<Ciphertext<DCRTPoly>> scoreCipher, size_t alpha, size_t rowLength);
+  alphaNormRows(vector<Ciphertext<DCRTPoly>> &scoreCipher, size_t alpha, size_t rowLength);
 
   vector<Ciphertext<DCRTPoly>> 
-  alphaNormColumns(vector<Ciphertext<DCRTPoly>> scoreCipher, size_t alpha, size_t rowLength);
+  alphaNormColumns(vector<Ciphertext<DCRTPoly>> &scoreCipher, size_t alpha, size_t rowLength);
 };

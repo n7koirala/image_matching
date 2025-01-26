@@ -9,9 +9,9 @@ public:
 
   // public methods
   Ciphertext<DCRTPoly>
-  membershipScenario(Ciphertext<DCRTPoly> queryCipher);
+  membershipScenario(Ciphertext<DCRTPoly> &queryCipher);
 
   tuple<vector<Ciphertext<DCRTPoly>>, vector<Ciphertext<DCRTPoly>>>
-  indexScenario(Ciphertext<DCRTPoly> queryCipher);
+  indexScenario(Ciphertext<DCRTPoly> &queryCipher);
 
 };

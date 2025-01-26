@@ -9,7 +9,7 @@ GroteReceiver::GroteReceiver(CryptoContext<DCRTPoly> ccParam,
     : BaseReceiver(ccParam, pkParam, skParam, vectorParam) {}
 
 // -------------------- PUBLIC FUNCTIONS --------------------
-vector<size_t> GroteReceiver::decryptIndex(tuple<vector<Ciphertext<DCRTPoly>>, vector<Ciphertext<DCRTPoly>>> indexCipher) {
+vector<size_t> GroteReceiver::decryptIndex(tuple<vector<Ciphertext<DCRTPoly>>, vector<Ciphertext<DCRTPoly>>> &indexCipher) {
   // row length is the power of 2 closest to sqrt(batchSize)
   // dividing scores into square matrix as close as possible
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();

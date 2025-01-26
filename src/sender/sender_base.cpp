@@ -10,7 +10,7 @@ BaseSender::BaseSender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkPa
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 
-vector<Ciphertext<DCRTPoly>> BaseSender::computeSimilarity(Ciphertext<DCRTPoly> queryCipher) {
+vector<Ciphertext<DCRTPoly>> BaseSender::computeSimilarity(Ciphertext<DCRTPoly> &queryCipher) {
 
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t vectorsPerBatch = batchSize / VECTOR_DIM;
@@ -26,7 +26,7 @@ vector<Ciphertext<DCRTPoly>> BaseSender::computeSimilarity(Ciphertext<DCRTPoly> 
   return OpenFHEWrapper::mergeCiphers(cc, similarityCipher, VECTOR_DIM);
 }
 
-vector<Ciphertext<DCRTPoly>> BaseSender::computeSimilarityAndMerge(Ciphertext<DCRTPoly> queryCipher) {
+vector<Ciphertext<DCRTPoly>> BaseSender::computeSimilarityAndMerge(Ciphertext<DCRTPoly> &queryCipher) {
 
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t vectorsPerBatch = batchSize / VECTOR_DIM;
@@ -47,7 +47,7 @@ vector<Ciphertext<DCRTPoly>> BaseSender::computeSimilarityAndMerge(Ciphertext<DC
 }
 
 
-Ciphertext<DCRTPoly> BaseSender::membershipScenario(Ciphertext<DCRTPoly> queryCipher) {
+Ciphertext<DCRTPoly> BaseSender::membershipScenario(Ciphertext<DCRTPoly> &queryCipher) {
 
   // compute similarity scores between query and database
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
@@ -66,7 +66,7 @@ Ciphertext<DCRTPoly> BaseSender::membershipScenario(Ciphertext<DCRTPoly> queryCi
 }
 
 
-vector<Ciphertext<DCRTPoly>> BaseSender::indexScenario(Ciphertext<DCRTPoly> queryCipher) {
+vector<Ciphertext<DCRTPoly>> BaseSender::indexScenario(Ciphertext<DCRTPoly> &queryCipher) {
 
   // compute similarity scores between query and database
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);

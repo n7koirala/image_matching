@@ -19,9 +19,9 @@ public:
   HersEnroller(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam);
 
   // public methods
-  vector<vector<Ciphertext<DCRTPoly>>> encryptDB(vector<vector<double>> database);
+  vector<vector<Ciphertext<DCRTPoly>>> encryptDB(vector<vector<double>> &database);
 
-  void serializeDB(vector<vector<double>> database);
+  void serializeDB(vector<vector<double>> &database);
 
 
 protected:
@@ -31,7 +31,7 @@ protected:
   size_t numVectors;
 
   // private functions
-  Ciphertext<DCRTPoly> encryptDBThread(size_t matrix, size_t index, vector<vector<double>> database);
+  Ciphertext<DCRTPoly> encryptDBThread(size_t matrix, size_t index, vector<vector<double>> &database);
 
   void serializeDBThread(size_t matrix, size_t index, vector<vector<double>> &database);
 };

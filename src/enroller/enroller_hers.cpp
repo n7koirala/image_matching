@@ -11,7 +11,7 @@ HersEnroller::HersEnroller(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> 
 // -------------------- PUBLIC FUNCTIONS --------------------
 
 vector<vector<Ciphertext<DCRTPoly>>>
-HersEnroller::encryptDB(vector<vector<double>> database) {
+HersEnroller::encryptDB(vector<vector<double>> &database) {
 
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t numMatrices = ceil(double(numVectors) / double(batchSize));
@@ -38,7 +38,7 @@ HersEnroller::encryptDB(vector<vector<double>> database) {
 }
 
 
-void HersEnroller::serializeDB(vector<vector<double>> database) {
+void HersEnroller::serializeDB(vector<vector<double>> &database) {
 
   // create necessary directories if they do not exist
   string dirpath = "serial/";
@@ -90,7 +90,7 @@ void HersEnroller::serializeDB(vector<vector<double>> database) {
 
 // -------------------- PRIVATE FUNCTIONS --------------------
 
-Ciphertext<DCRTPoly> HersEnroller::encryptDBThread(size_t matrix, size_t index, vector<vector<double>> database) {
+Ciphertext<DCRTPoly> HersEnroller::encryptDBThread(size_t matrix, size_t index, vector<vector<double>> &database) {
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t startIndex = matrix * batchSize;
 

@@ -10,7 +10,7 @@ GroteSender::GroteSender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pk
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 
-Ciphertext<DCRTPoly> GroteSender::membershipScenario(Ciphertext<DCRTPoly> queryCipher) {
+Ciphertext<DCRTPoly> GroteSender::membershipScenario(Ciphertext<DCRTPoly> &queryCipher) {
 
   // row length is the power of 2 closest to sqrt(batchSize)
   // dividing scores into square matrix as close as possible
@@ -36,7 +36,7 @@ Ciphertext<DCRTPoly> GroteSender::membershipScenario(Ciphertext<DCRTPoly> queryC
 }
 
 tuple<vector<Ciphertext<DCRTPoly>>, vector<Ciphertext<DCRTPoly>>> 
-GroteSender::indexScenario(Ciphertext<DCRTPoly> queryCipher) {
+GroteSender::indexScenario(Ciphertext<DCRTPoly> &queryCipher) {
 
   // row length is the power of 2 closest to sqrt(batchSize)
   // dividing scores into square matrix as close as possible

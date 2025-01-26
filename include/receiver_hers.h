@@ -32,8 +32,6 @@ public:
 
   vector<size_t> decryptIndex(vector<Ciphertext<DCRTPoly>> &indexCipher);
 
-  // vector<size_t> decryptIndex(vector<Ciphertext<DCRTPoly>> rowCipher, vector<Ciphertext<DCRTPoly>> colCipher, size_t rowLength);
-
 protected:
   // protected members
   CryptoContext<DCRTPoly> cc;

@@ -13,7 +13,7 @@ HersSender::HersSender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkPa
 
 
 
-vector<Ciphertext<DCRTPoly>> HersSender::computeSimilarity(vector<Ciphertext<DCRTPoly>> queryCipher) {
+vector<Ciphertext<DCRTPoly>> HersSender::computeSimilarity(vector<Ciphertext<DCRTPoly>> &queryCipher) {
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t ciphersNeeded = ceil(double(numVectors) / double(batchSize));
   vector<Ciphertext<DCRTPoly>> similarityCipher(ciphersNeeded);
@@ -27,7 +27,7 @@ vector<Ciphertext<DCRTPoly>> HersSender::computeSimilarity(vector<Ciphertext<DCR
 }
 
 
-vector<Ciphertext<DCRTPoly>> HersSender::indexScenario(vector<Ciphertext<DCRTPoly>> queryCipher) {
+vector<Ciphertext<DCRTPoly>> HersSender::indexScenario(vector<Ciphertext<DCRTPoly>> &queryCipher) {
 
   // compute similarity scores between query and database
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
@@ -41,7 +41,7 @@ vector<Ciphertext<DCRTPoly>> HersSender::indexScenario(vector<Ciphertext<DCRTPol
 }
 
 
-Ciphertext<DCRTPoly> HersSender::membershipScenario(vector<Ciphertext<DCRTPoly>> queryCipher) {
+Ciphertext<DCRTPoly> HersSender::membershipScenario(vector<Ciphertext<DCRTPoly>> &queryCipher) {
 
   // compute similarity scores between query and database
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
@@ -61,7 +61,7 @@ Ciphertext<DCRTPoly> HersSender::membershipScenario(vector<Ciphertext<DCRTPoly>>
 // -------------------- PRIVATE FUNCTIONS --------------------
 
 Ciphertext<DCRTPoly>
-HersSender::computeSimilarityHelper(size_t matrixIndex, vector<Ciphertext<DCRTPoly>> queryCipher) {
+HersSender::computeSimilarityHelper(size_t matrixIndex, vector<Ciphertext<DCRTPoly>> &queryCipher) {
 
   vector<Ciphertext<DCRTPoly>> scoreCipher(VECTOR_DIM);
 
@@ -83,7 +83,7 @@ HersSender::computeSimilarityHelper(size_t matrixIndex, vector<Ciphertext<DCRTPo
 
 // single-thread helper function for computing similarity scores using serialized database vectors
 Ciphertext<DCRTPoly>
-HersSender::computeSimilaritySerial(size_t matrix, size_t index, Ciphertext<DCRTPoly> queryCipher) {
+HersSender::computeSimilaritySerial(size_t matrix, size_t index, Ciphertext<DCRTPoly> &queryCipher) {
 
   string filepath = "serial/db_hers/matrix" + to_string(matrix) + "/index" + to_string(index) + ".bin";
   Ciphertext<DCRTPoly> databaseCipher;
@@ -95,7 +95,7 @@ HersSender::computeSimilaritySerial(size_t matrix, size_t index, Ciphertext<DCRT
 }
 
 
-Ciphertext<DCRTPoly> HersSender::generateQueryHelper(Ciphertext<DCRTPoly> queryCipher, size_t index){
+Ciphertext<DCRTPoly> HersSender::generateQueryHelper(Ciphertext<DCRTPoly> &queryCipher, size_t index){
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
 
   // generate mask to isolate only the values at the specified index
@@ -112,7 +112,7 @@ Ciphertext<DCRTPoly> HersSender::generateQueryHelper(Ciphertext<DCRTPoly> queryC
 }
 
 
-vector<Ciphertext<DCRTPoly>> HersSender::alphaNormRows(vector<Ciphertext<DCRTPoly>> scoreCipher, size_t alpha, size_t rowLength) {
+vector<Ciphertext<DCRTPoly>> HersSender::alphaNormRows(vector<Ciphertext<DCRTPoly>> &scoreCipher, size_t alpha, size_t rowLength) {
 
   vector<Ciphertext<DCRTPoly>> alphaCipher(scoreCipher);
 
@@ -130,7 +130,7 @@ vector<Ciphertext<DCRTPoly>> HersSender::alphaNormRows(vector<Ciphertext<DCRTPol
 
 
 // in current implementation, colLength is taken to be (batchSize / rowLength)
-vector<Ciphertext<DCRTPoly>> HersSender::alphaNormColumns(vector<Ciphertext<DCRTPoly>> scoreCipher, size_t alpha, size_t rowLength) {
+vector<Ciphertext<DCRTPoly>> HersSender::alphaNormColumns(vector<Ciphertext<DCRTPoly>> &scoreCipher, size_t alpha, size_t rowLength) {
 
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t ciphersNeeded = ceil(double(scoreCipher.size() * rowLength) / double(batchSize));

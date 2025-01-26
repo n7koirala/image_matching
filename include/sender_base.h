@@ -9,16 +9,16 @@ public:
 
   // public methods
   vector<Ciphertext<DCRTPoly>>
-  computeSimilarity(Ciphertext<DCRTPoly> queryCipher);
+  computeSimilarity(Ciphertext<DCRTPoly> &queryCipher);
 
   vector<Ciphertext<DCRTPoly>>
-  computeSimilarityAndMerge(Ciphertext<DCRTPoly> queryCipher);
+  computeSimilarityAndMerge(Ciphertext<DCRTPoly> &queryCipher);
 
   Ciphertext<DCRTPoly>
-  membershipScenario(Ciphertext<DCRTPoly> queryCipher);
+  membershipScenario(Ciphertext<DCRTPoly> &queryCipher);
 
   vector<Ciphertext<DCRTPoly>>
-  indexScenario(Ciphertext<DCRTPoly> queryCipher);
+  indexScenario(Ciphertext<DCRTPoly> &queryCipher);
 
 protected:
 
