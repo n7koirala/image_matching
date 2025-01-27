@@ -1,5 +1,4 @@
-// ** receiver: Defines the receiver (querier) base class
-// encrypts / decrypts queries according to our novel diagonalization approach
+// ** receiver: Defines the receiver class according to our novel diagonalization approach
 
 #pragma once
 
@@ -12,8 +11,6 @@ public:
               PrivateKey<DCRTPoly> skParam, size_t vectorParam);
 
   // public methods
-  Ciphertext<DCRTPoly> encryptQuery(vector<double> query);
-
-protected:
+  vector<Ciphertext<DCRTPoly>> encryptQuery(vector<double> query) override;
   
 };

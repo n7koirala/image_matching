@@ -1,5 +1,4 @@
-// ** receiver: Defines the receiver (querier) base class
-// encrypts / decrypts queries according to Blind-Match approach
+// ** receiver_blind: Defines the receiver class according to Blind-Match approach
 
 #pragma once
 
@@ -12,11 +11,14 @@ public:
               PrivateKey<DCRTPoly> skParam, size_t vectorParam);
 
   // public methods
-  vector<Ciphertext<DCRTPoly>> encryptQuery(vector<double> &query, size_t chunkLength);
+  vector<Ciphertext<DCRTPoly>> 
+  encryptQuery(vector<double> query) override;
 
-  vector<size_t> decryptIndex(vector<Ciphertext<DCRTPoly>> &indexCipher, size_t chunkLength);
+  vector<size_t> 
+  decryptIndex(vector<Ciphertext<DCRTPoly>> &indexCipher) override;
 
-protected:
-  // protected methods
-  Ciphertext<DCRTPoly> encryptQueryThread(vector<double> &query, size_t chunkLength, size_t index);
+private:
+  // private methods
+  Ciphertext<DCRTPoly> 
+  encryptQueryThread(vector<double> &query, size_t chunkLength, size_t index);
 };

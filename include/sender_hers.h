@@ -1,35 +1,24 @@
-// ** sender: defines the sender (server) base class
+// ** sender_hers: defines the sender (server) class according to HERS approach
 // Stores encrypted database vectors and homomorphically computes membership/index queries 
 
 #pragma once
 
-#include "../include/config.h"
-#include "../include/openFHE_wrapper.h"
-#include "../include/vector_utils.h"
-#include "openfhe.h"
-#include <vector>
-#include <omp.h>
-#include <time.h>
-#include <ctime>
-#include <fstream>
+#include "sender.h"
 
-using namespace lbcrypto;
-using namespace std;
-
-class HersSender {
+class HersSender : public Sender {
 public:
   // constructor
   HersSender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam);
 
   // public methods
   vector<Ciphertext<DCRTPoly>>
-  computeSimilarity(vector<Ciphertext<DCRTPoly>> &queryCipher);
+  computeSimilarity(vector<Ciphertext<DCRTPoly>> &queryCipher) override;
 
   Ciphertext<DCRTPoly>
-  membershipScenario(vector<Ciphertext<DCRTPoly>> &queryCipher);
+  membershipScenario(vector<Ciphertext<DCRTPoly>> &queryCipher) override;
 
   vector<Ciphertext<DCRTPoly>>
-  indexScenario(vector<Ciphertext<DCRTPoly>> &queryCipher);
+  indexScenario(vector<Ciphertext<DCRTPoly>> &queryCipher) override;
 
   // Ciphertext<DCRTPoly>
   // membershipScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength);
@@ -38,12 +27,6 @@ public:
   // indexScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength);
 
 protected:
-  // private members
-  CryptoContext<DCRTPoly> cc;
-  PublicKey<DCRTPoly> pk;
-  size_t numVectors;
-  vector<vector<Ciphertext<DCRTPoly>>> databaseCipher;
-
   // private functions
   Ciphertext<DCRTPoly> 
   computeSimilarityHelper(size_t matrixIndex, vector<Ciphertext<DCRTPoly>> &queryCipher);

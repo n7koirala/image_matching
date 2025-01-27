@@ -12,6 +12,6 @@ public:
               PrivateKey<DCRTPoly> skParam, size_t vectorParam);
 
   // public methods
-  vector<size_t> decryptIndex(tuple<vector<Ciphertext<DCRTPoly>>, vector<Ciphertext<DCRTPoly>>> &indexCipher);
+  vector<size_t> decryptIndex(vector<Ciphertext<DCRTPoly>> &indexCipher);
 
 };

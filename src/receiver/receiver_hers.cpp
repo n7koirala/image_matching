@@ -6,7 +6,7 @@
 
 HersReceiver::HersReceiver(CryptoContext<DCRTPoly> ccParam,
                          PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, size_t vectorParam)
-    : cc(ccParam), pk(pkParam), sk(skParam), numVectors(vectorParam) {}
+    : Receiver(ccParam, pkParam, skParam, vectorParam) {}
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 
@@ -23,21 +23,6 @@ vector<Ciphertext<DCRTPoly>> HersReceiver::encryptQuery(vector<double> query) {
   return queryCipher;
 }
 
-
-// encrypts the query vector into a single cipher, requires sender to generate 512 needed ciphers
-Ciphertext<DCRTPoly> HersReceiver::encryptQueryAlt(vector<double> query) {
-  
-  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
-
-  query = VectorUtils::plaintextNormalize(query, VECTOR_DIM);
-  vector<double> batchedQuery(batchSize);
-  for(size_t i = 0; i < batchSize; i += VECTOR_DIM) {
-    copy(query.begin(), query.end(), batchedQuery.begin() + i);
-  }
-
-  return OpenFHEWrapper::encryptFromVector(cc, pk, batchedQuery);
-}
-
 bool HersReceiver::decryptMembership(Ciphertext<DCRTPoly> &membershipCipher) {
 
   vector<double> membershipValues = OpenFHEWrapper::decryptToVector(cc, sk, membershipCipher);
@@ -48,7 +33,6 @@ bool HersReceiver::decryptMembership(Ciphertext<DCRTPoly> &membershipCipher) {
 
   return false;
 }
-
 
 vector<size_t> HersReceiver::decryptIndex(vector<Ciphertext<DCRTPoly>> &indexCipher) {
 
@@ -76,4 +60,18 @@ Ciphertext<DCRTPoly> HersReceiver::encryptQueryThread(double indexValue) {
   vector<double> indexVector(batchSize, indexValue);
   Plaintext ptxt = cc->MakeCKKSPackedPlaintext(indexVector);
   return cc->Encrypt(pk, ptxt);
+}
+
+// encrypts the query vector into a single cipher, requires sender to generate 512 needed ciphers
+Ciphertext<DCRTPoly> HersReceiver::encryptQueryAlt(vector<double> query) {
+  
+  size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
+
+  query = VectorUtils::plaintextNormalize(query, VECTOR_DIM);
+  vector<double> batchedQuery(batchSize);
+  for(size_t i = 0; i < batchSize; i += VECTOR_DIM) {
+    copy(query.begin(), query.end(), batchedQuery.begin() + i);
+  }
+
+  return OpenFHEWrapper::encryptFromVector(cc, pk, batchedQuery);
 }

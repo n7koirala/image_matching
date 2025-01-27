@@ -10,10 +10,10 @@ BlindSender::BlindSender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pk
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 
-Ciphertext<DCRTPoly> BlindSender::membershipScenario(vector<Ciphertext<DCRTPoly>> &queryCipher, size_t chunkLength) {
+Ciphertext<DCRTPoly> BlindSender::membershipScenario(vector<Ciphertext<DCRTPoly>> &queryCipher) {
 
   // compute similarity scores between query and database
-  vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher, chunkLength);
+  vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
 
   #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
@@ -27,10 +27,10 @@ Ciphertext<DCRTPoly> BlindSender::membershipScenario(vector<Ciphertext<DCRTPoly>
   return membershipCipher;
 }
 
-vector<Ciphertext<DCRTPoly>> BlindSender::indexScenario(vector<Ciphertext<DCRTPoly>> &queryCipher, size_t chunkLength) {
+vector<Ciphertext<DCRTPoly>> BlindSender::indexScenario(vector<Ciphertext<DCRTPoly>> &queryCipher) {
 
   // compute similarity scores between query and database
-  vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher, chunkLength);
+  vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
 
   #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
@@ -40,19 +40,19 @@ vector<Ciphertext<DCRTPoly>> BlindSender::indexScenario(vector<Ciphertext<DCRTPo
   return scoreCipher;
 }
 
-vector<Ciphertext<DCRTPoly>> BlindSender::computeSimilarity(vector<Ciphertext<DCRTPoly>> &queryCipher, size_t chunkLength) {
+vector<Ciphertext<DCRTPoly>> BlindSender::computeSimilarity(vector<Ciphertext<DCRTPoly>> &queryCipher) {
 
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
-  size_t chunksPerBatch = batchSize / chunkLength;
+  size_t chunksPerBatch = batchSize / CHUNK_LEN;
   size_t numMatrices = ceil(double(numVectors) / double(chunksPerBatch));
 
   vector<Ciphertext<DCRTPoly>> scoreCipher(numMatrices);
 
   for (size_t i = 0; i < numMatrices; i++) {
-    scoreCipher[i] = computeSimilarityMatrix(queryCipher, chunkLength, i);
+    scoreCipher[i] = computeSimilarityMatrix(queryCipher, CHUNK_LEN, i);
   }
 
-  return OpenFHEWrapper::compressCiphers(cc, scoreCipher, chunkLength);
+  return OpenFHEWrapper::compressCiphers(cc, scoreCipher, CHUNK_LEN);
 }
 
 // -------------------- PROTECTED FUNCTIONS --------------------

@@ -1,19 +1,17 @@
 #include "../../include/sender_hers.h"
 
-// implementation of functions declared in sender.h
+// implementation of functions declared in sender_hers.h
 
 // -------------------- CONSTRUCTOR --------------------
 
 HersSender::HersSender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
                size_t vectorParam)
-    : cc(ccParam), pk(pkParam), numVectors(vectorParam) {}
+    : Sender(ccParam, pkParam, vectorParam) {}
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 
-
-
-
 vector<Ciphertext<DCRTPoly>> HersSender::computeSimilarity(vector<Ciphertext<DCRTPoly>> &queryCipher) {
+
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t ciphersNeeded = ceil(double(numVectors) / double(batchSize));
   vector<Ciphertext<DCRTPoly>> similarityCipher(ciphersNeeded);

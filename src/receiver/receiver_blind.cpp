@@ -10,25 +10,25 @@ BlindReceiver::BlindReceiver(CryptoContext<DCRTPoly> ccParam,
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 
-vector<Ciphertext<DCRTPoly>> BlindReceiver::encryptQuery(vector<double> &query, size_t chunkLength) {
+vector<Ciphertext<DCRTPoly>> BlindReceiver::encryptQuery(vector<double> query) {
 
-  size_t chunksPerVector = VECTOR_DIM / chunkLength; // number of chunks a 512-d vector is split into
+  size_t chunksPerVector = VECTOR_DIM / CHUNK_LEN; // number of chunks a 512-d vector is split into
 
   query = VectorUtils::plaintextNormalize(query, VECTOR_DIM);
 
   vector<Ciphertext<DCRTPoly>> queryVector(chunksPerVector);
   #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for (size_t i = 0; i < chunksPerVector; i++) {
-    queryVector[i] = encryptQueryThread(query, chunkLength, (i*chunkLength));
+    queryVector[i] = encryptQueryThread(query, CHUNK_LEN, (i*CHUNK_LEN));
   }
 
   return queryVector;
 }
 
-vector<size_t> BlindReceiver::decryptIndex(vector<Ciphertext<DCRTPoly>> &indexCipher, size_t chunkLength) {
+vector<size_t> BlindReceiver::decryptIndex(vector<Ciphertext<DCRTPoly>> &indexCipher) {
 
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
-  size_t scoresPerBatch = batchSize / chunkLength;
+  size_t scoresPerBatch = batchSize / CHUNK_LEN;
 
   vector<size_t> outputValues;
   vector<double> indexValues;
@@ -42,8 +42,8 @@ vector<size_t> BlindReceiver::decryptIndex(vector<Ciphertext<DCRTPoly>> &indexCi
       // If match is found during iterataion, append to returned list
       if(indexValues[j] >= 1.0) {
         batchStartingIndex = i * batchSize;
-        chunkStartingIndex = j / chunkLength;
-        mergedChunkIndex = (j % chunkLength) * scoresPerBatch;
+        chunkStartingIndex = j / CHUNK_LEN;
+        mergedChunkIndex = (j % CHUNK_LEN) * scoresPerBatch;
 
         outputValues.push_back(batchStartingIndex + chunkStartingIndex + mergedChunkIndex);
       }

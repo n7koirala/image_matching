@@ -9,16 +9,24 @@ GroteReceiver::GroteReceiver(CryptoContext<DCRTPoly> ccParam,
     : BaseReceiver(ccParam, pkParam, skParam, vectorParam) {}
 
 // -------------------- PUBLIC FUNCTIONS --------------------
-vector<size_t> GroteReceiver::decryptIndex(tuple<vector<Ciphertext<DCRTPoly>>, vector<Ciphertext<DCRTPoly>>> &indexCipher) {
+vector<size_t> GroteReceiver::decryptIndex(vector<Ciphertext<DCRTPoly>> &indexCipher) {
   // row length is the power of 2 closest to sqrt(batchSize)
   // dividing scores into square matrix as close as possible
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t rowLength = pow(2.0, ceil(log2(batchSize) / 2.0));
   size_t colLength = batchSize / rowLength;
 
-  // decrypt results
-  auto [rowCipher, colCipher] = indexCipher;
+  // copy row and column scores from combined vector
+  size_t numRowCiphers = ceil(double(ceil(double(numVectors) / double(batchSize))) / double(rowLength));
+  size_t numColCiphers = ceil(double(ceil(double(numVectors) / double(batchSize))) / double(colLength));
+  if (numRowCiphers + numColCiphers != indexCipher.size()) {
+    cerr << "Error: incorrect parsing of index query results" << endl;
+  }
+  vector<Ciphertext<DCRTPoly>> rowCipher(indexCipher.begin(), indexCipher.begin() + numRowCiphers);
+  vector<Ciphertext<DCRTPoly>> colCipher(indexCipher.begin() + numRowCiphers, indexCipher.end());
 
+
+  // decrypt results
   vector<double> rowVals = OpenFHEWrapper::decryptVectorToVector(cc, sk, rowCipher);
   vector<double> colVals = OpenFHEWrapper::decryptVectorToVector(cc, sk, colCipher);
 

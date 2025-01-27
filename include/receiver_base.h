@@ -12,7 +12,7 @@ public:
               PrivateKey<DCRTPoly> skParam, size_t vectorParam);
 
   // public methods
-  Ciphertext<DCRTPoly> encryptQuery(vector<double> query);
+  vector<Ciphertext<DCRTPoly>> encryptQuery(vector<double> query) override;
 
 protected:
 

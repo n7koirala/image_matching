@@ -9,16 +9,13 @@ public:
 
   // public methods
   vector<Ciphertext<DCRTPoly>>
-  computeSimilarity(Ciphertext<DCRTPoly> &queryCipher);
-
-  vector<Ciphertext<DCRTPoly>>
-  computeSimilarityAndMerge(Ciphertext<DCRTPoly> &queryCipher);
+  computeSimilarity(vector<Ciphertext<DCRTPoly>> &queryCipher) override;
 
   Ciphertext<DCRTPoly>
-  membershipScenario(Ciphertext<DCRTPoly> &queryCipher);
+  membershipScenario(vector<Ciphertext<DCRTPoly>> &queryCipher) override;
 
   vector<Ciphertext<DCRTPoly>>
-  indexScenario(Ciphertext<DCRTPoly> &queryCipher);
+  indexScenario(vector<Ciphertext<DCRTPoly>> &queryCipher) override;
 
 protected:
 
@@ -27,5 +24,8 @@ protected:
 
   void
   computeSimilarityAndMergeThread(Ciphertext<DCRTPoly> &queryCipher, Ciphertext<DCRTPoly> &mergedCipher, size_t startingIndex);
+
+  vector<Ciphertext<DCRTPoly>>
+  computeSimilarityAndMerge(Ciphertext<DCRTPoly> &queryCipher);
 
 };
