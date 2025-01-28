@@ -66,7 +66,7 @@ Note that the dataset will be automatically placed in the `test` folder. For exa
 
 Alternatively, to automatically create a range of test datasets efficiently using parallelism, run the following script from the `build` folder:
 ```bash
-../tools/gen_all__datasets.sh
+../tools/gen_all_datasets.sh
 ```
 
 
