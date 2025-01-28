@@ -3,9 +3,9 @@ build/
 
 # datasets over 100.0MB cannot be tracked by GitHub
 # consider Git LFS or script to download untracked datasets
+# still want to track empty test folder though
 test/*
-# !test/2_10.dat
-# !test/2_14.dat
+!test/.gitkeep
 
 # misc untracked files
 .vscode/
