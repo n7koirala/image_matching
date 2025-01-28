@@ -10,9 +10,7 @@ GroteSender::GroteSender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pk
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 
-Ciphertext<DCRTPoly> GroteSender::membershipScenario(Ciphertext<DCRTPoly> queryCipher) {
-
-  cout << "GROTE membership scenario" << endl;
+Ciphertext<DCRTPoly> GroteSender::membershipScenario(vector<Ciphertext<DCRTPoly>> &queryCipher) {
 
   // row length is the power of 2 closest to sqrt(batchSize)
   // dividing scores into square matrix as close as possible
@@ -24,7 +22,7 @@ Ciphertext<DCRTPoly> GroteSender::membershipScenario(Ciphertext<DCRTPoly> queryC
   
   vector<Ciphertext<DCRTPoly>> colCipher = alphaNormColumns(scoreCipher, ALPHA_DEPTH, rowLength);
 
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
     scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, COMP_DEPTH);
   }
@@ -37,8 +35,8 @@ Ciphertext<DCRTPoly> GroteSender::membershipScenario(Ciphertext<DCRTPoly> queryC
   return membershipCipher;
 }
 
-tuple<vector<Ciphertext<DCRTPoly>>, vector<Ciphertext<DCRTPoly>>> 
-GroteSender::indexScenario(Ciphertext<DCRTPoly> queryCipher) {
+vector<Ciphertext<DCRTPoly>> 
+GroteSender::indexScenario(vector<Ciphertext<DCRTPoly>> &queryCipher) {
 
   // row length is the power of 2 closest to sqrt(batchSize)
   // dividing scores into square matrix as close as possible
@@ -59,16 +57,17 @@ GroteSender::indexScenario(Ciphertext<DCRTPoly> queryCipher) {
     adjustedThreshold = adjustedThreshold * adjustedThreshold;
   }
 
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for(size_t i = 0; i < rowCipher.size(); i++) {
     rowCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, rowCipher[i], adjustedThreshold, COMP_DEPTH);
   }
 
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for(size_t i = 0; i < colCipher.size(); i++) {
     colCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, colCipher[i], adjustedThreshold, COMP_DEPTH);
   }
 
   // return boolean (0/1) values dictating which rows and columns contain matches
-  return make_tuple(rowCipher, colCipher);
+  rowCipher.insert(rowCipher.end(), colCipher.begin(), colCipher.end());
+  return rowCipher;
 }

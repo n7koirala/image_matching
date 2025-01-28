@@ -9,18 +9,13 @@ size_t OpenFHEWrapper::computeRequiredDepth(size_t approach) {
 
   switch(approach) {
 
-    case 1: // novel stacked MVM approach
-      depth += 1;           // one mult required for score computation
-      depth += COMP_DEPTH;  // mults required for threshold comparison
-      break;
-
-    case 2: // literature baseline
+    case 1: // literature baseline
       depth += 1;           // one mult required for score computation
       depth += 2;           // two mults required for merge operation
       depth += COMP_DEPTH;  // mults required for threshold comparison
       break;
 
-    case 3: // GROTE group testing
+    case 2: // GROTE
       depth += 1;           // one mult required for score computation
       depth += 2;           // two mults required for merge operation
       depth += ALPHA_DEPTH; // mults required for alpha norm operation
@@ -28,15 +23,19 @@ size_t OpenFHEWrapper::computeRequiredDepth(size_t approach) {
       depth += COMP_DEPTH;  // mults required for threshold comparison
       break;
 
-    case 4: // blind-match
+    case 3: // blind-match
       depth += 1;           // one mult required for score computation
       depth += 1;           // one mult required for compression operation
       depth += COMP_DEPTH;  // mults required for threshold comparison
       break;
 
-    case 5: // diagonal (TODO: update this correctly)
+    case 4: // HERS
       depth += 1;           // one mult required for score computation
-      depth += 1;           // one mult required for compression operation
+      depth += COMP_DEPTH;  // mults required for threshold comparison
+      break;
+
+    case 5: // novel diagonal linear transform
+      depth += 1;           // one mult required for score computation
       depth += COMP_DEPTH;  // mults required for threshold comparison
       break;
   }
@@ -164,7 +163,7 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::sign(CryptoContext<DCRTPoly> cc, Ciphertext
 }
 
 
-// TODO: replace built-in EvalSum function with this, remove generation of SumKey
+// todo: replace built-in EvalSum function with this, remove generation of SumKey
 // Sets every slot in the ciphertext equal to the sum of all slots
 Ciphertext<DCRTPoly> OpenFHEWrapper::sumAllSlots(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt) {
   int batchSize = cc->GetEncodingParams()->GetBatchSize();
@@ -191,7 +190,7 @@ OpenFHEWrapper::chebyshevCompare(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly
     -1, -1, -1, -1, 5, 13, 27, 59, 119, 247, 495, 1007, 2031
   });
 
-  // Coefficients for sign-approximating polynomial f_3 given in Cheon, 2019
+  // Coefficients for sign-approximating polynomial f_3 given from JH Cheon, 2019/1234 (https://ia.cr/2019/1234)
   const vector<double> SIGN_COEFS({
     0.0, 
     35.0 / 16.0,  
@@ -210,10 +209,10 @@ OpenFHEWrapper::chebyshevCompare(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly
 
   // compute Cheon's polynomial approximation for smoother zeroing near x=-1 and x=1
   // requires multiplicative depth of 3
-  // TODO: consider using a polynomial of depth 2 from same paper
+  // todo: consider using a polynomial of depth 2 from same paper
   ctxt = cc->EvalPoly(ctxt, SIGN_COEFS);
 
-  // shift range from [-1,1] to [0,2] so we can use this as additive VAF
+  // shift range from [-1,1] to [0,2] so we can use this as a additive VAF
   cc->EvalAddInPlace(ctxt, 1.0);
 
   return ctxt;
@@ -231,7 +230,7 @@ vector<Ciphertext<DCRTPoly>> OpenFHEWrapper::mergeCiphers(CryptoContext<DCRTPoly
   size_t outputCipher;
   size_t outputSlot;
   
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for(size_t i = 0; i < ctxts.size(); i++) {
     ctxts[i] = OpenFHEWrapper::mergeSingleCipher(cc, ctxts[i], dimension);
   }
@@ -319,7 +318,7 @@ vector<Ciphertext<DCRTPoly>> OpenFHEWrapper::compressCiphers(CryptoContext<DCRTP
 
   // multiply each ciphertext by one-hot compression mask
   // preserves only the values at the i-th slots
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for(size_t i = 0; i < ctxts.size(); i++) {
     ctxts[i] = cc->EvalMult(ctxts[i], maskPtxt);
     cc->RelinearizeInPlace(ctxts[i]);

@@ -3,14 +3,14 @@
 
 #pragma once
 
-#include "enroller.h"
+#include "enroller_hers.h"
 
-class BaseEnroller : public Enroller {
+class BaseEnroller : public HersEnroller {
 public:
   // constructor
   BaseEnroller(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam);
 
   // public methods
-  void serializeDB(vector<vector<double>> database);
+  void serializeDB(vector<vector<double>> &database);
 
 };

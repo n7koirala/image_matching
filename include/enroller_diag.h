@@ -3,15 +3,15 @@
 
 #pragma once
 
-#include "enroller.h"
+#include "enroller_hers.h"
 
-class DiagonalEnroller : public Enroller {
+class DiagonalEnroller : public HersEnroller {
 public:
   // constructor
   DiagonalEnroller(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam);
 
   // public methods
-  void serializeDB(vector<vector<double>> database);
+  void serializeDB(vector<vector<double>> &database);
 
 protected:
   // protected methods

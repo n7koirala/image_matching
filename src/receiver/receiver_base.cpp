@@ -6,11 +6,11 @@
 
 BaseReceiver::BaseReceiver(CryptoContext<DCRTPoly> ccParam,
                          PublicKey<DCRTPoly> pkParam, PrivateKey<DCRTPoly> skParam, size_t vectorParam)
-    : Receiver(ccParam, pkParam, skParam, vectorParam) {}
+    : HersReceiver(ccParam, pkParam, skParam, vectorParam) {}
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 
-Ciphertext<DCRTPoly> BaseReceiver::encryptQuery(vector<double> query) {
+vector<Ciphertext<DCRTPoly>> BaseReceiver::encryptQuery(vector<double> query) {
   
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
 
@@ -20,5 +20,7 @@ Ciphertext<DCRTPoly> BaseReceiver::encryptQuery(vector<double> query) {
     copy(query.begin(), query.end(), queryBatch.begin() + i);
   }
 
-  return OpenFHEWrapper::encryptFromVector(cc, pk, queryBatch);
+  vector<Ciphertext<DCRTPoly>> queryCipher({OpenFHEWrapper::encryptFromVector(cc, pk, queryBatch)});
+
+  return queryCipher;
 }

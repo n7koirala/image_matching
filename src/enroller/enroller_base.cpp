@@ -6,11 +6,11 @@
 
 BaseEnroller::BaseEnroller(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
                size_t vectorParam)
-    : Enroller(ccParam, pkParam, vectorParam) {}
+    : HersEnroller(ccParam, pkParam, vectorParam) {}
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 
-void BaseEnroller::serializeDB(vector<vector<double>> database) {
+void BaseEnroller::serializeDB(vector<vector<double>> &database) {
 
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t vectorsPerBatch = batchSize / VECTOR_DIM;
@@ -26,7 +26,7 @@ void BaseEnroller::serializeDB(vector<vector<double>> database) {
   }
 
   // create matrix-specific directories if they don't exist
-  string dirName = "serial/database/";
+  string dirName = "serial/db_baseline/";
   if(!filesystem::exists(dirName)) {
     if(!filesystem::create_directory(dirName)) {
       cerr << "Error: Failed to create directory \"" + dirName + "\"" << endl;
@@ -34,13 +34,13 @@ void BaseEnroller::serializeDB(vector<vector<double>> database) {
   }
 
   // normalize all plaintext database vectors
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for (size_t i = 0; i < numVectors; i++) {
     database[i] = VectorUtils::plaintextNormalize(database[i], VECTOR_DIM);
   }
 
   // serialize all database vectors in sequential-batched format
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for(size_t i = 0; i < numBatches; i++) {
     vector<double> currentVector(batchSize);
     for(size_t j = 0; j < min(vectorsPerBatch, numVectors - i*vectorsPerBatch); j++) {
@@ -49,7 +49,7 @@ void BaseEnroller::serializeDB(vector<vector<double>> database) {
 
     Ciphertext<DCRTPoly> currentCtxt = OpenFHEWrapper::encryptFromVector(cc, pk, currentVector);
 
-    string filepath = "serial/database/batch" + to_string(i) + ".bin";
+    string filepath = "serial/db_baseline/batch" + to_string(i) + ".bin";
     if (!Serial::SerializeToFile(filepath, currentCtxt, SerType::BINARY)) {
       cerr << "Error: serialization failed (cannot write to " + filepath + ")" << endl;
     }

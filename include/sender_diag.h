@@ -1,24 +1,24 @@
 #pragma once
 
-#include "sender.h"
+#include "sender_hers.h"
 
-class DiagonalSender : public Sender {
+class DiagonalSender : public HersSender {
 public:
   // constructor
   DiagonalSender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam);
 
   // public methods
   vector<Ciphertext<DCRTPoly>>
-  computeSimilarity(Ciphertext<DCRTPoly> &queryCipher);
+  computeSimilarity(vector<Ciphertext<DCRTPoly>> &queryCipher) override;
 
   Ciphertext<DCRTPoly> 
-  membershipScenario(Ciphertext<DCRTPoly> &queryCipher);
+  membershipScenario(vector<Ciphertext<DCRTPoly>> &queryCipher) override;
 
   vector<Ciphertext<DCRTPoly>> 
-  indexScenario(Ciphertext<DCRTPoly> &queryCipher);
+  indexScenario(vector<Ciphertext<DCRTPoly>> &queryCipher) override;
 
-protected:
-  // protected methods
+private:
+  // private methods
   Ciphertext<DCRTPoly> 
   computeSimilarityMatrix(vector<Ciphertext<DCRTPoly>> &queryCipher, size_t matrix);
 

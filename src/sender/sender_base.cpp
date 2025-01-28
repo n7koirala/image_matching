@@ -6,11 +6,11 @@
 
 BaseSender::BaseSender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
                size_t vectorParam)
-    : Sender(ccParam, pkParam, vectorParam) {}
+    : HersSender(ccParam, pkParam, vectorParam) {}
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 
-vector<Ciphertext<DCRTPoly>> BaseSender::computeSimilarity(Ciphertext<DCRTPoly> queryCipher) {
+vector<Ciphertext<DCRTPoly>> BaseSender::computeSimilarity(vector<Ciphertext<DCRTPoly>> &queryCipher) {
 
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t vectorsPerBatch = batchSize / VECTOR_DIM;
@@ -18,15 +18,15 @@ vector<Ciphertext<DCRTPoly>> BaseSender::computeSimilarity(Ciphertext<DCRTPoly> 
   vector<Ciphertext<DCRTPoly>> similarityCipher(numBatches);
 
   // embarrassingly parallel
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for (size_t i = 0; i < numBatches; i++) {
-    computeSimilarityThread(queryCipher, similarityCipher[i], i);
+    computeSimilarityThread(queryCipher[0], similarityCipher[i], i);
   }
   
   return OpenFHEWrapper::mergeCiphers(cc, similarityCipher, VECTOR_DIM);
 }
 
-vector<Ciphertext<DCRTPoly>> BaseSender::computeSimilarityAndMerge(Ciphertext<DCRTPoly> queryCipher) {
+vector<Ciphertext<DCRTPoly>> BaseSender::computeSimilarityAndMerge(Ciphertext<DCRTPoly> &queryCipher) {
 
   size_t batchSize = cc->GetEncodingParams()->GetBatchSize();
   size_t vectorsPerBatch = batchSize / VECTOR_DIM;
@@ -37,7 +37,7 @@ vector<Ciphertext<DCRTPoly>> BaseSender::computeSimilarityAndMerge(Ciphertext<DC
   vector<Ciphertext<DCRTPoly>> mergedCipher(numMergedCiphers);
 
   // embarrassingly parallel
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for (size_t i = 0; i < numMergedCiphers; i++) {
     // populates mergedCipher with consecutively-packed similarity scores
     computeSimilarityAndMergeThread(queryCipher, mergedCipher[i], i);
@@ -47,13 +47,13 @@ vector<Ciphertext<DCRTPoly>> BaseSender::computeSimilarityAndMerge(Ciphertext<DC
 }
 
 
-Ciphertext<DCRTPoly> BaseSender::membershipScenario(Ciphertext<DCRTPoly> queryCipher) {
+Ciphertext<DCRTPoly> BaseSender::membershipScenario(vector<Ciphertext<DCRTPoly>> &queryCipher) {
 
   // compute similarity scores between query and database
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
   // vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarityAndMerge(queryCipher);
 
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
     scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, COMP_DEPTH);
   }
@@ -66,13 +66,13 @@ Ciphertext<DCRTPoly> BaseSender::membershipScenario(Ciphertext<DCRTPoly> queryCi
 }
 
 
-vector<Ciphertext<DCRTPoly>> BaseSender::indexScenario(Ciphertext<DCRTPoly> queryCipher) {
+vector<Ciphertext<DCRTPoly>> BaseSender::indexScenario(vector<Ciphertext<DCRTPoly>> &queryCipher) {
 
   // compute similarity scores between query and database
   vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarity(queryCipher);
   // vector<Ciphertext<DCRTPoly>> scoreCipher = computeSimilarityAndMerge(queryCipher);
   
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for(size_t i = 0; i < scoreCipher.size(); i++) {
     scoreCipher[i] = OpenFHEWrapper::chebyshevCompare(cc, scoreCipher[i], MATCH_THRESHOLD, COMP_DEPTH);
   }
@@ -84,12 +84,12 @@ vector<Ciphertext<DCRTPoly>> BaseSender::indexScenario(Ciphertext<DCRTPoly> quer
 void BaseSender::computeSimilarityThread(Ciphertext<DCRTPoly> &queryCipher, Ciphertext<DCRTPoly> &similarityCipher, size_t databaseIndex) {
 
   Ciphertext<DCRTPoly> databaseCipher;
-  string filepath = "serial/database/batch" + to_string(databaseIndex) + ".bin";
+  string filepath = "serial/db_baseline/batch" + to_string(databaseIndex) + ".bin";
   if (!Serial::DeserializeFromFile(filepath, databaseCipher, SerType::BINARY)) {
       cerr << "Cannot read serialization from " << filepath << endl;
   }
 
-  // TODO: rewrite this using own sum function
+  // todo: rewrite this using own sum function
   similarityCipher = cc->EvalInnerProduct(queryCipher, databaseCipher, VECTOR_DIM);
   cc->RelinearizeInPlace(similarityCipher);
   cc->RescaleInPlace(similarityCipher);
@@ -122,7 +122,7 @@ void BaseSender::computeSimilarityAndMergeThread(Ciphertext<DCRTPoly> &queryCiph
       break;
     }
 
-    filepath = "serial/database/batch" + to_string(currentIndex) + ".bin";
+    filepath = "serial/db_baseline/batch" + to_string(currentIndex) + ".bin";
     if (!Serial::DeserializeFromFile(filepath, databaseCipher, SerType::BINARY)) {
         cerr << "Cannot read serialization from " << filepath << endl;
         break;

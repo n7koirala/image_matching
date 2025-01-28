@@ -1,19 +1,16 @@
-// ** receiver: Defines the receiver (querier) base class
-// encrypts / decrypts queries according to our novel diagonalization approach
+// ** receiver: Defines the receiver class according to our novel diagonalization approach
 
 #pragma once
 
-#include "receiver.h"
+#include "receiver_hers.h"
 
-class DiagonalReceiver : public Receiver {
+class DiagonalReceiver : public HersReceiver {
 public:
   // constructor
   DiagonalReceiver(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
               PrivateKey<DCRTPoly> skParam, size_t vectorParam);
 
   // public methods
-  Ciphertext<DCRTPoly> encryptQuery(vector<double> query);
-
-protected:
+  vector<Ciphertext<DCRTPoly>> encryptQuery(vector<double> query) override;
   
 };

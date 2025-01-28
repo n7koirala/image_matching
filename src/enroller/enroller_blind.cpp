@@ -6,7 +6,7 @@
 
 BlindEnroller::BlindEnroller(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
                size_t vectorParam)
-    : Enroller(ccParam, pkParam, vectorParam) {}
+    : HersEnroller(ccParam, pkParam, vectorParam) {}
 
 // -------------------- PUBLIC FUNCTIONS --------------------
 
@@ -44,15 +44,14 @@ void BlindEnroller::serializeDB(vector<vector<double>> &database, size_t chunkLe
   }
 
   // normalize all plaintext database vectors
-  #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+  #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for (size_t i = 0; i < numVectors; i++) {
     database[i] = VectorUtils::plaintextNormalize(database[i], VECTOR_DIM);
   }
 
   for(size_t i = 0; i < numMatrices; i++) {
 
-    // TODO: reintroduce parallelism after checking correctness
-    // #pragma omp parallel for num_threads(SENDER_NUM_CORES)
+    #pragma omp parallel for num_threads(MAX_NUM_CORES)
     for(size_t j = 0; j < VECTOR_DIM; j += chunkLength) {
       serializeDBThread(database, chunkLength, i, j);
     }
@@ -74,7 +73,6 @@ void BlindEnroller::serializeDBThread(vector<vector<double>> &database, size_t c
   // copy chunks from database into single vector to be encrypted and serialized
   for(size_t i = 0; i < chunksPerBatch && i < remainingVectors; i++) {
 
-    // TODO: clean up readability
     copy(database[i + matrix*chunksPerBatch].begin() + index, 
       database[i + matrix*chunksPerBatch].begin() + index + chunkLength,
       currentVector.begin() + i*chunkLength);

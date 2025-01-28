@@ -62,7 +62,7 @@ $(write_query_vec)
 
 # write database vectors to filepath
 # matches at indices i=2 and i=n-1
-# TODO: implement user-input for determining which vectors match
+# todo: implement user-input for determining which vectors match
 for (( i=0; i<$SIZE; i++ )); do
 
     if ((i == 2 || i == $SIZE - 1)); then

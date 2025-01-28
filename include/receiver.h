@@ -1,5 +1,4 @@
-// ** receiver: Defines the receiver (querier) base class
-// Performs the vector normalization step in the plaintext domain
+// ** receiver: Defines the abstract class for receiver (querier) functionality
 
 #pragma once
 
@@ -21,26 +20,24 @@ public:
   Receiver(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
               PrivateKey<DCRTPoly> skParam, size_t vectorParam);
 
-  // public methods
-  vector<Ciphertext<DCRTPoly>> encryptQuery(vector<double> query);
+  // destructor
+  virtual ~Receiver() = default;
 
-  Ciphertext<DCRTPoly> encryptQueryAlt(vector<double> query);
-  
-  vector<double> decryptRawScores(vector<Ciphertext<DCRTPoly>> scoreCipher);
+  // virtual methods -- to be overridden by derived receiver classes
+  virtual vector<Ciphertext<DCRTPoly>> 
+  encryptQuery(vector<double> query) = 0;
 
-  bool decryptMembership(Ciphertext<DCRTPoly> &membershipCipher);
+  virtual bool 
+  decryptMembership(Ciphertext<DCRTPoly> &membershipCipher) = 0;
 
-  vector<size_t> decryptIndex(vector<Ciphertext<DCRTPoly>> &indexCipher);
-
-  // vector<size_t> decryptIndex(vector<Ciphertext<DCRTPoly>> rowCipher, vector<Ciphertext<DCRTPoly>> colCipher, size_t rowLength);
+  virtual vector<size_t> 
+  decryptIndex(vector<Ciphertext<DCRTPoly>> &indexCipher) = 0;
 
 protected:
-  // protected members
+  // protected members (accessible by derived classes)
   CryptoContext<DCRTPoly> cc;
   PublicKey<DCRTPoly> pk;
   PrivateKey<DCRTPoly> sk;
   size_t numVectors;
 
-  // protected functions
-  Ciphertext<DCRTPoly> encryptQueryThread(double indexValue);
 };

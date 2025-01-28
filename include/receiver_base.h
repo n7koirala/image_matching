@@ -3,16 +3,16 @@
 
 #pragma once
 
-#include "receiver.h"
+#include "receiver_hers.h"
 
-class BaseReceiver : public Receiver {
+class BaseReceiver : public HersReceiver {
 public:
   // constructor
   BaseReceiver(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam,
               PrivateKey<DCRTPoly> skParam, size_t vectorParam);
 
   // public methods
-  Ciphertext<DCRTPoly> encryptQuery(vector<double> query);
+  vector<Ciphertext<DCRTPoly>> encryptQuery(vector<double> query) override;
 
 protected:
 

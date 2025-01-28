@@ -3,9 +3,9 @@
 
 #pragma once
 
-#include "enroller.h"
+#include "enroller_hers.h"
 
-class BlindEnroller : public Enroller {
+class BlindEnroller : public HersEnroller {
 public:
   // constructor
   BlindEnroller(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam);

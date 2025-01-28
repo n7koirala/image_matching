@@ -1,4 +1,4 @@
-// ** sender: defines the sender (server) base class
+// ** sender: defines the abstract sender class to be overwritten with specific approaches
 // Stores encrypted database vectors and homomorphically computes membership/index queries 
 
 #pragma once
@@ -21,46 +21,23 @@ public:
   // constructor
   Sender(CryptoContext<DCRTPoly> ccParam, PublicKey<DCRTPoly> pkParam, size_t vectorParam);
 
-  // public methods
-  void setDatabaseCipher(vector<vector<Ciphertext<DCRTPoly>>> databaseCipherParam);
+  // destructor
+  virtual ~Sender() = default;
 
-  void serializeDatabaseCipher(string location);
+  // virtual methods -- must be overridden in derived sender classes
+  virtual vector<Ciphertext<DCRTPoly>>
+  computeSimilarity(vector<Ciphertext<DCRTPoly>> &queryCipher) = 0;
 
-  vector<Ciphertext<DCRTPoly>>
-  computeSimilarity(vector<Ciphertext<DCRTPoly>> queryCipher);
+  virtual Ciphertext<DCRTPoly>
+  membershipScenario(vector<Ciphertext<DCRTPoly>> &queryCipher) = 0;
 
-  Ciphertext<DCRTPoly>
-  membershipScenario(vector<Ciphertext<DCRTPoly>> queryCipher);
-
-  vector<Ciphertext<DCRTPoly>>
-  indexScenario(vector<Ciphertext<DCRTPoly>> queryCipher);
-
-  // Ciphertext<DCRTPoly>
-  // membershipScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength);
-
-  // tuple<vector<Ciphertext<DCRTPoly>>, vector<Ciphertext<DCRTPoly>>>
-  // indexScenario(vector<Ciphertext<DCRTPoly>> queryCipher, size_t rowLength);
+  virtual vector<Ciphertext<DCRTPoly>>
+  indexScenario(vector<Ciphertext<DCRTPoly>> &queryCipher) = 0;
 
 protected:
-  // private members
+  // protected members (accessible by derived classes)
   CryptoContext<DCRTPoly> cc;
   PublicKey<DCRTPoly> pk;
   size_t numVectors;
   vector<vector<Ciphertext<DCRTPoly>>> databaseCipher;
-
-  // private functions
-  Ciphertext<DCRTPoly> 
-  computeSimilarityHelper(size_t matrixIndex, vector<Ciphertext<DCRTPoly>> queryCipher);
-
-  Ciphertext<DCRTPoly>
-  computeSimilaritySerial(size_t matrix, size_t index, Ciphertext<DCRTPoly> queryCipher);
-
-  Ciphertext<DCRTPoly>
-  generateQueryHelper(Ciphertext<DCRTPoly> queryCipher, size_t index);
-
-  vector<Ciphertext<DCRTPoly>> 
-  alphaNormRows(vector<Ciphertext<DCRTPoly>> scoreCipher, size_t alpha, size_t rowLength);
-
-  vector<Ciphertext<DCRTPoly>> 
-  alphaNormColumns(vector<Ciphertext<DCRTPoly>> scoreCipher, size_t alpha, size_t rowLength);
 };
