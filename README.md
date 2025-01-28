@@ -45,7 +45,7 @@ The primary goal of this project is to provide a robust framework for the compar
     make
     ```
 
-3. **Set up Experiment Tracking File**:
+3. **Set up Experimental Datasets and Tracking File**:
     ```bash
     ../tools/setup_experiment.sh
     ```
@@ -55,15 +55,20 @@ The primary goal of this project is to provide a robust framework for the compar
 ### Generating Experimental Datasets
 
 To generate an experimental dataset, run the following script from the `build` folder:
-
 ```bash
 ../tools/generate_data.sh [FILENAME] [SIZE]
 ```
 
-Note that the dataset will be automatically placed in the `test` folder. For example, to generate a dataset with 1024 database vectors located at `/test/2^10.dat`, try:
+Note that the dataset will be automatically placed in the `test` folder. For example, to generate a dataset with 1024 database vectors located at `/test/2_10.dat`, try:
 ```bash
-../tools/generate_data.sh "2^10.dat" $((2**10))
+../tools/generate_data.sh "2_10.dat" $((2**10))
 ```
+
+Alternatively, to automatically create a range of test datasets efficiently using parallelism, run the following script from the `build` folder:
+```bash
+../tools/gen_all__datasets.sh
+```
+
 
 ### Running Experiments
 
@@ -87,7 +92,7 @@ The `[APPROACH]` parameter determines which algorithm is used to perform the enc
 
 For instance, try:
 ```bash
-./ImageMatching ../test/2^10.dat 1
+./ImageMatching ../test/2_10.dat 1
 ```
 
 
