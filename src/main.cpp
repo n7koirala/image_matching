@@ -335,7 +335,7 @@ int main(int argc, char *argv[]) {
   duration = end - start;
   cout << "done (" << duration.count() << "s)" << endl;
   expStream << duration.count() << "," << flush; // report query encryption time
-  expStream << 1 << "," << flush; // report query communication overhead
+  expStream << queryCipher.size() << "," << flush; // report query communication overhead
 
   // Perform membership scenario
   cout << "[Sender]\tComputing membership scenario... " << flush;
