@@ -127,42 +127,6 @@ Ciphertext<DCRTPoly> OpenFHEWrapper::binaryRotate(CryptoContext<DCRTPoly> cc, Ci
   return ctxt;
 }
 
-
-// implements the sign function sgn(x) = { 1 if x>0, 0.5 if x=0, 0 if x<0 }
-// sign-approximating polynomial f_4(x) and composition method determined from JH Cheon, 2019/1234 (https://ia.cr/2019/1234)
-// performs i compositions, where 4i+1 <= maxDepth, ideally choose maxDepth to equal some 4i+1
-Ciphertext<DCRTPoly> OpenFHEWrapper::sign(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> x, size_t maxDepth) {
-
-  size_t comps = (maxDepth - 1) / 4;
-
-  // coefficients for sign-aproximating polynomial f_4(x)
-  const vector<double> COEFS({
-    0.0, 
-    315.0 / 128.0,  
-    0.0, 
-    -420.0 / 128.0, 
-    0.0, 
-    378.0 / 128.0,
-    0.0, 
-    -180.0 / 128.0,
-    0.0,
-    35.0 / 128.0
-  });
-
-  for(size_t i = 0; i < comps; i++) {
-    // Note EvalPoly performs rescaling operation even with FIXEDMANUAL set, which is convenient
-    x = cc->EvalPoly(x, COEFS);
-  }
-
-  // shift range from [-1, 1] to [0, 1], allowing for additive VAFs
-  cc->EvalAddInPlace(x, 1.0);
-  cc->EvalMultInPlace(x, 0.5);
-  cc->RescaleInPlace(x);
-
-  return x;
-}
-
-
 // todo: replace built-in EvalSum function with this, remove generation of SumKey
 // Sets every slot in the ciphertext equal to the sum of all slots
 Ciphertext<DCRTPoly> OpenFHEWrapper::sumAllSlots(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly> ctxt) {
@@ -187,30 +151,32 @@ OpenFHEWrapper::chebyshevCompare(CryptoContext<DCRTPoly> cc, Ciphertext<DCRTPoly
   // Relationship between required depth and Chebyshev polynomial degree described at the below link
   // https://github.com/openfheorg/openfhe-development/blob/main/src/pke/examples/FUNCTION_EVALUATION.md
   const vector<int> DEPTH_TO_DEGREE({
-    -1, -1, -1, -1, 5, 13, 27, 59, 119, 247, 495, 1007, 2031
+    -1, -1, -1, 5, 13, 27, 59, 119, 247, 495, 1007, 2031
   });
 
-  // Coefficients for sign-approximating polynomial f_3 given from JH Cheon, 2019/1234 (https://ia.cr/2019/1234)
-  const vector<double> SIGN_COEFS({
+  // Coefficients for sign-approximating polynomial f4() given from JH Cheon, 2019/1234 (https://ia.cr/2019/1234)
+  const vector<double> F4_COEFS({
     0.0, 
-    35.0 / 16.0,  
+    315.0 / 128.0,  
     0.0, 
-    -35.0 / 16.0, 
+    -420.0 / 128.0, 
     0.0, 
-    21.0 / 16.0,
+    378.0 / 128.0,
     0.0, 
-    -5.0 / 16.0
+    -180.0 / 128.0,
+    0.0,
+    35.0 / 128.0
   });
 
   // compute Chebyshev approximation of sign function first for steeper slope near x=0
   // set to use a multiplicative depth of (signDepth - 3) 
-  size_t polyDegree = DEPTH_TO_DEGREE[signDepth - 3];
+  size_t polyDegree = DEPTH_TO_DEGREE[signDepth - 4];
   ctxt = cc->EvalChebyshevFunction([&delta](double x) -> double { return (x >= delta) ? 1 : -1; }, ctxt, -1, 1, polyDegree);
 
   // compute Cheon's polynomial approximation for smoother zeroing near x=-1 and x=1
   // requires multiplicative depth of 3
   // todo: consider using a polynomial of depth 2 from same paper
-  ctxt = cc->EvalPoly(ctxt, SIGN_COEFS);
+  ctxt = cc->EvalPoly(ctxt, F4_COEFS);
 
   // shift range from [-1,1] to [0,2] so we can use this as a additive VAF
   cc->EvalAddInPlace(ctxt, 1.0);
