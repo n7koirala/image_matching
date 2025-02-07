@@ -8,12 +8,12 @@ printf "Query Encryption (seconds)," >> $FILEPATH
 printf "Query Size (ciphertexts)," >> $FILEPATH
 
 printf "Membership Computation (seconds)," >> $FILEPATH
-printf "Membership Decryption (seconds)," >> $FILEPATH
 printf "Membership Result Size (ciphertexts)," >> $FILEPATH
+printf "Membership Decryption (seconds)," >> $FILEPATH
 
 printf "Index Computation (seconds)," >> $FILEPATH
-printf "Index Decryption (seconds)," >> $FILEPATH
 printf "Index Result Size (ciphertexts)," >> $FILEPATH
+printf "Index Decryption (seconds)," >> $FILEPATH
 
 printf "Decrypted Membership Result," >> $FILEPATH
 printf "Decrypted Index Result" >> $FILEPATH
