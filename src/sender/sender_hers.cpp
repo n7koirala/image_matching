@@ -66,14 +66,19 @@ HersSender::computeSimilarityHelper(size_t matrixIndex, vector<Ciphertext<DCRTPo
   #pragma omp parallel for num_threads(MAX_NUM_CORES)
   for(size_t i = 0; i < VECTOR_DIM; i++) {
     scoreCipher[i] = computeSimilaritySerial(matrixIndex, i, queryCipher[i]);
+
+    // unnecessary operations placed here to match HERS paper approach
+    cc->RelinearizeInPlace(scoreCipher[i]);
+    cc->RescaleInPlace(scoreCipher[i]);
   }
 
   for(size_t i = 1; i < VECTOR_DIM; i++) {
     cc->EvalAddInPlace(scoreCipher[0], scoreCipher[i]);
   }
 
-  cc->RelinearizeInPlace(scoreCipher[0]);
-  cc->RescaleInPlace(scoreCipher[0]);
+  // this is where operations should be instead according to novel approach
+  // cc->RelinearizeInPlace(scoreCipher[0]);
+  // cc->RescaleInPlace(scoreCipher[0]);
 
   return scoreCipher[0];
 }

@@ -18,7 +18,7 @@ const size_t COMP_DEPTH = 10;
 const size_t ALPHA_DEPTH = 2;
 
 // Number of threads used in multithreaded sections
-const size_t MAX_NUM_CORES = 32;
+const size_t MAX_NUM_CORES = 48;
 
 
 // ---------- Variables below should not be changed ----------
