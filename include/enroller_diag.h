@@ -15,7 +15,7 @@ public:
 
 protected:
   // protected methods
-  vector<vector<vector<double>>> splitIntoSquareMatrices(vector<vector<double>> &matrix, int k);
+  vector<vector<vector<double>>> splitIntoSquareMatrices(vector<vector<double>> &matrix, size_t k);
 
   void printMatrix(vector<vector<double>> matrix);
 

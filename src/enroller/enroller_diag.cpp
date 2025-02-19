@@ -54,21 +54,29 @@ void DiagonalEnroller::serializeDB(vector<vector<double>> &database) {
 
 // -------------------- PROTECTED FUNCTIONS --------------------
 
-vector<vector<vector<double>>> DiagonalEnroller::splitIntoSquareMatrices(vector<vector<double>> &matrix, int k) {
-  int rows = matrix.size();
-  int cols = matrix[0].size();
+vector<vector<vector<double>>> DiagonalEnroller::splitIntoSquareMatrices(vector<vector<double>> &matrix, size_t k) {
+  size_t rows = ceil(matrix.size() / k) * k;
+  size_t cols = matrix[0].size();
+
   vector<vector<vector<double> > > result;
 
   // Split the matrix into k x k square matrices
-  for (int i = 0; i < rows; i += k) {
+  for (size_t i = 0; i < rows; i += k) {
 	  vector<vector<double> > squareMatrix;
 
-    for (int j = 0; j < k; ++j) {
-      vector<double> row;
-      for (int col = 0; col < cols; ++col) {
-        row.push_back(matrix[i + j][col]);
+    for (size_t j = 0; j < k; ++j) {
+
+      if (i + j < matrix.size()) {
+        vector<double> row;
+        for (size_t col = 0; col < cols; ++col) {
+          row.push_back(matrix[i + j][col]);
+        }
+        squareMatrix.push_back(row);
+      } else {
+        vector<double> row(k, 0.0);
+        squareMatrix.push_back(row);
       }
-      squareMatrix.push_back(row);
+      
     }
 
     result.push_back(squareMatrix);
