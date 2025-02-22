@@ -11,7 +11,6 @@ The primary goal of this project is to provide a robust framework for the compar
 ## Features
 
 - **Homomorphic Encryption**: Leverages the OpenFHE library to perform secure computations on encrypted data.
-- **Biometric Standards**: Complies with standards set by the National Institute of Standards and Technology (NIST).
 - **Parallel Processing**: Supports parallel processing to enhance performance.
 
 ## Requirements
