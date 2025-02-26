@@ -6,6 +6,11 @@ build/
 # still want to track empty test folder though
 test/*
 !test/.gitkeep
+!test/2_10.dat
+!test/2_11.dat
+!test/2_12.dat
+!test/2_13.dat
+!test/2_14.dat
 
 # misc untracked files
 .vscode/
