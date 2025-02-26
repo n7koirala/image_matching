@@ -55,7 +55,7 @@ void DiagonalEnroller::serializeDB(vector<vector<double>> &database) {
 // -------------------- PROTECTED FUNCTIONS --------------------
 
 vector<vector<vector<double>>> DiagonalEnroller::splitIntoSquareMatrices(vector<vector<double>> &matrix, size_t k) {
-  size_t rows = ceil(matrix.size() / k) * k;
+  size_t rows = ceil(double(matrix.size()) / double(k)) * k;
   size_t cols = matrix[0].size();
 
   vector<vector<vector<double> > > result;
