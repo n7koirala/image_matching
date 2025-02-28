@@ -87,7 +87,7 @@ The `[APPROACH]` parameter determines which algorithm is used to perform the enc
 | 2         | GROTE Approach (Baseline + Group Testing) |
 | 3         | Blind-Match Approach                      |
 | 4         | HERS Approach                             |
-| 5         | Novel HyDia Approach                      |
+| 5         | HyDia Approach (Ours)                     |
 
 For instance, try:
 ```bash
