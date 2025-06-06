@@ -1,8 +1,57 @@
-# Image Matching README
+# HyDia: FHE-based Facial Matching with Hybrid Approximations and Diagonalization
+
+### PETS 2025 Artifact – Quick‑Start README
+
+This repository contains the full artifact (code + environment) for our PETS 2025 paper titled "HyDia: FHE-based Facial Matching with Hybrid Approximations and Diagonalization".  
+Follow the three short steps below to **build the Docker image, run the five face‑matching approaches, and capture their latency/parameter output** in a single log file.
+
+---
+
+## 1 · Clone the repository
+
+```bash
+git clone https://github.com/n7koirala/image_matching.git
+cd image_matching
+
+
+## 2 · Build the Docker image
+
+```bash
+docker build --tag popets2025-hydia .
+
+- **Installs all system prerequisites on top of Ubuntu 22.04
+(build‑essential, cmake, libomp, etc.).
+
+- **Fetches and compiles OpenFHE v1.2.3 (pinned tag).
+
+- **Compiles the project into ```/opt/image_matching/build```.
+
+- **Copies a helper script ```run_artifact.sh``` and sets it as the container’s
+ENTRYPOINT.
+
+
+## 3 · Run the smoke test & capture output
+
+```bash
+docker run --rm popets2025-hydia | tee ./smokeTestLog.txt
+
+The above command will execute all five approaches described in the paper and store the result (latency statistics for the Membership and Index scenarios, FHE parameters used, and basic correctness checks etc.) under ```smokeTestLog.txt```.
+
+## 4 · Using a larger database (optional)
+
+```run_artifact.sh``` inside the container will use a pre-generated small encrypted database of 2<sup>10</sup> facial‐feature vectors. Optionally, the database size can be easily changed to a higher number (up to 2<sup>20</sup>) after that specific amount of vectors are generated using the ```generate_data.sh``` script located under ```/tool```. For instance to generate 2<sup>15</sup>, run ```generate_data.sh "2_15.dat" $((2**15))".
+Then, edit ```run_artifact.sh``` to update your changes.
+
+
+
+## OLD README
+
+
+Execute all five approaches described in the paper:
 
 ## Introduction
 
-Welcome to the **Image Matching** project! This repository contains a comprehensive implementation of two image matching algorithms. The **Membership Scenario** determines whether a query image possesses any matches among a database of images. The **Index Scenario** determines which specific database images, if any, match with a query image.
+Welcome to the **HyDia** project! This repository contains a comprehensive implementation of two image matching algorithms. The **Membership Scenario** determines whether a query image possesses any matches among a database of images. The **Index Scenario** determines which specific database images, if any, match with a query image.
 
 The primary goal of this project is to provide a robust framework for the comparison and matching of facial representation vectors using advanced cryptographic techniques, specifically homomorphic encryption.
 
