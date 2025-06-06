@@ -9,15 +9,16 @@ Follow the three short steps below to **build the Docker image, run the five fac
 
 ## 1 · Clone the repository
 
-```bash
+```
 git clone https://github.com/n7koirala/image_matching.git
 cd image_matching
-
+```
 
 ## 2 · Build the Docker image
 
-```bash
+```
 docker build --tag popets2025-hydia .
+```
 
 - **Installs all system prerequisites on top of Ubuntu 22.04
 (build‑essential, cmake, libomp, etc.).
@@ -32,8 +33,9 @@ ENTRYPOINT.
 
 ## 3 · Run the smoke test & capture output
 
-```bash
+```
 docker run --rm popets2025-hydia | tee ./smokeTestLog.txt
+```
 
 The above command will execute all five approaches described in the paper and store the result (latency statistics for the Membership and Index scenarios, FHE parameters used, and basic correctness checks etc.) under ```smokeTestLog.txt```.
 
