@@ -6,7 +6,7 @@
 #include <string>
 
 // similarity threshold value used to determine a match between vectors
-const double MATCH_THRESHOLD = 0.85;
+const double MATCH_THRESHOLD = 0.44;
 
 // Depth to be consumed by the comparison approximation function
 // Relationship with multiplicative depth described at the below link
@@ -33,4 +33,4 @@ const size_t VECTOR_DIM = 512;
 // Must equal a power of 2
 const size_t CHUNK_LEN = 128;
 
-const std::string EXP_FILEPATH = "experiment.csv";
+const std::string EXP_FILEPATH = "latency.csv";
