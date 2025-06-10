@@ -3,7 +3,7 @@
 ### PETS 2025 Artifact – README
 
 This repository contains the full artifact (code + environment) for our PETS 2025 paper titled "HyDia: FHE-based Facial Matching with Hybrid Approximations and Diagonalization".  
-Follow the three short steps below to **build the Docker image, run the five face‑matching approaches, capture their latency/parameter output and generate the figures present in the manuscript**.
+Follow these steps below to  (1) build the Docker image, (2) run the five face‑matching approaches, (3) capture their latency/parameter output and (4) generate the figures present in the manuscript.
 
 ---
 
@@ -16,6 +16,8 @@ cd image_matching
 
 ## 2 · Build the Docker image
 
+If Docker is not installed, please refer to [https://docs.docker.com/engine/install/](Docker Installation) to install Docker for Ubuntu 22.04. The, proceed with building the docker file:
+
 ```
 docker build --tag popets2025-hydia .
 ```
@@ -23,12 +25,11 @@ docker build --tag popets2025-hydia .
 - Installs all system prerequisites on top of Ubuntu 22.04
 (build‑essential, cmake, libomp, etc.).
 
-- Fetches and compiles OpenFHE v1.2.3 (pinned tag).
+- Fetches and compiles OpenFHE v1.2.3.
+
+- Fetches and installs all the dependendies for generating the figures.
 
 - Compiles the project into ```/opt/image_matching/build```.
-
-- Copies a helper script ```run_artifact.sh``` and sets it as the container’s
-ENTRYPOINT.
 
 
 ## 3 · Run the test & capture output
@@ -48,7 +49,7 @@ sudo docker run --rm -v ~/artifact_output:/tmp popets2025-hydia | tee output.log
 
 ## 4 · Using a larger database (optional)
 
-```run_artifact.sh``` inside the container will use a pre-generated small encrypted database of 2<sup>10</sup> facial‐feature vectors. Optionally, the database size can be easily changed to a higher number (up to 2<sup>20</sup>) after that specific amount of vectors are generated using the ```generate_data.sh``` script located under ```/tool```. For instance to generate 2<sup>15</sup>, run ```generate_data.sh "2_15.dat" $((2**15))".
+```run_artifact.sh``` inside the container will use a pre-generated small encrypted database of 2<sup>10</sup> facial‐feature vectors. Optionally, the database size can be easily changed to a higher number (up to 2<sup>20</sup>) after that specific amount of vectors are generated using the ```generate_data.sh``` script located under ```/tool```. For instance to generate 2<sup>15</sup>, run ```generate_data.sh "2_15.dat" $((2**15))```.
 Then, edit ```run_artifact.sh``` to update your changes.
 
 
