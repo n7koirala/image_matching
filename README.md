@@ -119,7 +119,7 @@ The `[APPROACH]` parameter determines which algorithm is used to perform the enc
 
 For instance, try:
 ```bash
-./ImageMatching 0 5
+./ImageMatchingAccuracy 0 5
 ```
 
 This experiment performs the designated approach upon the FRGC 2.0 dataset, reporting the number of true/false positives and negatives produced by the approach. The experiment also reports the number of true/false positives and negatives produced by the facial feature extractor without any encryption, for purposes of comparison.
