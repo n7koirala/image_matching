@@ -1,9 +1,9 @@
 # HyDia: FHE-based Facial Matching with Hybrid Approximations and Diagonalization
 
-### PETS 2025 Artifact – Quick‑Start README
+### PETS 2025 Artifact – README
 
 This repository contains the full artifact (code + environment) for our PETS 2025 paper titled "HyDia: FHE-based Facial Matching with Hybrid Approximations and Diagonalization".  
-Follow the three short steps below to **build the Docker image, run the five face‑matching approaches, and capture their latency/parameter output** in a single log file.
+Follow the three short steps below to **build the Docker image, run the five face‑matching approaches, capture their latency/parameter output and generate the figures present in the manuscript**.
 
 ---
 
@@ -20,24 +20,31 @@ cd image_matching
 docker build --tag popets2025-hydia .
 ```
 
-- **Installs all system prerequisites on top of Ubuntu 22.04
+- Installs all system prerequisites on top of Ubuntu 22.04
 (build‑essential, cmake, libomp, etc.).
 
-- **Fetches and compiles OpenFHE v1.2.3 (pinned tag).
+- Fetches and compiles OpenFHE v1.2.3 (pinned tag).
 
-- **Compiles the project into ```/opt/image_matching/build```.
+- Compiles the project into ```/opt/image_matching/build```.
 
-- **Copies a helper script ```run_artifact.sh``` and sets it as the container’s
+- Copies a helper script ```run_artifact.sh``` and sets it as the container’s
 ENTRYPOINT.
 
 
-## 3 · Run the smoke test & capture output
+## 3 · Run the test & capture output
+
+First create a directory where you want to store the generated figures from the manuscript. 
 
 ```
-docker run --rm popets2025-hydia | tee ./smokeTestLog.txt
+mkdir -p ~/artifacts_output
 ```
 
-The above command will execute all five approaches described in the paper and store the result (latency statistics for the Membership and Index scenarios, FHE parameters used, and basic correctness checks etc.) under ```smokeTestLog.txt```.
+Run the command below to execute all five approaches described in the paper and store the result (latency statistics for the **Membership** and **Index** scenarios, FHE parameters used, and basic correctness checks etc.) under ```output.log```. It then generates all the figures present in manuscript under ```~/artifact_output``` .
+
+```
+sudo docker run --rm -v ~/artifact_output:/tmp popets2025-hydia | tee output.log
+```
+
 
 ## 4 · Using a larger database (optional)
 
@@ -46,59 +53,6 @@ Then, edit ```run_artifact.sh``` to update your changes.
 
 
 
-## OLD README
-
-
-Execute all five approaches described in the paper:
-
-## Introduction
-
-Welcome to the **HyDia** project! This repository contains a comprehensive implementation of two image matching algorithms. The **Membership Scenario** determines whether a query image possesses any matches among a database of images. The **Index Scenario** determines which specific database images, if any, match with a query image.
-
-The primary goal of this project is to provide a robust framework for the comparison and matching of facial representation vectors using advanced cryptographic techniques, specifically homomorphic encryption.
-
-<!For theoretical details of this implementation, refer to this document: [Image Matching Documentation](https://www.overleaf.com/read/cbqxkzbbxjvd#ea7444).>
-
-## Features
-
-- **Homomorphic Encryption**: Leverages the OpenFHE library to perform secure computations on encrypted data.
-- **Parallel Processing**: Supports parallel processing to enhance performance.
-
-## Requirements
-
-- **C++ Compiler**: Ensure you have a modern C++ compiler that supports C++17 or later.
-- **CMake**: Build system generator (version 3.10 or later).
-- **OpenFHE Library**: For homomorphic encryption operations.
-- **Standard Libraries**: Standard libraries for image processing and mathematical computations.
-
-## Installation
-
-### Step-by-Step Guide
-
-1. **Install Dependencies**:
-    Ensure you have all necessary dependencies installed:
-    - OpenFHE
-    - CMake
-    - Standard C++ libraries
-
-2. **Clone the Repository**:
-    ```bash
-    git clone https://github.com/n7koirala/image_matching.git
-    cd image_matching
-    ```
-
-3. **Build the Project**:
-    ```bash
-    mkdir build
-    cd build
-    cmake ..
-    make
-    ```
-
-3. **Set up Experimental Datasets and Tracking File**:
-    ```bash
-    ../tools/setup_experiment.sh
-    ```
 
 ## Usage
 
@@ -240,4 +194,11 @@ SOFTWARE.
 
 ---
 
-This README provides a comprehensive guide to understanding, installing, and contributing to the image matching project. For more detailed information, please refer to the source code and comments within the repository.
+
+
+:warning: 
+## Important Warning: 
+
+This code is designed strictly for academic and research purposes. It has NOT undergone scrutiny by security professionals. No part of this code should be used in any real-world or production setting.
+
+

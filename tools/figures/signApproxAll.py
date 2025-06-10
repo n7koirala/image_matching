@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 
 # Read data from CSV file
-df = pd.read_csv("signApprox.csv")
+df = pd.read_csv("./tools/figures/signApprox.csv")
 
 # Extract columns
 db = df["input"].values
@@ -44,8 +44,8 @@ ax.set_xticks([-1.0, -0.5, 0.0, 0.5, 1.0])
 ax.set_yticks([0.5, 1.0, 1.5, 2.0])
 
 # Save as PDF
-pdf_filename = "signApproxAll.pdf"
+pdf_filename = "/tmp/manuscript_figures/signApproxAll.pdf"
 fig.savefig(pdf_filename, format="pdf", dpi=300, bbox_inches="tight")
 
 # Show plot
-plt.show()
+# plt.show()

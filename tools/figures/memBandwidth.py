@@ -5,8 +5,8 @@ import pandas as pd
 import numpy as np
 
 # Read data from CSV file
-dfMem = pd.read_csv("15MembershipTotals.csv")
-dfId = pd.read_csv("15IndexTotals.csv")
+dfMem = pd.read_csv("./tools/figures/15MembershipTotals.csv")
+dfId = pd.read_csv("./tools/figures/15IndexTotals.csv")
 
 # Extract columns
 network = dfMem["Network"].values
@@ -38,9 +38,9 @@ ax.legend(fontsize=16)
 plt.tick_params(axis='both', labelsize=16)
 
 # Save as PDF
-pdf_filename = "membershipBandwidthLarge.pdf"
+pdf_filename = "/tmp/manuscript_figures/membershipBandwidthLarge.pdf"
 fig.savefig(pdf_filename, format="pdf", dpi=300, bbox_inches="tight")
 
 # Show plot
-plt.show()
-pdf_filename
+# plt.show()
+# pdf_filename

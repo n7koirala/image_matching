@@ -5,11 +5,11 @@ import pandas as pd
 import numpy as np
 
 # Read data from CSV file
-df1 = pd.read_csv("approach1.csv")
-df2 = pd.read_csv("approach2.csv")
-df3 = pd.read_csv("approach3.csv")
-df4 = pd.read_csv("approach4.csv")
-df5 = pd.read_csv("approach5.csv")
+df1 = pd.read_csv("./tools/figures/approach1.csv")
+df2 = pd.read_csv("./tools/figures/approach2.csv")
+df3 = pd.read_csv("./tools/figures/approach3.csv")
+df4 = pd.read_csv("./tools/figures/approach4.csv")
+df5 = pd.read_csv("./tools/figures/approach5.csv")
 
 # Extract columns
 db = df1["Database size"].values
@@ -41,8 +41,8 @@ ax.legend(fontsize=14)
 plt.tick_params(axis='both', labelsize=16)
 
 # Save as PDF
-pdf_filename = "membershipScalabilityLarge.pdf"
+pdf_filename = "/tmp/manuscript_figures/membershipScalabilityLarge.pdf"
 fig.savefig(pdf_filename, format="pdf", dpi=300, bbox_inches="tight")
 
 # Show plot
-plt.show()
+# plt.show()
