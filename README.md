@@ -16,7 +16,7 @@ cd image_matching
 
 ## 2 · Build the Docker image
 
-If Docker is not installed, please refer to [https://docs.docker.com/engine/install/](Docker Installation) to install Docker for Ubuntu 22.04. The, proceed with building the docker file:
+If Docker is not installed, please refer to [Docker Installation](https://docs.docker.com/engine/install/) to install Docker for Ubuntu 22.04. Then, proceed with building the docker file:
 
 ```
 docker build --tag popets2025-hydia .
