@@ -43,7 +43,7 @@ mkdir -p ~/artifacts_output
 Run the command below to execute all five approaches described in the paper and store the result (latency statistics for the **Membership** and **Index** scenarios, FHE parameters used, and basic correctness checks etc.) under ```output.log```. It then generates all the figures present in manuscript under ```~/artifact_output``` .
 
 ```
-sudo docker run --rm -v ~/artifact_output:/tmp popets2025-hydia | tee output.log
+docker run --rm -v ~/artifact_output:/tmp popets2025-hydia | tee output.log
 ```
 
 
