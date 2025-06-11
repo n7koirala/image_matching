@@ -4,24 +4,24 @@ Paper title: **HyDia: FHE-based Facial Matching with Hybrid Approximations and D
 
 Artifacts HotCRP Id: **Artifact2025.4 #33** 
 
-Requested Badge: Either **Reproduced**
+Requested Badge: **Reproduced**
 
 ## Description
 A short description of your artifact and how it links to your paper.
 
 ### Security/Privacy Issues and Ethical Concerns (All badges)
 The artifact holds no risk to the security or privacy of the reviewer's machine.
-There is no ethical concerns regarding the artifacts submitted here.
+There are no ethical concerns regarding the artifacts submitted here.
 
 ## Basic Requirements (Only for Functional and Reproduced badges)
 
 ### Hardware Requirements
-Our artifact do not require specific hardware to be executed. All tests were run on a server with an Intel Xeon Gold 5412U processor, 128GB
+Our artifact does not require specific hardware to be executed. All tests were run on a server with an Intel Xeon Gold 5412U processor, 128GB
 RAM and 48 logical cores.
 
 
 ### Software Requirements
-We recommend using an Linux OS version later than Ubuntu 20.04 to run this artifact. The primary dependencies, including OpenFHE and the required Python libraries, will be automatically configured during the Docker image build process. It is necessary to have Docker installed on the machine used for testing.
+We recommend using a Linux OS version later than Ubuntu 20.04 to run this artifact. The primary dependencies, including OpenFHE and the required Python libraries, will be automatically configured during the Docker image build process. It is necessary to have Docker installed on the machine used for testing.
 
 
 ### Estimated Time and Storage Consumption
@@ -32,7 +32,7 @@ The environment should be automatically configured within the Docker container, 
 
 
 ### Accessibility (All badges)
-Our artifact can be access using the main branch of the GitHub link provided in the paper and artifact submission website.
+Our artifact can be accessed using the main branch of the GitHub link provided in the paper and the artifact submission website.
 
 
 ### Set up the environment (Only for Functional and Reproduced badges)
@@ -53,7 +53,7 @@ HyDia is the most viable FHE-based approach in common bandwidth settings (2Mbps 
 
 #### Main Result 1: HyDia is the fastest protocol under low bandwidth settings.
 In Section 7.2 and Figure 6, we can note that HyDia’s average membership computation time is 102.41s and average identification computation time is 96.52s
-for a 2^20 sized database. Hence, HyDia is faster than all four state-of-the-art approaches, demonstrating significant performance improvements over the baseline, GROTE, Blind-Match and HERS approaches in both the membership and identification scenarios across all database sizes
+for a 2^20-sized database. Hence, HyDia is faster than all four state-of-the-art approaches, demonstrating significant performance improvements over the baseline, GROTE, Blind-Match and HERS approaches in both the membership and identification scenarios across all database sizes
 
 
 ### Experiments 
@@ -62,7 +62,7 @@ The entire process—including building the Docker image, executing the scripts,
 
 
 ## Limitations (Only for Functional and Reproduced badges)
-The code above only reproduce the graphs based on the data over a subset of the the FRGC 2.0 RGB dataset and is located inside image_matching/tools/figures. The full set of data can be found in image_matching/HyDia_full_data.zip. The data present in image_matching/tools/figures are obtained using the full set of data. We have not included the full FRGC 2.0 RGB dataset (including the images), as it was provided by the CVRL lab at the University of Notre Dame and may contain private or proprietary content that cannot be publicly shared. Therefore, we record our result based on the obtained data (embeddings) and provide the code to generate graphs based on them, as they are the exact ones we present in the paper.
+The code above only reproduces the graphs based on the data over a subset of the FRGC 2.0 RGB dataset and is located inside image_matching/tools/figures. The full set of data can be found in image_matching/HyDia_full_data.zip. The data present in image_matching/tools/figures are obtained using the full set of data. We have not included the full FRGC 2.0 RGB dataset (including the images), as it was provided by the CVRL lab at the University of Notre Dame and may contain private or proprietary content that cannot be publicly shared. Therefore, we record our results based on the obtained data (embeddings) and provide the code to generate graphs based on them, as they are the exact ones we present in the paper.
 
 
 
