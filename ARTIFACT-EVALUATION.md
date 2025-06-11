@@ -2,7 +2,7 @@
 
 Paper title: **HyDia: FHE-based Facial Matching with Hybrid Approximations and Diagonalization**
 
-Artifacts HotCRP Id: **#Artifact2025.4 #33** 
+Artifacts HotCRP Id: **Artifact2025.4 #33** 
 
 Requested Badge: Either **Reproduced**
 
