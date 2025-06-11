@@ -46,8 +46,15 @@ Run the command below to execute all five approaches described in the paper and 
 docker run --rm -v ~/artifact_output:/tmp popets2025-hydia | tee output.log
 ```
 
+All the figures present in the main manuscript can be obtained under ```~/artifact_output/manuscript_figures```.
 
-## 4 · Using a larger database (optional)
+## Limitations
+The code above only reproduce the graphs based on the data over a subset of the the FRGC 2.0 RGB dataset and is located inside ```image_matching/tools/figures```.  The full set of data can be found in ```image_matching/HyDia_full_data.zip```. The data present in ```image_matching/tools/figures``` are obtained using the full set of data.
+We have not included the full FRGC 2.0 RGB dataset (including the images), as it was provided by the CVRL lab at the University of Notre Dame and may contain private or proprietary content that cannot be publicly shared.
+Therefore, we record our result based on the obtained data (embeddings) and provide the code to generate graphs based on them, as they are the exact ones we present in the paper. 
+
+
+## 4 · Using a larger database (optional) and other features 
 
 ```run_artifact.sh``` inside the container will use a pre-generated small encrypted database of 2<sup>10</sup> facial‐feature vectors. Optionally, the database size can be easily changed to a higher number (up to 2<sup>20</sup>) after that specific amount of vectors are generated using the ```generate_data.sh``` script located under ```/tool```. For instance to generate 2<sup>15</sup>, run ```generate_data.sh "2_15.dat" $((2**15))```.
 Then, edit ```run_artifact.sh``` to update your changes.
