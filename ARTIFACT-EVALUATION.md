@@ -2,7 +2,7 @@
 
 Paper title: **HyDia: FHE-based Facial Matching with Hybrid Approximations and Diagonalization**
 
-Artifacts HotCRP Id: **#Enter your HotCRP Id here** (not your paper Id, but the artifacts id)
+Artifacts HotCRP Id: **#Artifact2025.4 #33** 
 
 Requested Badge: Either **Reproduced**
 
@@ -14,11 +14,6 @@ The artifact holds no risk to the security or privacy of the reviewer's machine.
 There is no ethical concerns regarding the artifacts submitted here.
 
 ## Basic Requirements (Only for Functional and Reproduced badges)
-Minimal hardware: 
-Software Requirement: 
-Estimated Compute time and storage:
-
-Describe the minimal hardware and software requirements of your artifact and estimate the compute time and storage required to run the artifact.
 
 ### Hardware Requirements
 Our artifact do not require specific hardware to be executed. All tests were run on a server with an Intel Xeon Gold 5412U processor, 128GB
@@ -68,7 +63,6 @@ The entire process—including building the Docker image, executing the scripts,
 
 ## Limitations (Only for Functional and Reproduced badges)
 The code above only reproduce the graphs based on the data over a subset of the the FRGC 2.0 RGB dataset and is located inside image_matching/tools/figures. The full set of data can be found in image_matching/HyDia_full_data.zip. The data present in image_matching/tools/figures are obtained using the full set of data. We have not included the full FRGC 2.0 RGB dataset (including the images), as it was provided by the CVRL lab at the University of Notre Dame and may contain private or proprietary content that cannot be publicly shared. Therefore, we record our result based on the obtained data (embeddings) and provide the code to generate graphs based on them, as they are the exact ones we present in the paper.
-
 
 
 
